@@ -36,6 +36,7 @@
 
 html {
   scroll-behavior: smooth;
+  font-size: 112.5%; /* 18px base — scales all rem units up ~12% */
 }
 
 body {
