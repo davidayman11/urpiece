@@ -13,8 +13,7 @@ export default async function PagesAdminPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
   const sections = await prisma.siteSection.findMany({
-    where: { pageSlug: "home" },
-    orderBy: { sortOrder: "asc" },
+    orderBy: [{ pageSlug: "asc" }, { sortOrder: "asc" }],
   });
   return <AdminLayout><PagesClient sections={sections} /></AdminLayout>;
 }

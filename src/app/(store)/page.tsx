@@ -37,13 +37,7 @@ export default async function HomePage() {
 
   const heroContent = heroSection
     ? parseJson<Record<string, string>>(heroSection.content, {})
-    : {
-        heading: "Your Glow,\nYour Piece.",
-        subheading: "Premium jewelry curated for the woman who knows her worth.",
-        buttonText: "Shop Now",
-        buttonUrl: "/shop",
-        image: "",
-      };
+    : {};
 
   return (
     <div className="bg-[#F5EFE2]">

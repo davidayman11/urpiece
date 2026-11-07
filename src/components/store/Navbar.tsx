@@ -13,7 +13,7 @@ const NAV_LINKS = [
   ["My Orders", "/orders"],
 ] as const;
 
-export default function Navbar() {
+export default function Navbar({ tagline = "" }: { tagline?: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -157,9 +157,11 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div className="mt-auto px-6 pb-8">
-            <p className="text-xs text-[#8A7E6E]/60 tracking-wider italic font-serif">Your Glow, Your Piece</p>
-          </div>
+          {tagline && (
+            <div className="mt-auto px-6 pb-8">
+              <p className="text-xs text-[#8A7E6E]/60 tracking-wider italic font-serif">{tagline}</p>
+            </div>
+          )}
         </nav>
       </div>
     </>
