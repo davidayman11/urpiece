@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,14 +40,10 @@ export async function POST(req: NextRequest) {
     // Handle screenshot upload
     let screenshotPath: string | null = null;
     if (screenshot) {
-      const bytes = await screenshot.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const ext = screenshot.type === "image/png" ? ".png" : ".jpg";
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-      const uploadDir = path.join(process.cwd(), "public", "uploads", "payments");
-      await mkdir(uploadDir, { recursive: true });
-      await writeFile(path.join(uploadDir, filename), buffer);
-      screenshotPath = `/uploads/payments/${filename}`;
+      const ext = screenshot.type === "image/png" ? "png" : "jpg";
+      const filename = `payments/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const blob = await put(filename, screenshot, { access: "public" });
+      screenshotPath = blob.url;
     }
 
     // Find or create customer
