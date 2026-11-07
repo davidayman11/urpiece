@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  address   String?
+  city      String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  images      String      @default("[]")
+  categoryId  String?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  variants    Variant[]
+  isActive    Boolean     @default(true)
+  isFeatured  Boolean     @default(false)
+  tags        String      @default("[]")
+  views       Int         @default(0)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Variant {
+  id         String      @id @default(cuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String
+  options    String      @default("{}")
+  price      Float
+  costPrice  Float
+  inventory  Int         @default(0)
+  sku        String?
+  isActive   Boolean     @default(true)
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Order {
+  id                String              @id @default(cuid())
+  orderNumber       String              @unique
+  customerId        String?
+  customer          Customer?           @relation(fields: [customerId], references: [id])
+  customerName      String
+  customerEmail     String
+  customerPhone     String?
+  shippingAddress   String
+  items             OrderItem[]
+  subtotal          Float
+  discount          Float               @default(0)
+  shippingFee       Float               @default(0)
+  total             Float
+  promoCodeId       String?
+  promoCode         PromoCode?          @relation(fields: [promoCodeId], references: [id])
+  promoCodeUsed     String?
+  status            String              @default("PENDING")
+  paymentStatus     String              @default("AWAITING_UPLOAD")
+  paymentScreenshot String?
+  rejectionReason   String?
+  adminNotes        String?
+  notes             OrderNote[]
+  statusHistory     OrderStatusHistory[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  variantId   String?
+  variant     Variant? @relation(fields: [variantId], references: [id])
+  productName String
+  variantName String?
+  price       Float
+  costPrice   Float
+  quantity    Int
+}
+
+model OrderNote {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  content   String
+  isAdmin   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model PromoCode {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  discountType   String   @default("PERCENTAGE")
+  discountValue  Float
+  minOrderAmount Float?
+  maxDiscount    Float?
+  usageLimit     Int?
+  usedCount      Int      @default(0)
+  isActive       Boolean  @default(true)
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  productIds     String   @default("[]")
+  categoryIds    String   @default("[]")
+  orders         Order[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Popup {
+  id          String    @id @default(cuid())
+  title       String
+  image       String?
+  heading     String?
+  body        String?
+  buttonText  String?
+  buttonUrl   String?
+  frequency   String    @default("ONCE_PER_SESSION")
+  pages       String    @default("[\"*\"]")
+  isActive    Boolean   @default(true)
+  startsAt    DateTime?
+  expiresAt   DateTime?
+  views       Int       @default(0)
+  clicks      Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SiteSection {
+  id        String   @id @default(cuid())
+  pageSlug  String
+  type      String
+  content   String   @default("{}")
+  isVisible Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  category    String
+  description String?
+  amount      Float
+  date        DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MonthlyReport {
+  id            String   @id @default(cuid())
+  year          Int
+  month         Int
+  totalRevenue  Float
+  totalCOGS     Float
+  grossProfit   Float
+  totalExpenses Float
+  netProfit     Float
+  orderCount    Int
+  data          String   @default("{}")
+  generatedAt   DateTime @default(now())
+
+  @@unique([year, month])
+}
+
+model PaymentSettings {
+  id          String   @id @default(cuid())
+  instapayId  String?
+  instapayPhone String?
+  instructions String?
+  updatedAt   DateTime @updatedAt
+}
