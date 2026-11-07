@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -18,15 +17,11 @@ export async function POST(req: NextRequest) {
   if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
   if (file.size > MAX_SIZE) return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const folder = (fd.get("folder") as string) || "general";
-  const uploadDir = path.join(process.cwd(), "public", "uploads", folder);
+  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+  const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(path.join(uploadDir, filename), buffer);
+  const blob = await put(filename, file, { access: "public" });
 
-  return NextResponse.json({ url: `/uploads/${folder}/${filename}` });
+  return NextResponse.json({ url: blob.url });
 }

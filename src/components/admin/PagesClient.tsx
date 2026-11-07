@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { parseJson } from "@/lib/utils";
 import type { SiteSection } from "@prisma/client";
@@ -33,6 +34,18 @@ export default function PagesClient({ sections: initial }: { sections: SiteSecti
   const [isVisible, setIsVisible] = useState(true);
   const [sortOrder, setSortOrder] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const uploadImage = async (file: File, field: string) => {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", "sections");
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.url) setContent((c) => ({ ...c, [field]: data.url }));
+    setUploading(false);
+  };
 
   const openCreate = () => {
     setEditId(null);
@@ -150,13 +163,28 @@ export default function PagesClient({ sections: initial }: { sections: SiteSecti
                 <div key={field}>
                   <label className="text-xs text-gray-500 mb-1 block capitalize">{field.replace(/([A-Z])/g, " $1")}</label>
                   {field === "image" ? (
-                    <input
-                      type="text"
-                      value={content[field] || ""}
-                      onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
-                      placeholder="Image URL (paste URL or upload via /api/upload)"
-                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
-                    />
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={content[field] || ""}
+                        onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
+                        placeholder="Paste image URL…"
+                        className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                      />
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          {uploading ? "Uploading…" : "Upload photo"}
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0], field)} />
+                        </label>
+                        {content[field] && <span className="text-xs text-green-600">✓ Image set</span>}
+                      </div>
+                      {content[field] && (
+                        <div className="relative h-24 rounded overflow-hidden border border-gray-100">
+                          <Image src={content[field]} alt="" fill className="object-cover" />
+                        </div>
+                      )}
+                    </div>
                   ) : field === "buttonUrl" ? (
                     <select
                       value={content[field] || ""}
