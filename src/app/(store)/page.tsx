@@ -45,17 +45,17 @@ export default async function HomePage() {
     <div className="bg-[#F5EFE2]">
       <HeroSection content={heroContent} />
 
-      {categories.length > 0 && (
+      {categoriesSection && categories.length > 0 && (
         <CategoryGrid
           categories={categories as Category[]}
-          content={categoriesSection ? parseJson<Record<string, string>>(categoriesSection.content, {}) : undefined}
+          content={parseJson<Record<string, string>>(categoriesSection.content, {})}
         />
       )}
 
-      {featured.length > 0 && (
+      {featuredSection && featured.length > 0 && (
         <FeaturedProducts
           products={featured as (Product & { variants: Variant[]; category: Category | null })[]}
-          content={featuredSection ? parseJson<Record<string, string>>(featuredSection.content, {}) : undefined}
+          content={parseJson<Record<string, string>>(featuredSection.content, {})}
         />
       )}
 
