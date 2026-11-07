@@ -2,30 +2,45 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Category } from "@prisma/client";
 
-export default function CategoryGrid({ categories }: { categories: Category[] }) {
+interface Props {
+  categories: Category[];
+  content?: Record<string, string>;
+}
+
+export default function CategoryGrid({ categories, content = {} }: Props) {
   if (categories.length === 0) return null;
+
+  const eyebrow = content.eyebrow || "Collections";
+  const heading = content.heading || "Shop by Category";
+  const linkText = content.linkText || "All Pieces";
 
   return (
     <section className="bg-[#F5EFE2] py-20">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2 flex items-center gap-3">
-              <span className="w-6 h-px bg-[#A8975E]" /> Collections
-            </p>
-            <h2 className="font-serif text-4xl md:text-5xl font-light text-[#1C1711]">
-              Shop by Category
-            </h2>
+            {eyebrow && (
+              <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2 flex items-center gap-3">
+                <span className="w-6 h-px bg-[#A8975E]" /> {eyebrow}
+              </p>
+            )}
+            {heading && (
+              <h2 className="font-serif text-4xl md:text-5xl font-light text-[#1C1711]">
+                {heading}
+              </h2>
+            )}
           </div>
-          <Link
-            href="/shop"
-            className="hidden md:flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors border-b border-[#5A5040]/30 pb-0.5 hover:border-[#A8975E]"
-          >
-            All Pieces
-            <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-              <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
-          </Link>
+          {linkText && (
+            <Link
+              href="/shop"
+              className="hidden md:flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors border-b border-[#5A5040]/30 pb-0.5 hover:border-[#A8975E]"
+            >
+              {linkText}
+              <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            </Link>
+          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

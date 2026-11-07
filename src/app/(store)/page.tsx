@@ -32,6 +32,8 @@ export default async function HomePage() {
   const { sections, featured, categories } = await getHomeData();
 
   const heroSection = sections.find((s: SiteSection) => s.type === "hero");
+  const categoriesSection = sections.find((s: SiteSection) => s.type === "categories");
+  const featuredSection = sections.find((s: SiteSection) => s.type === "featured");
   const editorialSection = sections.find((s: SiteSection) => s.type === "editorial");
   const bannerSection = sections.find((s: SiteSection) => s.type === "banner");
 
@@ -44,12 +46,16 @@ export default async function HomePage() {
       <HeroSection content={heroContent} />
 
       {categories.length > 0 && (
-        <CategoryGrid categories={categories as Category[]} />
+        <CategoryGrid
+          categories={categories as Category[]}
+          content={categoriesSection ? parseJson<Record<string, string>>(categoriesSection.content, {}) : undefined}
+        />
       )}
 
       {featured.length > 0 && (
         <FeaturedProducts
           products={featured as (Product & { variants: Variant[]; category: Category | null })[]}
+          content={featuredSection ? parseJson<Record<string, string>>(featuredSection.content, {}) : undefined}
         />
       )}
 

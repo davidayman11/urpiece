@@ -39,8 +39,12 @@ const SECTION_TYPES = [
     fields: ["eyebrow", "heading", "body", "buttonText", "buttonUrl", "image"],
   },
   {
-    type: "featured", label: "Featured Products", page: "home",
-    fields: ["heading", "subheading"],
+    type: "categories", label: "Shop by Category Section", page: "home",
+    fields: ["eyebrow", "heading", "linkText"],
+  },
+  {
+    type: "featured", label: "Featured Products Section", page: "home",
+    fields: ["eyebrow", "heading", "linkText"],
   },
   {
     type: "about", label: "About Page Content", page: "about",
@@ -74,6 +78,7 @@ const FIELD_LABELS: Record<string, string> = {
   paymentNote: "Payment Info",
   shippingNote: "Shipping Info",
   copyright: "Copyright Line",
+  linkText: "Link Text (e.g. All Pieces / View All)",
 };
 
 const TEXTAREA_FIELDS = new Set(["body", "subheading", "brandDescription", "paymentNote", "shippingNote", "copyright", "quote"]);
