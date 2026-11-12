@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useT, Txt } from "@/components/store/TextsProvider";
+import { useT, Txt, useLang } from "@/components/store/TextsProvider";
+import { cx } from "@/lib/localize";
 
 interface Props {
   content: Record<string, string>;
@@ -11,6 +12,7 @@ interface Props {
 
 export default function HeroSection({ content }: Props) {
   const t = useT();
+  const lang = useLang();
   const textRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -27,13 +29,13 @@ export default function HeroSection({ content }: Props) {
     return () => clearTimeout(t);
   }, []);
 
-  const heading = content.heading || "";
+  const heading = cx(content, "heading", lang);
   const lines = heading.split("\n");
-  const tagline = content.tagline || "";
-  const subheading = content.subheading || "";
-  const buttonText = content.buttonText || "";
+  const tagline = cx(content, "tagline", lang);
+  const subheading = cx(content, "subheading", lang);
+  const buttonText = cx(content, "buttonText", lang);
   const buttonUrl = content.buttonUrl || "/shop";
-  const secondaryText = content.secondaryText || "";
+  const secondaryText = cx(content, "secondaryText", lang);
   const secondaryUrl = content.secondaryUrl || "/about";
 
   // Banner height is chosen in the admin (Pages & Sections > Hero). A shorter banner lets the next
@@ -54,7 +56,7 @@ export default function HeroSection({ content }: Props) {
       {content.image ? (
         <>
           <Image src={content.image} alt={t("home.hero.imageAlt")} fill className="object-cover" priority quality={90} />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#1C1711]/80 via-[#1C1711]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r rtl:bg-gradient-to-l from-[#1C1711]/80 via-[#1C1711]/40 to-transparent" />
         </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-[#EDE6D4] via-[#F5EFE2] to-[#DDD0A6]/40" />
@@ -109,7 +111,7 @@ export default function HeroSection({ content }: Props) {
                 >
                   {buttonText}
                   <svg width="14" height="10" viewBox="0 0 14 10" fill="none"
-                    className="transition-transform group-hover:translate-x-1 duration-300">
+                    className="flip-rtl transition-transform group-hover:translate-x-1 duration-300">
                     <path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </Link>

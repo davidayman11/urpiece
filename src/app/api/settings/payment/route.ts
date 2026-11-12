@@ -9,6 +9,7 @@ export async function GET() {
     instapayId: settings.instapayId,
     instapayPhone: settings.instapayPhone,
     instructions: settings.instructions,
+    instructionsAr: settings.instructionsAr,
     fieldModes: parseFieldModes(settings.requiredFields),
     customFields: parseCustomFields(settings.customFields),
     fieldOrder: resolveFieldOrder(settings.fieldOrder, parseCustomFields(settings.customFields).map((f) => f.id)),

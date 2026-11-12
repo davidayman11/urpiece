@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { TEXT_DEFAULTS, TEXT_DEFS, normalizeSections } from "@/lib/texts";
+import { TEXT_DEFAULTS, AR_DEFAULTS, TEXT_DEFS, normalizeSections } from "@/lib/texts";
+import { AR_PREFIX } from "@/lib/texts/server";
 import { normalizeTextStyles } from "@/lib/fonts";
 
 /**
- * Save the texts the admin edited. Body: { values: { [key]: string } }.
+ * Save the texts the admin edited. Body: { lang?: "en" | "ar", values: { [key]: string } }.
  * A value that is empty or equal to the default removes the override (the default is used again).
+ * Arabic edits are stored under "ar:<key>"; their default is the built-in Arabic wording (or the English text).
  */
 export async function PUT(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
   const body = await req.json().catch(() => ({}));
+  const lang: "en" | "ar" = body?.lang === "ar" ? "ar" : "en";
+  const dbKey = (key: string) => (lang === "ar" ? `${AR_PREFIX}${key}` : key);
+  const defaultOf = (key: string) => (lang === "ar" ? AR_DEFAULTS[key] ?? TEXT_DEFAULTS[key] : TEXT_DEFAULTS[key]);
   const values: Record<string, unknown> = body?.values && typeof body.values === "object" ? body.values : {};
 
   const upserts: { key: string; value: string }[] = [];
@@ -23,13 +28,13 @@ export async function PUT(req: NextRequest) {
       let parsed: unknown = [];
       try { parsed = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { /* treated as empty */ }
       const clean = normalizeSections(parsed);
-      if (clean.length === 0) removes.push(key);
-      else upserts.push({ key, value: JSON.stringify(clean) });
+      if (clean.length === 0) removes.push(dbKey(key));
+      else upserts.push({ key: dbKey(key), value: JSON.stringify(clean) });
       continue;
     }
     const value = String(raw ?? "").replace(/\r\n/g, "\n").trim().slice(0, 3000);
-    if (!value || value === TEXT_DEFAULTS[key]) removes.push(key);
-    else upserts.push({ key, value });
+    if (!value || value === defaultOf(key)) removes.push(dbKey(key));
+    else upserts.push({ key: dbKey(key), value });
   }
 
   // font / bold / underline chosen for individual texts

@@ -8,7 +8,7 @@ import { EGYPT_GOVERNORATES } from "@/lib/checkout-fields";
 import type { Governorate, ShippingZone } from "@prisma/client";
 
 type Gov = Governorate & { zones: ShippingZone[] };
-type Edit = { city: string; price: string; isActive: boolean };
+type Edit = { city: string; cityAr: string; price: string; isActive: boolean };
 
 const card = "bg-white rounded-lg border border-gray-100";
 const inp = "border border-gray-200 rounded px-3 py-2 text-sm";
@@ -19,9 +19,11 @@ export default function ShippingClient({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [govName, setGovName] = useState("");
+  const [govNameAr, setGovNameAr] = useState("");
+  const [newCityAr, setNewCityAr] = useState<Record<string, string>>({});
   const [govPrice, setGovPrice] = useState("");
   const [bulkPrice, setBulkPrice] = useState("");
-  const [govEdits, setGovEdits] = useState<Record<string, { name: string; isActive: boolean; price: string }>>({});
+  const [govEdits, setGovEdits] = useState<Record<string, { name: string; nameAr: string; isActive: boolean; price: string }>>({});
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [newCity, setNewCity] = useState<Record<string, string>>({});
   const [assign, setAssign] = useState<Record<string, string>>({});
@@ -46,7 +48,7 @@ export default function ShippingClient({
   /* ---------- governorates ---------- */
   const addGov = async () => {
     if (!govName.trim()) return alert("Enter a governorate name");
-    if (await call("/api/admin/governorates", "POST", { name: govName, shippingPrice: parseFloat(govPrice) || 0 })) { setGovName(""); setGovPrice(""); }
+    if (await call("/api/admin/governorates", "POST", { name: govName, nameAr: govNameAr, shippingPrice: parseFloat(govPrice) || 0 })) { setGovName(""); setGovNameAr(""); setGovPrice(""); }
   };
   const hiddenGovs = governorates.filter((g) => !g.isActive);
   const showAllHidden = async () => {
@@ -62,7 +64,7 @@ export default function ShippingClient({
   const saveGov = async (g: Gov) => {
     const e = govEdits[g.id];
     if (!e) return;
-    if (await call(`/api/admin/governorates/${g.id}`, "PUT", { name: e.name, isActive: e.isActive, shippingPrice: parseFloat(e.price) || 0 })) {
+    if (await call(`/api/admin/governorates/${g.id}`, "PUT", { name: e.name, nameAr: e.nameAr, isActive: e.isActive, shippingPrice: parseFloat(e.price) || 0 })) {
       setGovEdits((s) => { const n = { ...s }; delete n[g.id]; return n; });
     }
   };
@@ -75,14 +77,15 @@ export default function ShippingClient({
   const addCity = async (g: Gov) => {
     const name = (newCity[g.id] || "").trim();
     if (!name) return alert("Enter a city name");
-    if (await call("/api/admin/shipping", "POST", { city: name, price: 0, governorateId: g.id })) {
+    if (await call("/api/admin/shipping", "POST", { city: name, cityAr: newCityAr[g.id] || "", price: 0, governorateId: g.id })) {
       setNewCity((s) => ({ ...s, [g.id]: "" }));
+      setNewCityAr((s) => ({ ...s, [g.id]: "" }));
     }
   };
   const saveCity = async (z: ShippingZone, governorateId: string | null) => {
     const e = edits[z.id];
     if (!e) return;
-    if (await call(`/api/admin/shipping/${z.id}`, "PUT", { city: e.city, price: parseFloat(e.price) || 0, isActive: e.isActive, governorateId })) {
+    if (await call(`/api/admin/shipping/${z.id}`, "PUT", { city: e.city, cityAr: e.cityAr, price: parseFloat(e.price) || 0, isActive: e.isActive, governorateId })) {
       setEdits((s) => { const n = { ...s }; delete n[z.id]; return n; });
     }
   };
@@ -93,17 +96,18 @@ export default function ShippingClient({
   const assignCity = async (z: ShippingZone) => {
     const gid = assign[z.id];
     if (!gid) return alert("Choose a governorate");
-    await call(`/api/admin/shipping/${z.id}`, "PUT", { city: z.city, price: z.price, isActive: z.isActive, governorateId: gid });
+    await call(`/api/admin/shipping/${z.id}`, "PUT", { city: z.city, cityAr: z.cityAr, price: z.price, isActive: z.isActive, governorateId: gid });
   };
 
   /** City under a governorate: just a name (the price belongs to the governorate) */
   const cityNameRow = (z: ShippingZone, governorateId: string) => {
-    const e = edits[z.id] ?? { city: z.city, price: String(z.price), isActive: z.isActive };
+    const e = edits[z.id] ?? { city: z.city, cityAr: z.cityAr || "", price: String(z.price), isActive: z.isActive };
     const dirty = !!edits[z.id];
     const set = (patch: Partial<Edit>) => setEdits((s) => ({ ...s, [z.id]: { ...e, ...patch } }));
     return (
       <div key={z.id} className="flex items-center gap-2">
         <input value={e.city} onChange={(ev) => set({ city: ev.target.value })} className={`flex-1 ${inp}`} aria-label="City name" />
+        <input dir="rtl" value={e.cityAr} onChange={(ev) => set({ cityAr: ev.target.value })} placeholder="بالعربية (optional)" className={`w-36 ${inp}`} aria-label="City name (Arabic)" />
         <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
           <input type="checkbox" checked={e.isActive} onChange={(ev) => set({ isActive: ev.target.checked })} /> Shown
         </label>
@@ -116,12 +120,13 @@ export default function ShippingClient({
   };
 
   const cityRow = (z: ShippingZone, governorateId: string | null, extra?: React.ReactNode) => {
-    const e = edits[z.id] ?? { city: z.city, price: String(z.price), isActive: z.isActive };
+    const e = edits[z.id] ?? { city: z.city, cityAr: z.cityAr || "", price: String(z.price), isActive: z.isActive };
     const dirty = !!edits[z.id];
     const set = (patch: Partial<Edit>) => setEdits((s) => ({ ...s, [z.id]: { ...e, ...patch } }));
     return (
       <div key={z.id} className="flex flex-col sm:flex-row sm:items-center gap-2">
         <input value={e.city} onChange={(ev) => set({ city: ev.target.value })} className={`flex-1 ${inp}`} />
+        <input dir="rtl" value={e.cityAr} onChange={(ev) => set({ cityAr: ev.target.value })} placeholder="بالعربية (optional)" className={`sm:w-40 ${inp}`} aria-label="City name (Arabic)" />
         <input
           type="number" min="0" value={e.price} onChange={(ev) => set({ price: ev.target.value })}
           className={`sm:w-28 ${inp}`} title={formatPrice(parseFloat(e.price) || 0)} aria-label="Shipping price"
@@ -161,6 +166,10 @@ export default function ShippingClient({
           <input
             value={govName} onChange={(e) => setGovName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addGov()}
             placeholder="Governorate (e.g. Cairo)" className={`flex-1 ${inp}`}
+          />
+          <input
+            dir="rtl" value={govNameAr} onChange={(e) => setGovNameAr(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addGov()}
+            placeholder="بالعربية (optional)" aria-label="Governorate (Arabic)" className={`sm:w-40 ${inp}`}
           />
           <input
             type="number" min="0" value={govPrice} onChange={(e) => setGovPrice(e.target.value)}
@@ -203,7 +212,7 @@ export default function ShippingClient({
 
       {/* Governorates */}
       {governorates.map((g) => {
-        const ge = govEdits[g.id] ?? { name: g.name, isActive: g.isActive, price: String(g.shippingPrice) };
+        const ge = govEdits[g.id] ?? { name: g.name, nameAr: g.nameAr || "", isActive: g.isActive, price: String(g.shippingPrice) };
         const gDirty = !!govEdits[g.id];
         const setGe = (patch: Partial<typeof ge>) => setGovEdits((s) => ({ ...s, [g.id]: { ...ge, ...patch } }));
         const nc = newCity[g.id] ?? "";
@@ -211,6 +220,7 @@ export default function ShippingClient({
           <section key={g.id} className={card}>
             <div className="flex flex-wrap items-center gap-2 p-4 border-b border-gray-50 bg-gray-50/60 rounded-t-lg">
               <input value={ge.name} onChange={(e) => setGe({ name: e.target.value })} className={`flex-1 min-w-[10rem] font-medium ${inp}`} aria-label="Governorate name" />
+              <input dir="rtl" value={ge.nameAr} onChange={(e) => setGe({ nameAr: e.target.value })} placeholder="بالعربية (optional)" className={`w-36 ${inp}`} aria-label="Governorate name (Arabic)" />
               <label className="flex items-center gap-1.5 text-xs text-gray-500">
                 Shipping
                 <input
@@ -245,6 +255,11 @@ export default function ShippingClient({
                   value={nc} onChange={(e) => setNewCity((st) => ({ ...st, [g.id]: e.target.value }))}
                   onKeyDown={(e) => e.key === "Enter" && addCity(g)}
                   placeholder={`Add a city in ${g.name}`} className={`flex-1 ${inp}`}
+                />
+                <input
+                  dir="rtl" value={newCityAr[g.id] ?? ""} onChange={(e) => setNewCityAr((st) => ({ ...st, [g.id]: e.target.value }))}
+                  onKeyDown={(e) => e.key === "Enter" && addCity(g)}
+                  placeholder="بالعربية (optional)" aria-label="City name (Arabic)" className={`w-36 ${inp}`}
                 />
                 <button onClick={() => addCity(g)} disabled={busy} className="px-4 py-2 bg-[#A8975E] text-white rounded text-sm hover:bg-[#8A7A4A] disabled:opacity-60">
                   Add city

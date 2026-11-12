@@ -8,6 +8,7 @@ import { parseFieldModes, parseCustomFields } from "@/lib/checkout-fields";
 import { getCustomer } from "@/lib/customer-auth";
 import { loadShipping } from "@/lib/shipping";
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
 
 export async function POST(req: NextRequest) {
   const t = await getT();
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Every price, discount and the shipping fee are computed on the server
     let rawItems: { variantId: string; quantity: number }[] = [];
     try { rawItems = JSON.parse(itemsJson); } catch { return bad(t("checkout.msg.invalidCart")); }
-    const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true, signedIn: !!account }, t);
+    const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true, signedIn: !!account, lang: await getLang() }, t);
     // Stock is checked per variant across ALL lines (a bundle and a normal purchase can share a variant)
     const wanted = new Map<string, { qty: number; stock: number; name: string }>();
     for (const l of quote.lines) {

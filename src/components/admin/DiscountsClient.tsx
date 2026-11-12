@@ -14,11 +14,11 @@ interface Settings {
 }
 
 interface RuleForm {
-  name: string; minAmount: string; type: "PERCENT" | "FIXED"; value: string;
+  name: string; nameAr: string; minAmount: string; type: "PERCENT" | "FIXED"; value: string;
   isActive: boolean; startsAt: string; endsAt: string;
 }
 
-const emptyRule = (): RuleForm => ({ name: "", minAmount: "", type: "PERCENT", value: "", isActive: true, startsAt: "", endsAt: "" });
+const emptyRule = (): RuleForm => ({ name: "", nameAr: "", minAmount: "", type: "PERCENT", value: "", isActive: true, startsAt: "", endsAt: "" });
 
 const toLocal = (d?: Date | string | null) => {
   if (!d) return "";
@@ -80,7 +80,7 @@ export default function DiscountsClient({
   const openEdit = (r: DiscountRule) => {
     setEditId(r.id);
     setForm({
-      name: r.name, minAmount: r.minAmount ? String(r.minAmount) : "", type: r.type === "FIXED" ? "FIXED" : "PERCENT",
+      name: r.name, nameAr: r.nameAr || "", minAmount: r.minAmount ? String(r.minAmount) : "", type: r.type === "FIXED" ? "FIXED" : "PERCENT",
       value: String(r.value), isActive: r.isActive, startsAt: toLocal(r.startsAt), endsAt: toLocal(r.endsAt),
     });
     setModal("edit");
@@ -243,6 +243,11 @@ export default function DiscountsClient({
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Name (shown to customers)</label>
                 <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Spend 800, save 10%"
+                  className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Name (Arabic)</label>
+                <input dir="rtl" value={form.nameAr} onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))} placeholder="بالعربية (optional)"
                   className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-3">

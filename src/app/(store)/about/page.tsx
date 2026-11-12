@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
+import { cx } from "@/lib/localize";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -12,12 +14,13 @@ export default async function AboutPage() {
   const section = await prisma.siteSection.findFirst({
     where: { pageSlug: "about", type: "about", isVisible: true },
   });
+  const lang = await getLang();
   const c = section ? parseJson<Record<string, string>>(section.content, {}) : {};
 
-  const eyebrow = c.eyebrow || "Our Story";
-  const heading = c.heading || "About UrPiece";
-  const paragraphs = (c.body || "UrPiece was born from a belief that every woman deserves pieces that reflect her inner radiance.\n\nEach piece in our collection is chosen with care — for quality, craftsmanship, and the feeling it gives when you wear it.\n\nWe're committed to making premium pieces accessible, with a personal shopping experience and careful attention to every order.").split(/\n\n+/);
-  const quote = c.quote || "";
+  const eyebrow = cx(c, "eyebrow", lang) || "Our Story";
+  const heading = cx(c, "heading", lang) || "About UrPiece";
+  const paragraphs = (cx(c, "body", lang) || "UrPiece was born from a belief that every woman deserves pieces that reflect her inner radiance.\n\nEach piece in our collection is chosen with care — for quality, craftsmanship, and the feeling it gives when you wear it.\n\nWe're committed to making premium pieces accessible, with a personal shopping experience and careful attention to every order.").split(/\n\n+/);
+  const quote = cx(c, "quote", lang) || "";
 
   return (
     <div data-font-area="about" className="pt-28 pb-24 min-h-screen">

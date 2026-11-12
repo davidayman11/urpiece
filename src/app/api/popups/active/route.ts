@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getLang } from "@/lib/lang-server";
+import { L } from "@/lib/localize";
 
 export async function GET() {
   const now = new Date();
@@ -15,5 +17,11 @@ export async function GET() {
   });
 
   if (!popup) return NextResponse.json(null);
-  return NextResponse.json(popup);
+  const lang = await getLang();
+  return NextResponse.json({
+    ...popup,
+    heading: L(lang, popup.heading, popup.headingAr),
+    body: L(lang, popup.body, popup.bodyAr),
+    buttonText: L(lang, popup.buttonText, popup.buttonTextAr),
+  });
 }

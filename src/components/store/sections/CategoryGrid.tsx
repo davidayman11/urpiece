@@ -4,6 +4,8 @@ import type { Category } from "@prisma/client";
 
 
 import { Txt } from "@/components/store/TextsProvider";
+import { getLang } from "@/lib/lang-server";
+import { cx, L } from "@/lib/localize";
 interface Props {
   categories: Category[];
   content?: Record<string, string>;
@@ -11,9 +13,10 @@ interface Props {
 
 export default async function CategoryGrid({ categories, content = {} }: Props) {
   if (categories.length === 0) return null;
-  const eyebrow = content.eyebrow || "Collections";
-  const heading = content.heading || "Shop by Category";
-  const linkText = content.linkText || "All Pieces";
+  const lang = await getLang();
+  const eyebrow = cx(content, "eyebrow", lang) || "Collections";
+  const heading = cx(content, "heading", lang) || "Shop by Category";
+  const linkText = cx(content, "linkText", lang) || "All Pieces";
 
   return (
     <section data-font-area="categories" className="bg-[#F5EFE2] py-20">
@@ -37,7 +40,7 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
               className="hidden md:flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors border-b border-[#5A5040]/30 pb-0.5 hover:border-[#A8975E]"
             >
               {linkText}
-              <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+              <svg className="flip-rtl" width="12" height="8" viewBox="0 0 12 8" fill="none">
                 <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
               </svg>
             </Link>
@@ -56,7 +59,7 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
               {cat.image ? (
                 <Image
                   src={cat.image}
-                  alt={cat.name}
+                  alt={L(lang, cat.name, cat.nameAr)}
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
@@ -73,16 +76,16 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
               {/* Text */}
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 <p className="font-serif text-xl md:text-2xl font-light text-[#F5EFE2] group-hover:text-[#C4B07A] transition-colors duration-300">
-                  {cat.name}
+                  {L(lang, cat.name, cat.nameAr)}
                 </p>
                 {cat.description && (
                   <p className="text-[10px] text-[#C4B07A]/70 mt-1 tracking-wide line-clamp-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    {cat.description}
+                    {L(lang, cat.description, cat.descriptionAr)}
                   </p>
                 )}
                 <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-1 group-hover:translate-y-0">
                   <span className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E]"><Txt k="home.categories.shopNow" /></span>
-                  <svg width="10" height="7" viewBox="0 0 10 7" fill="none">
+                  <svg className="flip-rtl" width="10" height="7" viewBox="0 0 10 7" fill="none">
                     <path d="M1 3.5h8M6 1l3 2.5L6 6" stroke="#A8975E" strokeWidth="1" strokeLinecap="round" />
                   </svg>
                 </div>

@@ -1,12 +1,16 @@
 import Link from "next/link";
+import { getLang } from "@/lib/lang-server";
+import { cx } from "@/lib/localize";
 import BundleCard from "@/components/store/BundleCard";
 import type { BundleView } from "@/lib/bundles";
 
-export default function BundlesSection({ bundles, content = {} }: { bundles: BundleView[]; content?: Record<string, string> }) {
+export default async function BundlesSection({ bundles, content = {} }: { bundles: BundleView[]; content?: Record<string, string> }) {
   if (bundles.length === 0) return null;
-  const eyebrow = content.eyebrow ?? "Better together";
-  const heading = content.heading ?? "Bundles";
-  const linkText = content.linkText ?? "All bundles";
+  const lang = await getLang();
+  const pick = (f: string, d: string) => (content[f] === undefined ? d : cx(content, f, lang));
+  const eyebrow = pick("eyebrow", "Better together");
+  const heading = pick("heading", "Bundles");
+  const linkText = pick("linkText", "All bundles");
   return (
     <section data-font-area="bundles" className="bg-[#F5EFE2] py-20">
       <div className="max-w-7xl mx-auto px-6">

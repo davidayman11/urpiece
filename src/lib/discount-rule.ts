@@ -8,6 +8,7 @@ export function parseRule(b: Record<string, unknown>) {
   return {
     data: {
       name,
+      nameAr: String(b.nameAr || "").trim() || null,
       type,
       value,
       minAmount: Math.max(0, Number(b.minAmount) || 0),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { quoteOrder, QuoteError } from "@/lib/pricing-engine";
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
 import { getCustomer } from "@/lib/customer-auth";
 
 export async function POST(req: NextRequest) {
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
       city,
       governorate,
       signedIn: !!(await getCustomer()),
+      lang: await getLang(),
     }, t);
     return NextResponse.json(quote);
   } catch (e) {

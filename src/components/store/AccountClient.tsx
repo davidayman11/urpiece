@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useT, Txt } from "@/components/store/TextsProvider";
+import { useT, useLang, Txt } from "@/components/store/TextsProvider";
+import { L } from "@/lib/localize";
 import { EGYPT_GOVERNORATES } from "@/lib/checkout-fields";
 import type { Address } from "@prisma/client";
 import type { ShippingConfig } from "@/lib/shipping";
@@ -27,6 +28,7 @@ export default function AccountClient({
 }: { customer: { name: string; email: string; phone: string }; addresses: Address[]; shipping: ShippingConfig }) {
   const govOptions = shipping.adminDriven ? shipping.governorates.map((g) => g.name) : EGYPT_GOVERNORATES;
   const t = useT();
+  const lang = useLang();
   const router = useRouter();
 
   // Profile
@@ -216,7 +218,7 @@ export default function AccountClient({
                 <label className={lbl}><Txt k="account.modal.governorate" /></label>
                 <select className={input} value={form.governorate} onChange={(e) => { setCityOther(false); setForm((f) => ({ ...f, governorate: e.target.value, city: shipping.adminDriven ? "" : f.city })); }}>
                   <option value=""><Txt k="account.modal.select" /></option>
-                  {govOptions.map((g) => <option key={g} value={g}>{g}</option>)}
+                  {govOptions.map((g) => <option key={g} value={g}>{L(lang, g, shipping.governorates.find((x) => x.name === g)?.nameAr)}</option>)}
                 </select>
               </div>
               <div>
@@ -233,7 +235,7 @@ export default function AccountClient({
                       }}
                     >
                       <option value="">{shipping.adminDriven && !form.governorate ? <Txt k="account.modal.chooseGov" /> : <Txt k="account.modal.select" />}</option>
-                      {listedCities.map((c) => <option key={c} value={c}>{c}</option>)}
+                      {listedCities.map((c) => <option key={c} value={c}>{L(lang, c, shipping.adminDriven ? shipping.governorates.find((g) => g.name === form.governorate)?.citiesAr?.[c] : shipping.zones.find((z) => z.city === c)?.cityAr)}</option>)}
                       {shipping.adminDriven && <option value="__other__"><Txt k="account.modal.cityOther" /></option>}
                     </select>
                     {otherSelected && (

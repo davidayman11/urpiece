@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
+import { cx } from "@/lib/localize";
 
 import { Txt } from "@/components/store/TextsProvider";
 export const dynamic = "force-dynamic";
@@ -14,13 +16,14 @@ export default async function ContactPage() {
   const section = await prisma.siteSection.findFirst({
     where: { pageSlug: "contact", type: "contact", isVisible: true },
   });
+  const lang = await getLang();
   const c = section ? parseJson<Record<string, string>>(section.content, {}) : {};
 
-  const eyebrow = c.eyebrow || "Get in Touch";
-  const heading = c.heading || "Contact Us";
+  const eyebrow = cx(c, "eyebrow", lang) || "Get in Touch";
+  const heading = cx(c, "heading", lang) || "Contact Us";
   const supportEmail = c.supportEmail || "hello@urpiece.com";
-  const paymentNote = c.paymentNote || "We accept payment via InstaPay. After placing your order, you'll receive instructions to complete your transfer.";
-  const shippingNote = c.shippingNote || "Orders are shipped within 2–5 business days. Delivery times vary by location.";
+  const paymentNote = cx(c, "paymentNote", lang) || "We accept payment via InstaPay. After placing your order, you'll receive instructions to complete your transfer.";
+  const shippingNote = cx(c, "shippingNote", lang) || "Orders are shipped within 2–5 business days. Delivery times vary by location.";
 
   return (
     <div data-font-area="contact" className="pt-28 pb-24 min-h-screen">

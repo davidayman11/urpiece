@@ -13,11 +13,11 @@ type BundleWithItems = Bundle & { items: BundleItem[] };
 
 interface ItemForm { productId: string; variantId: string }
 interface Form {
-  name: string; slug: string; description: string; image: string; isActive: boolean;
+  name: string; nameAr: string; descriptionAr: string; slug: string; description: string; image: string; isActive: boolean;
   priceType: "FIXED" | "PERCENT"; priceValue: string; items: ItemForm[];
 }
 const emptyForm = (): Form => ({
-  name: "", slug: "", description: "", image: "", isActive: true,
+  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", image: "", isActive: true,
   priceType: "FIXED", priceValue: "", items: [{ productId: "", variantId: "" }, { productId: "", variantId: "" }],
 });
 
@@ -50,7 +50,7 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
   const openCreate = () => { setForm(emptyForm()); setEditId(null); setModal(true); };
   const openEdit = (b: BundleWithItems) => {
     setForm({
-      name: b.name, slug: b.slug, description: b.description || "", image: b.image || "", isActive: b.isActive,
+      name: b.name, nameAr: b.nameAr || "", descriptionAr: b.descriptionAr || "", slug: b.slug, description: b.description || "", image: b.image || "", isActive: b.isActive,
       priceType: b.priceType === "PERCENT" ? "PERCENT" : "FIXED", priceValue: String(b.priceValue),
       items: b.items.map((i) => ({ productId: i.productId, variantId: i.variantId || "" })),
     });
@@ -176,8 +176,19 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
               </div>
 
               <div>
+                <label className="text-xs text-gray-500 block mb-1">Bundle name (Arabic)</label>
+                <input dir="rtl" className={`w-full ${inp}`} value={form.nameAr} placeholder="بالعربية (optional)"
+                  onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))} />
+              </div>
+
+              <div>
                 <label className="text-xs text-gray-500 block mb-1">Description</label>
                 <textarea rows={3} className={`w-full ${inp}`} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Description (Arabic)</label>
+                <textarea dir="rtl" rows={3} className={`w-full ${inp}`} value={form.descriptionAr} placeholder="بالعربية (optional)" onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value }))} />
               </div>
 
               <div>

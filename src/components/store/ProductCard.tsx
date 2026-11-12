@@ -5,7 +5,8 @@ import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import { parseImgs } from "@/lib/product-images";
-import { Txt } from "@/components/store/TextsProvider";
+import { L } from "@/lib/localize";
+import { Txt, useLang } from "@/components/store/TextsProvider";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function ProductCard({ product }: Props) {
+  const lang = useLang();
   const general = parseImgs(product.images);
   // a product whose photos are all assigned to variants still needs a card picture
   const images = general.length > 0 ? general : [...new Set(product.variants.flatMap((v) => parseImgs(v.images)))];
@@ -37,7 +39,7 @@ export default function ProductCard({ product }: Props) {
           <>
             <Image
               src={firstImage}
-              alt={product.name}
+              alt={L(lang, product.name, product.nameAr)}
               fill
               className={`object-cover transition-all duration-700 ease-in-out ${
                 secondImage ? "group-hover:opacity-0 group-hover:scale-105" : "group-hover:scale-105"
@@ -46,7 +48,7 @@ export default function ProductCard({ product }: Props) {
             {secondImage && (
               <Image
                 src={secondImage}
-                alt={product.name}
+                alt={L(lang, product.name, product.nameAr)}
                 fill
                 className="object-cover absolute inset-0 opacity-0 scale-105 group-hover:opacity-100 group-hover:scale-100 transition-all duration-700 ease-in-out"
               />
@@ -115,11 +117,11 @@ export default function ProductCard({ product }: Props) {
       <div className="pt-3.5 pb-1">
         {product.category && (
           <p className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E] mb-1">
-            {product.category.name}
+            {L(lang, product.category.name, product.category.nameAr)}
           </p>
         )}
         <h3 className="text-sm font-serif text-[#1C1711] group-hover:text-[#8A7A4A] transition-colors duration-200 leading-snug">
-          {product.name}
+          {L(lang, product.name, product.nameAr)}
         </h3>
         <p className="mt-1.5 text-sm text-[#5A5040] tabular-nums">
           {sale > 0 && (

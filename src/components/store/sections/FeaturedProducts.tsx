@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getLang } from "@/lib/lang-server";
+import { cx } from "@/lib/localize";
 import ProductCard from "@/components/store/ProductCard";
 import type { Product, Variant, Category } from "@prisma/client";
 
@@ -7,10 +9,11 @@ interface Props {
   content?: Record<string, string>;
 }
 
-export default function FeaturedProducts({ products, content = {} }: Props) {
-  const eyebrow = content.eyebrow || "Curated For You";
-  const heading = content.heading || "Featured Pieces";
-  const linkText = content.linkText || "View All";
+export default async function FeaturedProducts({ products, content = {} }: Props) {
+  const lang = await getLang();
+  const eyebrow = cx(content, "eyebrow", lang) || "Curated For You";
+  const heading = cx(content, "heading", lang) || "Featured Pieces";
+  const linkText = cx(content, "linkText", lang) || "View All";
 
   return (
     <section data-font-area="featured" className="bg-[#F5EFE2] py-20">
@@ -35,7 +38,7 @@ export default function FeaturedProducts({ products, content = {} }: Props) {
               className="hidden md:flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors border-b border-[#5A5040]/30 pb-0.5 hover:border-[#A8975E]"
             >
               {linkText}
-              <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+              <svg className="flip-rtl" width="12" height="8" viewBox="0 0 12 8" fill="none">
                 <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
               </svg>
             </Link>

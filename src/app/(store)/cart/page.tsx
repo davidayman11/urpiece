@@ -5,10 +5,12 @@ import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { Txt } from "@/components/store/TextsProvider";
+import { itemNames } from "@/lib/localize";
+import { Txt, useLang } from "@/components/store/TextsProvider";
 
 export default function CartPage() {
   const { items, removeItem, updateQty, total } = useCartStore();
+  const lang = useLang();
   const [freeMin, setFreeMin] = useState(0);
   useEffect(() => {
     fetch("/api/settings/payment")
@@ -51,7 +53,7 @@ export default function CartPage() {
               <div key={item.id} className="flex gap-4">
                 <div className="relative w-24 h-32 shrink-0 bg-[#EDE6D4] overflow-hidden">
                   {item.image ? (
-                    <Image src={item.image} alt={item.productName} fill className="object-cover" />
+                    <Image src={item.image} alt={itemNames(item, lang).product} fill className="object-cover" />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#C4B07A]">
@@ -61,12 +63,12 @@ export default function CartPage() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-serif text-lg text-[#1C1711]">{item.productName}</h3>
+                  <h3 className="font-serif text-lg text-[#1C1711]">{itemNames(item, lang).product}</h3>
                   {item.bundleId && (
                     <p className="text-[9px] tracking-[0.2em] uppercase text-[#A8975E] mt-0.5"><Txt k="cart.item.bundle" /></p>
                   )}
                   {item.variantName && (
-                    <p className="text-xs text-[#8A7E6E] mt-0.5">{item.variantName}</p>
+                    <p className="text-xs text-[#8A7E6E] mt-0.5">{itemNames(item, lang).variant}</p>
                   )}
                   <p className="text-sm text-[#A8975E] mt-1">{formatPrice(item.price)}</p>
 

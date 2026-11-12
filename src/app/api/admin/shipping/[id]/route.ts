@@ -6,7 +6,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { error } = await requireAdmin();
   if (error) return error;
   const { id } = await params;
-  const { city, price, isActive, governorateId } = await req.json();
+  const { city, cityAr, price, isActive, governorateId } = await req.json();
   const govId = governorateId || null;
   const name = String(city || "").trim();
   if (!name) return NextResponse.json({ error: "City name is required" }, { status: 400 });
@@ -14,7 +14,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (clash) return NextResponse.json({ error: "This city already exists" }, { status: 400 });
   const zone = await prisma.shippingZone.update({
     where: { id },
-    data: { city: name, governorateId: govId, price: Math.max(0, Number(price) || 0), isActive: isActive ?? true },
+    data: { city: name, cityAr: String(cityAr || "").trim() || null, governorateId: govId, price: Math.max(0, Number(price) || 0), isActive: isActive ?? true },
   });
   return NextResponse.json(zone);
 }

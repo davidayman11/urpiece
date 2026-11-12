@@ -3,6 +3,8 @@ import { productSalePrice } from "@/lib/pricing";
 import { loadShipping, findFee } from "@/lib/shipping";
 import { bundlePrice, allocateBundle } from "@/lib/bundles";
 import type { PromoCode } from "@prisma/client";
+import type { Lang } from "@/lib/lang";
+import { L } from "@/lib/localize";
 import { TEXT_DEFAULTS, formatText, type TFunction } from "@/lib/texts";
 
 export class QuoteError extends Error {}
@@ -24,6 +26,8 @@ export interface QuoteInput {
   strict?: boolean;
   /** is a customer signed in? (promo codes can require it) */
   signedIn?: boolean;
+  /** language for names shown to the customer (defaults to English) */
+  lang?: Lang;
 }
 
 export interface QuoteLine {
@@ -189,11 +193,12 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
 
     let ruleDiscount = 0;
     let ruleName: string | null = null;
+    let ruleNameEn: string | null = null;
     if (o.rule) {
       for (const r of activeRules) {
         if (subtotal < r.minAmount) continue;
         const d = Math.min(subtotal, r.type === "FIXED" ? r.value : (subtotal * r.value) / 100);
-        if (d > ruleDiscount) { ruleDiscount = round(d); ruleName = r.name; }
+        if (d > ruleDiscount) { ruleDiscount = round(d); ruleName = L(input.lang ?? "en", r.name, r.nameAr); ruleNameEn = r.name; }
       }
     }
 
@@ -215,7 +220,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     const shippingFee = freeShippingApplied ? 0 : cityFee;
     const total = round(after + shippingFee);
     const savings = round(listSubtotal + cityFee - total);
-    return { lines, subtotal, listSubtotal, ruleDiscount, ruleName, promoDiscount, promoNote, shippingFee, freeShippingApplied, total, savings };
+    return { lines, subtotal, listSubtotal, ruleDiscount, ruleName, ruleNameEn, promoDiscount, promoNote, shippingFee, freeShippingApplied, total, savings };
   };
 
   let opts: Opts;
@@ -255,7 +260,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   const bundleSavings = saved((l) => !!l.bundleName);
   if (bundleSavings > 0) applied.push("Bundle savings");
   if (saleSavings > 0) applied.push("Sale prices");
-  if (r.ruleDiscount > 0 && r.ruleName) applied.push(r.ruleName);
+  if (r.ruleDiscount > 0 && r.ruleName) applied.push(r.ruleNameEn || r.ruleName);
   if (r.promoDiscount > 0 && promo) applied.push(`Promo ${promo.code}`);
   if (r.freeShippingApplied) applied.push("Free shipping");
 

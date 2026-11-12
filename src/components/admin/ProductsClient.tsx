@@ -27,6 +27,7 @@ interface Props {
 }
 
 interface VariantForm {
+  nameAr: string;
   id?: string;
   /** temporary id used to link photos to a variant before it is saved */
   key: string;
@@ -39,6 +40,8 @@ interface VariantForm {
 }
 
 interface ProductForm {
+  nameAr: string;
+  descriptionAr: string;
   name: string;
   slug: string;
   description: string;
@@ -57,11 +60,11 @@ interface ProductForm {
 
 const emptyVariant = (): VariantForm => ({
   key: `new-${Math.random().toString(36).slice(2)}`,
-  name: "", price: "", costPrice: "", inventory: "0", options: "", sku: "",
+  nameAr: "", name: "", price: "", costPrice: "", inventory: "0", options: "", sku: "",
 });
 
 const emptyForm = (): ProductForm => ({
-  name: "", slug: "", description: "", categoryId: "", isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
+  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", categoryId: "", isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
   images: [], variants: [emptyVariant()],
 });
 
@@ -92,7 +95,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
   const openEdit = (p: ProductWithVariants) => {
     setEditId(p.id);
     setForm({
-      name: p.name, slug: p.slug, description: p.description || "",
+      name: p.name, nameAr: p.nameAr || "", descriptionAr: p.descriptionAr || "", slug: p.slug, description: p.description || "",
       categoryId: p.categoryId || "", isActive: p.isActive, isFeatured: p.isFeatured,
       salePercent: p.salePercent ? String(p.salePercent) : "",
       saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
@@ -103,7 +106,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
         p.variants.flatMap((v) => parseImgs(v.images).map((url) => ({ url, variantKeys: [v.id] }))),
       ),
       variants: p.variants.map((v) => ({
-        id: v.id, key: v.id, name: v.name, price: String(v.price), costPrice: String(v.costPrice),
+        id: v.id, key: v.id, name: v.name, nameAr: v.nameAr || "", price: String(v.price), costPrice: String(v.costPrice),
         inventory: String(v.inventory), options: v.options, sku: v.sku || "",
       })),
     });
@@ -306,6 +309,16 @@ export default function ProductsClient({ products: initial, categories, lowStock
                   />
                 </div>
                 <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Name (Arabic)</label>
+                  <input
+                    dir="rtl"
+                    value={form.nameAr}
+                    onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
+                    placeholder="بالعربية (optional)"
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]"
+                  />
+                </div>
+                <div>
                   <label className="text-xs text-gray-500 mb-1 block">Slug</label>
                   <input
                     value={form.slug}
@@ -313,6 +326,18 @@ export default function ProductsClient({ products: initial, categories, lowStock
                     className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Description (Arabic)</label>
+                <textarea
+                  dir="rtl"
+                  value={form.descriptionAr}
+                  onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value }))}
+                  placeholder="بالعربية (optional)"
+                  rows={3}
+                  className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]"
+                />
               </div>
 
               <div>
@@ -461,6 +486,16 @@ export default function ProductsClient({ products: initial, categories, lowStock
                             value={v.name}
                             onChange={(e) => setForm((f) => { const vs = [...f.variants]; vs[i] = { ...vs[i], name: e.target.value }; return { ...f, variants: vs }; })}
                             placeholder="e.g. Small / Gold"
+                            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-gray-400">Variant Name (Arabic)</label>
+                          <input
+                            dir="rtl"
+                            value={v.nameAr}
+                            onChange={(e) => setForm((f) => { const vs = [...f.variants]; vs[i] = { ...vs[i], nameAr: e.target.value }; return { ...f, variants: vs }; })}
+                            placeholder="بالعربية (optional)"
                             className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none"
                           />
                         </div>

@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
 import { formatPrice } from "@/lib/utils";
 import { statusInfo } from "@/lib/order-status";
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
+import { L } from "@/lib/localize";
+import { fmtDate } from "@/lib/format-date";
 import TrackOrderForm from "@/components/store/TrackOrderForm";
 
 import { Txt } from "@/components/store/TextsProvider";
@@ -17,13 +19,14 @@ export async function generateMetadata() {
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ placed?: string }> }) {
   const { placed } = await searchParams;
   const t = await getT();
+  const lang = await getLang();
   const customer = await getCustomer();
   if (!customer) return <TrackOrderForm />;
 
   // Orders from before the account was created (old guest orders) are not shown
   const orders = await prisma.order.findMany({
     where: { customerId: customer.id, ...(customer.registeredAt ? { createdAt: { gte: customer.registeredAt } } : {}) },
-    include: { items: { select: { productName: true, quantity: true } } },
+    include: { items: { select: { productName: true, quantity: true, product: { select: { nameAr: true } } } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -77,10 +80,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                     <div className="min-w-0">
                       <p className="text-[11px] tracking-[0.2em] uppercase text-[#A8975E] break-all">{order.orderNumber}</p>
                       <p className="mt-1.5 text-sm text-[#1C1711]">
-                        {order.items.slice(0, 2).map((i) => `${i.productName} ×${i.quantity}`).join(", ")}
+                        {order.items.slice(0, 2).map((i) => `${L(lang, i.productName, i.product?.nameAr)} ×${i.quantity}`).join(", ")}
                         {order.items.length > 2 && ` ${t("orders.list.more", { count: order.items.length - 2 })}`}
                       </p>
-                      <p className="mt-1 text-xs text-[#8A7E6E]">{format(new Date(order.createdAt), "d MMM yyyy")}</p>
+                      <p className="mt-1 text-xs text-[#8A7E6E]">{fmtDate(order.createdAt, "d MMM yyyy", lang)}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <span className={`text-[11px] px-2.5 py-1 rounded-full ${st.tone}`}>{st.labelKey ? <Txt k={st.labelKey} /> : st.label}</span>

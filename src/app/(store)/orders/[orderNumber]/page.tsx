@@ -3,13 +3,15 @@ import { timingSafeEqual } from "crypto";
 import { getCustomer } from "@/lib/customer-auth";
 import Image from "next/image";
 import Link from "next/link";
-import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { formatAddress } from "@/lib/checkout-fields";
 import { statusInfo, trackerSteps, paymentStatusLabel, paymentStatusKey, TRACKER_STEP_KEYS } from "@/lib/order-status";
 
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
+import { L } from "@/lib/localize";
+import { fmtDate } from "@/lib/format-date";
 import CopyButton from "@/components/store/CopyButton";
 import { coverImage } from "@/lib/product-images";
 
@@ -35,11 +37,12 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
   const { orderNumber } = await params;
   const { t: token } = await searchParams;
   const t = await getT();
+  const lang = await getLang();
   const customer = await getCustomer();
   const order = await prisma.order.findUnique({
     where: { orderNumber },
     include: {
-      items: { include: { product: { select: { images: true, slug: true, variants: { select: { images: true } } } } } },
+      items: { include: { product: { select: { images: true, slug: true, nameAr: true, variants: { select: { images: true } } } }, variant: { select: { nameAr: true } } } },
       statusHistory: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -77,7 +80,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
           </p>
           <h1 className="font-serif text-3xl md:text-4xl font-light text-[#1C1711] break-all">{order.orderNumber}</h1>
           <div className="mt-3 flex items-center justify-center gap-3">
-            <p className="text-xs text-[#8A7E6E]"><Txt k="orders.detail.placed" vars={{ date: format(new Date(order.createdAt), "d MMMM yyyy, HH:mm") }} /></p>
+            <p className="text-xs text-[#8A7E6E]"><Txt k="orders.detail.placed" vars={{ date: fmtDate(order.createdAt, "d MMMM yyyy, HH:mm", lang) }} /></p>
             <CopyButton text={order.orderNumber} />
           </div>
         </div>
@@ -132,13 +135,13 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
                   return (
                     <div key={item.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
                       <div className="relative w-16 h-20 shrink-0 bg-[#EDE6D4] overflow-hidden">
-                        {img && <Image src={img} alt={item.productName} fill className="object-cover" />}
+                        {img && <Image src={img} alt={L(lang, item.productName, item.product?.nameAr)} fill className="object-cover" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <Link href={`/product/${item.product?.slug}`} className="font-serif text-base text-[#1C1711] hover:text-[#8A7A4A] transition-colors">
-                          {item.productName}
+                          {L(lang, item.productName, item.product?.nameAr)}
                         </Link>
-                        {item.variantName && <p className="text-xs text-[#8A7E6E] mt-0.5">{item.variantName}</p>}
+                        {item.variantName && <p className="text-xs text-[#8A7E6E] mt-0.5">{L(lang, item.variantName, item.variant?.nameAr)}</p>}
                         {item.bundleName && <p className="text-[10px] tracking-[0.15em] uppercase text-[#A8975E] mt-0.5"><Txt k="orders.detail.bundle" vars={{ name: item.bundleName }} /></p>}
                         <p className="text-xs text-[#8A7E6E] mt-1">
                           {formatPrice(item.price)} × {item.quantity}
@@ -164,7 +167,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
                       <div className="pb-1">
                         <p className="text-sm text-[#1C1711]">{statusInfo(h.status, t).labelKey ? <Txt k={statusInfo(h.status, t).labelKey as string} /> : statusInfo(h.status, t).label}</p>
                         {h.note && <p className="text-xs text-[#8A7E6E] mt-0.5">{h.note}</p>}
-                        <p className="text-[11px] text-[#A59C88] mt-0.5">{format(new Date(h.createdAt), "d MMM yyyy, HH:mm")}</p>
+                        <p className="text-[11px] text-[#A59C88] mt-0.5">{fmtDate(h.createdAt, "d MMM yyyy, HH:mm", lang)}</p>
                       </div>
                     </li>
                   ))}

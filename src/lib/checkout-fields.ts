@@ -49,11 +49,15 @@ export type CustomFieldType = "text" | "textarea" | "select";
 export interface CustomField {
   id: string;
   label: string;
+  labelAr?: string;
   type: CustomFieldType;
   required: boolean;
   placeholder?: string;
+  placeholderAr?: string;
   /** For type "select": the choices */
   options?: string[];
+  /** Arabic text of each option, same order as `options` (display only; the stored answer is the English option) */
+  optionsAr?: string[];
 }
 
 export function parseCustomFields(raw?: string | null): CustomField[] {
@@ -62,14 +66,23 @@ export function parseCustomFields(raw?: string | null): CustomField[] {
     if (!Array.isArray(v)) return [];
     return v
       .filter((f) => f && typeof f.label === "string" && f.label.trim())
-      .map((f) => ({
+      .map((f) => {
+        const opts: string[] = Array.isArray(f.options) ? f.options.map(String) : [];
+        const optsAr: string[] = Array.isArray(f.optionsAr) ? f.optionsAr.map(String) : [];
+        // keep the Arabic option aligned with its English one while dropping blank English lines
+        const kept = opts.map((o, i) => ({ o: o.trim(), a: (optsAr[i] || "").trim() })).filter((x) => x.o);
+        return {
         id: String(f.id || f.label),
         label: String(f.label).trim(),
+        labelAr: f.labelAr ? String(f.labelAr).trim() : "",
+        placeholderAr: f.placeholderAr ? String(f.placeholderAr) : "",
         type: (["text", "textarea", "select"].includes(f.type) ? f.type : "text") as CustomFieldType,
         required: !!f.required,
         placeholder: f.placeholder ? String(f.placeholder) : "",
-        options: Array.isArray(f.options) ? f.options.map(String).filter(Boolean) : [],
-      }));
+        options: kept.map((x) => x.o),
+        optionsAr: kept.some((x) => x.a) ? kept.map((x) => x.a) : [],
+      };
+      });
   } catch {
     return [];
   }

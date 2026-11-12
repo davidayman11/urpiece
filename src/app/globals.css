@@ -160,3 +160,9 @@ html[lang="ar"] body {
 }
 /* arrows and chevrons that point "forward" must point the other way */
 [dir="rtl"] .flip-rtl { transform: scaleX(-1); }
+/* Latin words / English sentences inside the Arabic page keep their own punctuation order */
+html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4,
+html[lang="ar"] p, html[lang="ar"] li, html[lang="ar"] summary, html[lang="ar"] label,
+html[lang="ar"] h1 > span, html[lang="ar"] h2 > span, html[lang="ar"] h3 > span {
+  unicode-bidi: plaintext;
+}

@@ -13,7 +13,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
-  const { name, description, image, isActive, sortOrder } = await req.json();
+  const { name, nameAr, descriptionAr, description, image, isActive, sortOrder } = await req.json();
   if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 });
 
   const slug = slugify(name);
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ error: "Category slug already exists" }, { status: 400 });
 
   const cat = await prisma.category.create({
-    data: { name, slug, description, image, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+    data: { name, slug, description, nameAr: nameAr?.trim() ? nameAr : null, descriptionAr: descriptionAr?.trim() ? descriptionAr : null, image, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
   });
   return NextResponse.json(cat, { status: 201 });
 }

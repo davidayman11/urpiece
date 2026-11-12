@@ -19,12 +19,13 @@ import type { Popup } from "@prisma/client";
 
 interface Form {
   title: string; heading: string; body: string;
+  headingAr: string; bodyAr: string; buttonTextAr: string;
   buttonText: string; buttonUrl: string; image: string;
   frequency: string; isActive: boolean;
   startsAt: string; expiresAt: string;
 }
 const emptyForm = (): Form => ({
-  title: "", heading: "", body: "", buttonText: "Shop Now", buttonUrl: "/shop",
+  title: "", heading: "", body: "", headingAr: "", bodyAr: "", buttonTextAr: "", buttonText: "Shop Now", buttonUrl: "/shop",
   image: "", frequency: "ONCE_PER_SESSION", isActive: true, startsAt: "", expiresAt: "",
 });
 
@@ -40,6 +41,7 @@ export default function PopupsAdminClient({ popups }: { popups: Popup[] }) {
     setEditId(p.id);
     setForm({
       title: p.title, heading: p.heading || "", body: p.body || "",
+      headingAr: p.headingAr || "", bodyAr: p.bodyAr || "", buttonTextAr: p.buttonTextAr || "",
       buttonText: p.buttonText || "", buttonUrl: p.buttonUrl || "",
       image: p.image || "", frequency: p.frequency, isActive: p.isActive,
       startsAt: p.startsAt ? new Date(p.startsAt).toISOString().split("T")[0] : "",
@@ -120,16 +122,19 @@ export default function PopupsAdminClient({ popups }: { popups: Popup[] }) {
               {[
                 { label: "Title (internal) *", key: "title" as keyof Form },
                 { label: "Heading", key: "heading" as keyof Form },
+                { label: "Heading (Arabic)", key: "headingAr" as keyof Form, rtl: true },
                 { label: "Body text", key: "body" as keyof Form, textarea: true },
+                { label: "Body text (Arabic)", key: "bodyAr" as keyof Form, textarea: true, rtl: true },
                 { label: "Button Text", key: "buttonText" as keyof Form },
+                { label: "Button Text (Arabic)", key: "buttonTextAr" as keyof Form, rtl: true },
                 { label: "Image URL", key: "image" as keyof Form },
-              ].map(({ label, key, textarea }) => (
+              ].map(({ label, key, textarea, rtl }) => (
                 <div key={key}>
                   <label className="text-xs text-gray-500 mb-1 block">{label}</label>
                   {textarea ? (
-                    <textarea value={String(form[key])} onChange={f(key)} rows={3} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                    <textarea dir={rtl ? "rtl" : undefined} placeholder={rtl ? "بالعربية (optional)" : undefined} value={String(form[key])} onChange={f(key)} rows={3} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
                   ) : (
-                    <input value={String(form[key])} onChange={f(key)} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                    <input dir={rtl ? "rtl" : undefined} placeholder={rtl ? "بالعربية (optional)" : undefined} value={String(form[key])} onChange={f(key)} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
                   )}
                 </div>
               ))}

@@ -6,21 +6,24 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { bundlePrice } from "@/lib/bundles";
-import { useT, Txt } from "@/components/store/TextsProvider";
+import { L } from "@/lib/localize";
+import { useT, useLang, Txt } from "@/components/store/TextsProvider";
 
 export interface BuyItem {
   id: string;
   productName: string;
+  productNameAr?: string | null;
   slug: string;
   image: string;
   fixedVariantId: string | null;
-  variants: { id: string; name: string; price: number; inventory: number }[];
+  variants: { id: string; name: string; nameAr?: string | null; price: number; inventory: number }[];
 }
 
 export default function BundleBuyBox({
   bundle,
-}: { bundle: { id: string; name: string; image: string; priceType: string; priceValue: number; items: BuyItem[] } }) {
+}: { bundle: { id: string; name: string; nameAr?: string | null; image: string; priceType: string; priceValue: number; items: BuyItem[] } }) {
   const t = useT();
+  const lang = useLang();
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const [qty, setQty] = useState(1);
@@ -51,7 +54,9 @@ export default function BundleBuyBox({
       productId: "bundle",
       variantId: `${bundle.id}|${key}`,
       productName: bundle.name,
+      productNameAr: bundle.nameAr || undefined,
       variantName: picked.map((p) => `${p.it.productName}${p.v?.name && p.it.variants.length > 1 ? ` (${p.v.name})` : ""}`).join(" + "),
+      variantNameAr: picked.map((p) => `${L("ar", p.it.productName, p.it.productNameAr)}${p.v?.name && p.it.variants.length > 1 ? ` (${L("ar", p.v.name, p.v.nameAr)})` : ""}`).join(" + "),
       price,
       image: bundle.image,
       quantity: qty,
@@ -71,12 +76,12 @@ export default function BundleBuyBox({
             <div key={it.id} className="flex gap-4 bg-[#FBF8F0] border border-[#E0D6BD] p-3">
               <div className="relative w-16 h-20 shrink-0 bg-[#EDE6D4] overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {it.image && <img src={it.image} alt={it.productName} className="absolute inset-0 w-full h-full object-cover" />}
+                {it.image && <img src={it.image} alt={L(lang, it.productName, it.productNameAr)} className="absolute inset-0 w-full h-full object-cover" />}
               </div>
               <div className="flex-1 min-w-0">
-                <Link href={`/product/${it.slug}`} className="font-serif text-base text-[#1C1711] hover:text-[#8A7A4A]">{it.productName}</Link>
+                <Link href={`/product/${it.slug}`} className="font-serif text-base text-[#1C1711] hover:text-[#8A7A4A]">{L(lang, it.productName, it.productNameAr)}</Link>
                 {it.fixedVariantId || it.variants.length <= 1 ? (
-                  <p className="text-xs text-[#8A7E6E] mt-1">{v?.name}</p>
+                  <p className="text-xs text-[#8A7E6E] mt-1">{v ? L(lang, v.name, v.nameAr) : ""}</p>
                 ) : (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {it.variants.map((x) => (
@@ -93,7 +98,7 @@ export default function BundleBuyBox({
                             : "border-[#CFC4A6] bg-white/60 text-[#5A5040] hover:border-[#A8975E]"
                         }`}
                       >
-                        {x.name}
+                        {L(lang, x.name, x.nameAr)}
                       </button>
                     ))}
                   </div>

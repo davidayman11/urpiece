@@ -1,4 +1,6 @@
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
+import { cx } from "@/lib/localize";
 
 interface Props {
   content: Record<string, string>;
@@ -41,7 +43,8 @@ const ICONS: Record<string, React.ReactNode> = {
 export const STRIP_ICONS = ["heart", "truck", "star", "sparkle", "gift", "shield", "diamond"];
 
 export default async function MarqueeStrip({ content }: Props) {
-  const messages = (content.messages || "").split("\n").map((m) => m.trim()).filter(Boolean);
+  const lang = await getLang();
+  const messages = cx(content, "messages", lang).split("\n").map((m) => m.trim()).filter(Boolean);
   if (messages.length === 0) return null;
   const t = await getT();
 
@@ -78,6 +81,7 @@ export default async function MarqueeStrip({ content }: Props) {
       style={{ backgroundColor: content.bgColor || "#1C1711", color: content.textColor || "#F5EFE2" }}
     >
       <div
+        dir="ltr"
         className="announce-track flex w-max"
         style={{ animationDuration: `${speed}s`, animationDirection: reverse ? "reverse" : "normal" }}
       >

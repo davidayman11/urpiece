@@ -1,11 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getLang } from "@/lib/lang-server";
+import { cx } from "@/lib/localize";
 
 interface Props {
   content: Record<string, string>;
 }
 
-export default function EditorialSection({ content }: Props) {
+export default async function EditorialSection({ content }: Props) {
+  const lang = await getLang();
+  const heading = cx(content, "heading", lang);
+  const eyebrow = cx(content, "eyebrow", lang);
+  const body = cx(content, "body", lang);
+  const buttonText = cx(content, "buttonText", lang);
   const imageRight = content.imagePosition !== "left";
 
   return (
@@ -16,7 +23,7 @@ export default function EditorialSection({ content }: Props) {
           {content.image ? (
             <Image
               src={content.image}
-              alt={content.heading || ""}
+              alt={heading}
               fill
               className="object-cover"
             />
@@ -30,28 +37,28 @@ export default function EditorialSection({ content }: Props) {
           className="bg-[#1C1711] flex flex-col justify-center px-10 md:px-16 py-16 md:py-24"
           style={imageRight ? {} : { direction: "ltr" }}
         >
-          {content.eyebrow && (
+          {eyebrow && (
             <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-5" style={{ color: content.eyebrowColor || undefined }}>
-              {content.eyebrow}
+              {eyebrow}
             </p>
           )}
           <h2 className="font-serif text-3xl md:text-5xl font-light text-[#F5EFE2] leading-tight mb-6" style={{ color: content.headingColor || undefined }}>
-            {(content.heading || "").split("\n").map((line, i) => (
+            {heading.split("\n").map((line, i) => (
               <span key={i} className="block">{line}</span>
             ))}
           </h2>
-          {content.body && (
+          {body && (
             <p className="text-sm text-[#8A7E6E] leading-relaxed mb-8 max-w-sm">
-              {content.body}
+              {body}
             </p>
           )}
-          {content.buttonText && content.buttonUrl && (
+          {buttonText && content.buttonUrl && (
             <Link
               href={content.buttonUrl}
               className="self-start inline-flex items-center gap-3 border border-[#A8975E] text-[#A8975E] px-7 py-3 text-xs tracking-widest uppercase hover:bg-[#A8975E] hover:text-[#1C1711] transition-all duration-300"
             >
-              {content.buttonText}
-              <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+              {buttonText}
+              <svg className="flip-rtl" width="12" height="8" viewBox="0 0 12 8" fill="none">
                 <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>
             </Link>

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
+import { cx } from "@/lib/localize";
 
 import { Txt } from "@/components/store/TextsProvider";
 async function getSiteSettings() {
@@ -14,13 +16,14 @@ async function getSiteSettings() {
 export default async function Footer() {
   const s = await getSiteSettings();
   const t = await getT();
+  const lang = await getLang();
 
-  const tagline = s.tagline || t("footer.tagline");
-  const brandDescription = s.brandDescription || t("footer.brandDescription");
+  const tagline = cx(s, "tagline", lang) || t("footer.tagline");
+  const brandDescription = cx(s, "brandDescription", lang) || t("footer.brandDescription");
   const contactEmail = s.contactEmail || t("footer.contactEmail");
-  const paymentNote = s.paymentNote || t("footer.paymentNote");
-  const shippingNote = s.shippingNote || t("footer.shippingNote");
-  const copyright = s.copyright || t("footer.copyright", { year: new Date().getFullYear() });
+  const paymentNote = cx(s, "paymentNote", lang) || t("footer.paymentNote");
+  const shippingNote = cx(s, "shippingNote", lang) || t("footer.shippingNote");
+  const copyright = cx(s, "copyright", lang) || t("footer.copyright", { year: new Date().getFullYear() });
 
   return (
     <footer data-font-area="footer" className="bg-[#1C1711] text-[#EDE6D4] mt-24">
@@ -29,8 +32,8 @@ export default async function Footer() {
           {/* Brand */}
           <div>
             <span className="font-serif text-2xl text-[#A8975E] tracking-[0.2em] uppercase"><Txt k="footer.brand" /></span>
-            <p className="mt-3 text-sm text-[#8A7E6E] font-serif italic">{s.tagline ? s.tagline : <Txt k="footer.tagline" />}</p>
-            <p className="mt-4 text-xs text-[#8A7E6E] leading-relaxed">{s.brandDescription ? s.brandDescription : <Txt k="footer.brandDescription" />}</p>
+            <p className="mt-3 text-sm text-[#8A7E6E] font-serif italic">{s.tagline ? cx(s, "tagline", lang) : <Txt k="footer.tagline" />}</p>
+            <p className="mt-4 text-xs text-[#8A7E6E] leading-relaxed">{s.brandDescription ? cx(s, "brandDescription", lang) : <Txt k="footer.brandDescription" />}</p>
           </div>
 
           {/* Links */}
@@ -53,8 +56,8 @@ export default async function Footer() {
           <div>
             <h4 className="text-xs tracking-widest uppercase text-[#A8975E] mb-4"><Txt k="footer.contact" /></h4>
             <ul className="space-y-3 text-sm text-[#8A7E6E]">
-              {paymentNote && <li>{s.paymentNote ? s.paymentNote : <Txt k="footer.paymentNote" />}</li>}
-              {shippingNote && <li>{s.shippingNote ? s.shippingNote : <Txt k="footer.shippingNote" />}</li>}
+              {paymentNote && <li>{s.paymentNote ? cx(s, "paymentNote", lang) : <Txt k="footer.paymentNote" />}</li>}
+              {shippingNote && <li>{s.shippingNote ? cx(s, "shippingNote", lang) : <Txt k="footer.shippingNote" />}</li>}
               {contactEmail && (
                 <li className="pt-2">
                   <a href={`mailto:${contactEmail}`} className="hover:text-[#C4B07A] transition-colors">
@@ -67,7 +70,7 @@ export default async function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-[#2C2416] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#5A5040]">
-          <p>{s.copyright ? s.copyright : <Txt k="footer.copyright" vars={{ year: new Date().getFullYear() }} />}</p>
+          <p>{s.copyright ? cx(s, "copyright", lang) : <Txt k="footer.copyright" vars={{ year: new Date().getFullYear() }} />}</p>
           <div className="flex gap-6">
             <Link href="/about" className="hover:text-[#8A7E6E] transition-colors"><Txt k="footer.link.about" /></Link>
             <Link href="/contact" className="hover:text-[#8A7E6E] transition-colors"><Txt k="footer.link.contact" /></Link>

@@ -5,7 +5,7 @@ import type { PaymentSettings } from "@prisma/client";
 
 import { parseFieldModes, parseCustomFields, resolveFieldOrder, BUILTIN_FIELDS, type CustomField, type FieldMode } from "@/lib/checkout-fields";
 
-type ExtraField = { id: string; label: string; value: string; type: "text" | "link" | "qr" };
+type ExtraField = { id: string; label: string; labelAr?: string; value: string; type: "text" | "link" | "qr" };
 
 function parseExtra(raw?: string | null): ExtraField[] {
   try { const v = JSON.parse(raw || "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
@@ -15,6 +15,7 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
   const [form, setForm] = useState({
     instapayId: settings?.instapayId || "",
     instapayPhone: settings?.instapayPhone || "",
+    instructionsAr: settings?.instructionsAr || "",
     instructions: settings?.instructions || "Transfer the total amount via InstaPay. Upload your receipt screenshot after the transfer.",
   });
   const [extra, setExtra] = useState<ExtraField[]>(parseExtra(settings?.extraFields));
@@ -130,7 +131,16 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
                       <option value="select">Dropdown</option>
                     </select>
                   </div>
+                  <input
+                    dir="rtl"
+                    value={f.labelAr || ""}
+                    onChange={(e) => patch({ labelAr: e.target.value })}
+                    placeholder="بالعربية (optional)"
+                    aria-label="Field label (Arabic)"
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                  />
                   {f.type === "select" ? (
+                    <>
                     <textarea
                       value={(f.options || []).join("\n")}
                       onChange={(e) => patch({ options: e.target.value.split("\n") })}
@@ -138,13 +148,33 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
                       rows={3}
                       className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
                     />
+                    <textarea
+                      dir="rtl"
+                      value={(f.optionsAr || []).join("\n")}
+                      onChange={(e) => patch({ optionsAr: e.target.value.split("\n") })}
+                      placeholder={"Choices in Arabic, same order, one per line (optional)"}
+                      aria-label="Choices (Arabic)"
+                      rows={3}
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                    </>
                   ) : (
+                    <>
                     <input
                       value={f.placeholder || ""}
                       onChange={(e) => patch({ placeholder: e.target.value })}
                       placeholder="Placeholder hint (optional)"
                       className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
                     />
+                    <input
+                      dir="rtl"
+                      value={f.placeholderAr || ""}
+                      onChange={(e) => patch({ placeholderAr: e.target.value })}
+                      placeholder="بالعربية (optional)"
+                      aria-label="Placeholder hint (Arabic)"
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                    </>
                   )}
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
@@ -215,6 +245,18 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
           />
         </div>
 
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Customer Instructions (Arabic)</label>
+          <textarea
+            dir="rtl"
+            value={form.instructionsAr}
+            onChange={(e) => setForm((f) => ({ ...f, instructionsAr: e.target.value }))}
+            placeholder="بالعربية (optional)"
+            rows={4}
+            className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+          />
+        </div>
+
         {/* Custom fields */}
         <div className="pt-2 border-t border-gray-100 space-y-4">
           <div className="flex items-center justify-between">
@@ -238,6 +280,14 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
                   value={f.label}
                   onChange={(e) => updateExtra(f.id, { label: e.target.value })}
                   placeholder="Label (e.g. Vodafone Cash)"
+                  className="border border-gray-200 rounded px-3 py-2 text-sm"
+                />
+                <input
+                  dir="rtl"
+                  value={f.labelAr || ""}
+                  onChange={(e) => updateExtra(f.id, { labelAr: e.target.value })}
+                  placeholder="بالعربية (optional)"
+                  aria-label="Label (Arabic)"
                   className="border border-gray-200 rounded px-3 py-2 text-sm"
                 />
                 <select

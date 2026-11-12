@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useT, Txt } from "@/components/store/TextsProvider";
+import { L } from "@/lib/localize";
+import { useT, useLang, Txt } from "@/components/store/TextsProvider";
 import type { Category } from "@prisma/client";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 
 export default function ShopFilters({ categories, selected, sort }: Props) {
   const t = useT();
+  const lang = useLang();
   const SORT_OPTIONS = [
     { value: "newest", label: t("shop.filters.sortNewest") },
     { value: "price-asc", label: t("shop.filters.sortPriceAsc") },
@@ -53,7 +55,7 @@ export default function ShopFilters({ categories, selected, sort }: Props) {
                 : "bg-transparent text-[#5A5040] border-[#C4B07A]/50 hover:border-[#A8975E] hover:text-[#1C1711]"
             }`}
           >
-            {cat.name}
+            {L(lang, cat.name, cat.nameAr)}
           </button>
         ))}
 

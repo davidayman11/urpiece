@@ -6,8 +6,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { error } = await requireAdmin();
   if (error) return error;
   const { id } = await params;
-  const { name, description, image, isActive, sortOrder } = await req.json();
-  const cat = await prisma.category.update({ where: { id }, data: { name, description, image, isActive, sortOrder } });
+  const { name, nameAr, descriptionAr, description, image, isActive, sortOrder } = await req.json();
+  const cat = await prisma.category.update({ where: { id }, data: { name, description, nameAr: nameAr?.trim() ? nameAr : null, descriptionAr: descriptionAr?.trim() ? descriptionAr : null, image, isActive, sortOrder } });
   return NextResponse.json(cat);
 }
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  FONT_AREAS, FONT_CATALOG, FONT_CATEGORY_LABELS, fontStack,
+  FONT_AREAS, FONT_CATALOG, FONT_CATEGORY_LABELS, ARABIC_DEFAULT_FONTS, fontStack,
   type FontCategory, type FontConfig,
 } from "@/lib/fonts";
 
@@ -91,8 +91,10 @@ export default function FontsClient({ initial }: { initial: FontConfig }) {
       {FONT_AREAS.map((area) => {
         const cur = areas[area.key] || {};
         const isSite = area.key === "site";
-        const heading = cur.heading || (isSite ? "" : siteH) || DEFAULT_HEADING;
-        const body = cur.body || (isSite ? "" : siteB) || DEFAULT_BODY;
+        const isArabic = area.key === "arabic";
+        // sections (and the whole website) are the English version; the Arabic version has its own fonts
+        const heading = isArabic ? cur.heading || ARABIC_DEFAULT_FONTS.heading : cur.heading || (isSite ? "" : siteH) || DEFAULT_HEADING;
+        const body = isArabic ? cur.body || ARABIC_DEFAULT_FONTS.body : cur.body || (isSite ? "" : siteB) || DEFAULT_BODY;
         const changed = !!(cur.heading || cur.body);
         return (
           <section key={area.key} className={`bg-white rounded-lg border p-5 space-y-4 ${isSite ? "border-[#A8975E]/60" : "border-gray-100"}`}>
@@ -108,14 +110,23 @@ export default function FontsClient({ initial }: { initial: FontConfig }) {
               )}
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
-              <FontSelect label="Headings (titles)" value={cur.heading || ""} onChange={(v) => set(area.key, "heading", v)} blank={isSite ? `Default (${DEFAULT_HEADING})` : "Same as whole website"} />
-              <FontSelect label="Text (everything else)" value={cur.body || ""} onChange={(v) => set(area.key, "body", v)} blank={isSite ? `Default (${DEFAULT_BODY})` : "Same as whole website"} />
+              <FontSelect label="Headings (titles)" value={cur.heading || ""} onChange={(v) => set(area.key, "heading", v)} blank={isArabic ? `Default (${ARABIC_DEFAULT_FONTS.heading})` : isSite ? `Default (${DEFAULT_HEADING})` : "Same as whole website"} />
+              <FontSelect label="Text (everything else)" value={cur.body || ""} onChange={(v) => set(area.key, "body", v)} blank={isArabic ? `Default (${ARABIC_DEFAULT_FONTS.body})` : isSite ? `Default (${DEFAULT_BODY})` : "Same as whole website"} />
             </div>
             <div className="rounded border border-gray-100 bg-[#F5EFE2] px-4 py-3">
-              <p style={{ fontFamily: fontStack(heading) }} className="text-2xl text-[#1C1711] leading-tight">Your Glow, Your Piece</p>
-              <p style={{ fontFamily: fontStack(body) }} className="text-sm text-[#5A5040] mt-1">
-                Handmade jewelry for every day. Free delivery over 1000 EGP — مجوهرات مصنوعة بحب
-              </p>
+              {isArabic ? (
+                <div dir="rtl">
+                  <p style={{ fontFamily: fontStack(heading) }} className="text-2xl text-[#1C1711] leading-tight">لمعانك، قطعتك</p>
+                  <p style={{ fontFamily: fontStack(body) }} className="text-sm text-[#5A5040] mt-1">مجوهرات مصنوعة بحب لكل يوم. شحن مجاني للطلبات فوق 1000 جنيه.</p>
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontFamily: fontStack(heading) }} className="text-2xl text-[#1C1711] leading-tight">Your Glow, Your Piece</p>
+                  <p style={{ fontFamily: fontStack(body) }} className="text-sm text-[#5A5040] mt-1">
+                    Handmade jewelry for every day. Free delivery over 1000 EGP — مجوهرات مصنوعة بحب
+                  </p>
+                </>
+              )}
             </div>
           </section>
         );

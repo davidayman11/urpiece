@@ -9,17 +9,19 @@ import type { ShippingConfig } from "@/lib/shipping";
 import { formatAddress, EGYPT_GOVERNORATES, DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
 import Image from "next/image";
 import Link from "next/link";
-import { useT, Txt } from "@/components/store/TextsProvider";
+import { useT, useLang, Txt } from "@/components/store/TextsProvider";
+import { L, itemNames } from "@/lib/localize";
 
 interface PaymentSettings {
   instapayId?: string;
   instapayPhone?: string;
   instructions?: string;
+  instructionsAr?: string | null;
   freeShippingMin?: number | null;
   fieldOrder?: string[];
   fieldModes?: FieldModes;
   customFields?: CustomField[];
-  extraFields?: { id: string; label: string; value: string; type: "text" | "link" | "qr" }[];
+  extraFields?: { id: string; label: string; labelAr?: string; value: string; type: "text" | "link" | "qr" }[];
 }
 
 type CheckoutStep = "details" | "payment" | "confirm";
@@ -37,6 +39,7 @@ export default function CheckoutPage() {
   const [paySettings, setPaySettings] = useState<PaymentSettings>({});
   const [loading, setLoading] = useState(false);
   const [promoInput, setPromoInput] = useState("");
+  const lang = useLang();
   const [promoError, setPromoError] = useState("");
   const [appliedCode, setAppliedCode] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -62,6 +65,9 @@ export default function CheckoutPage() {
   const hasZones = shipping.hasZones;
   const cityOptions = cityNames(shipping, form.governorate);
   const govOptions = adminDriven ? shipping.governorates.map((g) => g.name) : EGYPT_GOVERNORATES;
+  const govLabel = (name: string) => L(lang, name, shipping.governorates.find((g) => g.name === name)?.nameAr);
+  const cityLabel = (name: string) =>
+    L(lang, name, adminDriven ? shipping.governorates.find((g) => g.name === form.governorate)?.citiesAr?.[name] : shipping.zones.find((z) => z.city === name)?.cityAr);
   const govPrice = (name: string) => shipping.governorates.find((g) => g.name === name)?.price ?? 0;
   // With governorates, a customer whose city isn't listed picks "Other" and types it
   const otherSelected = adminDriven && (cityOther || (!!form.city && !cityOptions.includes(form.city)));
@@ -361,7 +367,7 @@ export default function CheckoutPage() {
                           <option value=""><Txt k="checkout.fields.governoratePlaceholder" /></option>
                           {govOptions.map((g) => (
                             <option key={g} value={g}>
-                              {adminDriven ? <Txt k="checkout.fields.optionWithFee" vars={{ name: g, fee: govPrice(g) > 0 ? formatPrice(govPrice(g)) : t("checkout.fields.freeShipping") }} /> : g}
+                              {adminDriven ? <Txt k="checkout.fields.optionWithFee" vars={{ name: govLabel(g), fee: govPrice(g) > 0 ? formatPrice(govPrice(g)) : t("checkout.fields.freeShipping") }} /> : g}
                             </option>
                           ))}
                         </select>
@@ -396,7 +402,7 @@ export default function CheckoutPage() {
                             <option value="">{adminDriven && !form.governorate ? <Txt k="checkout.fields.cityNeedGovernorate" /> : <Txt k="checkout.fields.citySelectPlaceholder" />}</option>
                             {cityOptions.map((c) => (
                               <option key={c} value={c}>
-                                {adminDriven ? c : <Txt k="checkout.fields.optionWithFee" vars={{ name: c, fee: (shipping.zones.find((z) => z.city === c)?.price ?? 0) > 0 ? formatPrice(shipping.zones.find((z) => z.city === c)?.price ?? 0) : t("checkout.fields.freeShipping") }} />}
+                                {adminDriven ? cityLabel(c) : <Txt k="checkout.fields.optionWithFee" vars={{ name: cityLabel(c), fee: (shipping.zones.find((z) => z.city === c)?.price ?? 0) > 0 ? formatPrice(shipping.zones.find((z) => z.city === c)?.price ?? 0) : t("checkout.fields.freeShipping") }} />}
                               </option>
                             ))}
                             {adminDriven && <option value="__other__"><Txt k="checkout.fields.cityOther" /></option>}
@@ -433,7 +439,7 @@ export default function CheckoutPage() {
                     {fieldError("city") && <p className="text-[11px] text-red-600 mt-1">{fieldError("city")}</p>}
                     {(adminDriven ? form.governorate : form.city) && hasZones && (
                       <p className="text-[11px] text-[#8A7E6E] mt-1.5">
-                        <Txt k="checkout.fields.deliveryTo" vars={{ place: adminDriven ? form.governorate : form.city, fee: shippingFee > 0 ? formatPrice(shippingFee) : t("checkout.fields.deliveryFree") }} />
+                        <Txt k="checkout.fields.deliveryTo" vars={{ place: adminDriven ? govLabel(form.governorate) : cityLabel(form.city), fee: shippingFee > 0 ? formatPrice(shippingFee) : t("checkout.fields.deliveryFree") }} />
                         {freeShippingApplied && cityFee > 0 ? " " + t("checkout.fields.freeShippingApplied") : ""}
                       </p>
                     )}
@@ -443,13 +449,13 @@ export default function CheckoutPage() {
                   {customFields.map((f) => (
                     <div key={f.id} className="sm:col-span-2" style={{ order: orderOf(`c:${f.id}`) }}>
                       <label htmlFor={`c_${f.id}`} className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
-                        {f.label} {mark(f.required)}
+                        {L(lang, f.label, f.labelAr)} {mark(f.required)}
                       </label>
                       {f.type === "textarea" ? (
                         <textarea
                           id={`c_${f.id}`}
                           rows={3}
-                          placeholder={f.placeholder}
+                          placeholder={L(lang, f.placeholder, f.placeholderAr)}
                           value={customValues[f.id] || ""}
                           onChange={(e) => setCustomValues((v) => ({ ...v, [f.id]: e.target.value }))}
                           onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
@@ -465,7 +471,7 @@ export default function CheckoutPage() {
                             className={`${inputCls} appearance-none pr-10 cursor-pointer ${customError(f) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                           >
                             <option value=""><Txt k="checkout.fields.selectPlaceholder" /></option>
-                            {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                            {(f.options || []).map((o, oi) => <option key={o} value={o}>{L(lang, o, f.optionsAr?.[oi])}</option>)}
                           </select>
                           <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
                             <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -547,7 +553,7 @@ export default function CheckoutPage() {
                 <div className="bg-[#EDE6D4] p-6 space-y-3">
                   <p className="text-xs tracking-widest uppercase text-[#A8975E]"><Txt k="checkout.payment.instructionsTitle" /></p>
                   <p className="text-sm text-[#5A5040] leading-relaxed">
-                    {paySettings.instructions ||
+                    {L(lang, paySettings.instructions, paySettings.instructionsAr) ||
                       <Txt k="checkout.payment.instructionsDefault" />}
                   </p>
                   {paySettings.instapayId && (
@@ -564,10 +570,10 @@ export default function CheckoutPage() {
                   )}
                   {(paySettings.extraFields || []).map((f) => (
                     <div key={f.id} className="p-4 bg-[#F5EFE2] text-center">
-                      {f.label && <p className="text-xs text-[#8A7E6E] mb-1">{f.label}</p>}
+                      {f.label && <p className="text-xs text-[#8A7E6E] mb-1">{L(lang, f.label, f.labelAr)}</p>}
                       {f.type === "qr" && f.value ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={f.value} alt={f.label || t("checkout.payment.qrAlt")} className="mx-auto w-44 h-44 object-contain" />
+                        <img src={f.value} alt={L(lang, f.label, f.labelAr) || t("checkout.payment.qrAlt")} className="mx-auto w-44 h-44 object-contain" />
                       ) : f.type === "link" && f.value ? (
                         <a href={f.value} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#A8975E] underline break-all">
                           {f.value}
@@ -660,13 +666,13 @@ export default function CheckoutPage() {
                     <p><span className="text-[#8A7E6E]"><Txt k="checkout.confirm.address" /></span> {formatAddress(form)}</p>
                   )}
                   {customFields.filter((f) => (customValues[f.id] || "").trim()).map((f) => (
-                    <p key={f.id}><span className="text-[#8A7E6E]">{f.label}:</span> {customValues[f.id]}</p>
+                    <p key={f.id}><span className="text-[#8A7E6E]">{L(lang, f.label, f.labelAr)}:</span> {customValues[f.id]}</p>
                   ))}
                 </div>
                 <div className="space-y-3">
                   {items.map((i) => (
                     <div key={i.id} className="flex justify-between text-sm">
-                      <span className="text-[#5A5040]">{i.productName} × {i.quantity}</span>
+                      <span className="text-[#5A5040]">{itemNames(i, lang).product} × {i.quantity}</span>
                       <span>{formatPrice(unit(i) * i.quantity)}</span>
                     </div>
                   ))}
@@ -737,7 +743,7 @@ export default function CheckoutPage() {
             <div className="space-y-3 text-sm">
               {items.map((i) => (
                 <div key={i.id} className="flex justify-between">
-                  <span className="text-[#5A5040] truncate mr-2">{i.productName} ×{i.quantity}</span>
+                  <span className="text-[#5A5040] truncate mr-2">{itemNames(i, lang).product} ×{i.quantity}</span>
                   <span className="shrink-0">{formatPrice(unit(i) * i.quantity)}</span>
                 </div>
               ))}

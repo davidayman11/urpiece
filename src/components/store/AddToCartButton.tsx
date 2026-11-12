@@ -6,7 +6,8 @@ import { parseImgs } from "@/lib/product-images";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
-import { Txt } from "@/components/store/TextsProvider";
+import { L } from "@/lib/localize";
+import { Txt, useLang } from "@/components/store/TextsProvider";
 import type { Product, Variant } from "@prisma/client";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function AddToCartButton({ product }: Props) {
+  const lang = useLang();
   const addItem = useCartStore((s) => s.addItem);
   // The chosen variant is shared with the photo gallery (so the right photos show)
   const shared = useVariantSelection();
@@ -46,6 +48,8 @@ export default function AddToCartButton({ product }: Props) {
       variantId: selectedVariant.id,
       productName: product.name,
       variantName: selectedVariant.name,
+      productNameAr: product.nameAr || undefined,
+      variantNameAr: selectedVariant.nameAr || undefined,
       price: salePrice(selectedVariant.price, sale, product.saleType),
       image: parseImgs(selectedVariant.images)[0] || images[0] || "",
       quantity: qty,
@@ -73,12 +77,12 @@ export default function AddToCartButton({ product }: Props) {
       {product.variants.length > 1 && (
         <div>
           <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-3">
-            {selectedVariant?.name}
+            {selectedVariant ? L(lang, selectedVariant.name, selectedVariant.nameAr) : ""}
           </p>
           <div className="flex flex-wrap gap-2">
             {product.variants.map((v) => {
               const opts = parseJson<Record<string, string>>(v.options, {});
-              const label = Object.values(opts).join(" / ") || v.name;
+              const label = (lang === "ar" && v.nameAr?.trim() ? v.nameAr : Object.values(opts).join(" / ")) || v.name;
               return (
                 <button
                   key={v.id}

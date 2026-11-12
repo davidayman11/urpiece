@@ -2,6 +2,8 @@ import { slugify } from "@/lib/utils";
 
 export interface BundleInput {
   name: string;
+  nameAr: string | null;
+  descriptionAr: string | null;
   slug: string;
   description: string | null;
   image: string | null;
@@ -30,6 +32,8 @@ export function parseBundle(b: Record<string, unknown>): { data?: BundleInput; e
   return {
     data: {
       name,
+      nameAr: String(b.nameAr || "").trim() || null,
+      descriptionAr: String(b.descriptionAr || "").trim() || null,
       slug: slugify(String(b.slug || "") || name) || "bundle",
       description: String(b.description || "").trim() || null,
       image: String(b.image || "").trim() || null,

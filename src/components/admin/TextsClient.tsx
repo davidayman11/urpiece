@@ -86,8 +86,8 @@ function StyleButton({ kind, on, onClick }: { kind: RichKind; on?: boolean; onCl
 }
 
 export default function TextsClient({
-  defs, overrides, styles: initialStyles, noStyle,
-}: { defs: TextDef[]; overrides: Record<string, string>; styles: TextStyles; noStyle: string[] }) {
+  defs, overrides, styles: initialStyles, noStyle, lang = "en",
+}: { defs: TextDef[]; overrides: Record<string, string>; styles: TextStyles; noStyle: string[]; lang?: "en" | "ar" }) {
   const noStyleSet = new Set(noStyle);
   const [styles, setStyles] = useState<TextStyles>(initialStyles);
   const [savedStyles, setSavedStyles] = useState(JSON.stringify(initialStyles));
@@ -144,7 +144,7 @@ export default function TextsClient({
     const res = await fetch("/api/admin/texts", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ values, styles }),
+      body: JSON.stringify({ lang, values, styles }),
     });
     setSaving(false);
     if (res.ok) {
@@ -227,6 +227,7 @@ export default function TextsClient({
                       )}
                     </div>
                     <Field
+                      dir={lang === "ar" ? "rtl" : "ltr"}
                       ref={(el: HTMLInputElement & HTMLTextAreaElement | null) => { fieldRefs.current[d.key] = el; }}
                       value={v}
                       onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => setValues((s) => ({ ...s, [d.key]: e.target.value }))}
@@ -244,6 +245,7 @@ export default function TextsClient({
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[11px] text-gray-500 w-24 shrink-0">Whole text</span>
+                          {lang === "en" && (
                           <select
                             value={styles[d.key]?.font || ""}
                             onChange={(e) => setStyle(d.key, { font: e.target.value || undefined })}
@@ -257,6 +259,7 @@ export default function TextsClient({
                               </optgroup>
                             ))}
                           </select>
+                          )}
                           <select
                             value={styles[d.key]?.size || ""}
                             onChange={(e) => setStyle(d.key, { size: (e.target.value || undefined) as TextSize | undefined })}

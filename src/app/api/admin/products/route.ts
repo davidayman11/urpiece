@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const { name, nameAr, descriptionAr, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const nn = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
   const photos = splitPhotos(images);
   const toDate = (v: unknown) => (v ? new Date(v as string) : null);
   const type = saleType === "FIXED" ? "FIXED" : "PERCENT";
@@ -39,6 +40,8 @@ export async function POST(req: NextRequest) {
       name,
       slug: finalSlug,
       description,
+      nameAr: nn(nameAr),
+      descriptionAr: nn(descriptionAr),
       categoryId: categoryId || null,
       isActive: isActive ?? true,
       isFeatured: isFeatured ?? false,
@@ -48,9 +51,10 @@ export async function POST(req: NextRequest) {
       saleEndsAt: toDate(saleEndsAt),
       images: JSON.stringify(photos.general),
       variants: {
-        create: variants.map((v: { key?: string; name: string; price: number; costPrice: number; inventory: number; sku?: string; options?: string }) => ({
+        create: variants.map((v: { key?: string; name: string; nameAr?: string; price: number; costPrice: number; inventory: number; sku?: string; options?: string }) => ({
           images: JSON.stringify(photos.forVariant(String(v.key || ""))),
           name: v.name,
+          nameAr: nn(v.nameAr),
           price: v.price,
           costPrice: v.costPrice,
           inventory: v.inventory || 0,

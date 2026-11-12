@@ -7,6 +7,8 @@ import ProductGallery from "@/components/store/ProductGallery";
 import AddToCartButton from "@/components/store/AddToCartButton";
 import { VariantSelectionProvider } from "@/components/store/VariantSelection";
 import { parseImgs } from "@/lib/product-images";
+import { L } from "@/lib/localize";
+import { getLang } from "@/lib/lang-server";
 import { getT, getTexts } from "@/lib/texts/server";
 import { parseSections } from "@/lib/texts";
 import type { Metadata } from "next";
@@ -21,12 +23,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await prisma.product.findUnique({ where: { slug } });
   if (!product) return { title: "Not Found" };
-  return { title: product.name };
+  return { title: L(await getLang(), product.name, product.nameAr) };
 }
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const t = await getT();
+  const lang = await getLang();
   const product = await prisma.product.findUnique({
     where: { slug, isActive: true },
     include: {
@@ -64,17 +67,17 @@ export default async function ProductPage({ params }: Props) {
         <VariantSelectionProvider initialVariantId={product.variants[0]?.id || ""}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
           {/* Gallery */}
-          <ProductGallery images={images} variantImages={variantImages} name={product.name} />
+          <ProductGallery images={images} variantImages={variantImages} name={L(lang, product.name, product.nameAr)} />
 
           {/* Info */}
           <div className="md:pt-8">
             {product.category && (
               <p className="text-xs tracking-[0.3em] uppercase text-[#A8975E] mb-3">
-                {product.category.name}
+                {L(lang, product.category.name, product.category.nameAr)}
               </p>
             )}
             <h1 className="font-serif text-4xl md:text-5xl font-light text-[#1C1711] leading-tight">
-              {product.name}
+              {L(lang, product.name, product.nameAr)}
             </h1>
 
             {/* Stock & views row */}
@@ -103,8 +106,8 @@ export default async function ProductPage({ params }: Props) {
               </span>
             </div>
 
-            {product.description && (
-              <p className="mt-6 text-sm text-[#5A5040] leading-relaxed">{product.description}</p>
+            {(product.description || product.descriptionAr) && (
+              <p className="mt-6 text-sm text-[#5A5040] leading-relaxed">{L(lang, product.description, product.descriptionAr)}</p>
             )}
 
             <AddToCartButton product={product as Parameters<typeof AddToCartButton>[0]["product"]} />

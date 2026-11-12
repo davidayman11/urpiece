@@ -13,7 +13,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
-  const { instapayId, instapayPhone, instructions, extraFields, requiredFields, customFields, fieldOrder } = await req.json();
+  const { instapayId, instapayPhone, instructions, instructionsAr, extraFields, requiredFields, customFields, fieldOrder } = await req.json();
   const required = JSON.stringify(parseFieldModes(JSON.stringify(requiredFields || {})));
   const customParsed = parseCustomFields(JSON.stringify(customFields || []));
   const custom = JSON.stringify(customParsed);
@@ -21,9 +21,10 @@ export async function POST(req: NextRequest) {
   const extra = JSON.stringify(
     (Array.isArray(extraFields) ? extraFields : [])
       .filter((f: { value?: string; label?: string }) => f && (f.value || f.label))
-      .map((f: { id?: string; label?: string; value?: string; type?: string }) => ({
+      .map((f: { id?: string; label?: string; labelAr?: string; value?: string; type?: string }) => ({
         id: String(f.id || Math.random().toString(36).slice(2)),
         label: String(f.label || ""),
+        labelAr: String(f.labelAr || "").trim(),
         value: String(f.value || ""),
         type: ["text", "link", "qr"].includes(f.type || "") ? f.type : "text",
       }))
@@ -32,10 +33,10 @@ export async function POST(req: NextRequest) {
   if (existing) {
     const s = await prisma.paymentSettings.update({
       where: { id: existing.id },
-      data: { instapayId, instapayPhone, instructions, extraFields: extra, requiredFields: required, customFields: custom, fieldOrder: order },
+      data: { instapayId, instapayPhone, instructions, instructionsAr: String(instructionsAr || "").trim() || null, extraFields: extra, requiredFields: required, customFields: custom, fieldOrder: order },
     });
     return NextResponse.json(s);
   }
-  const s = await prisma.paymentSettings.create({ data: { instapayId, instapayPhone, instructions, extraFields: extra, requiredFields: required, customFields: custom, fieldOrder: order } });
+  const s = await prisma.paymentSettings.create({ data: { instapayId, instapayPhone, instructions, instructionsAr: String(instructionsAr || "").trim() || null, extraFields: extra, requiredFields: required, customFields: custom, fieldOrder: order } });
   return NextResponse.json(s);
 }

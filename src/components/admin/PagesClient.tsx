@@ -151,6 +151,7 @@ const COLOR_DEFAULTS: Record<string, string> = {
 };
 
 const TEXTAREA_FIELDS = new Set(["messages", "body", "subheading", "brandDescription", "paymentNote", "shippingNote", "copyright", "quote"]);
+const AR_FIELDS = new Set(["tagline", "heading", "subheading", "eyebrow", "body", "quote", "buttonText", "secondaryText", "brandDescription", "paymentNote", "shippingNote", "copyright", "linkText", "messages"]);
 const URL_FIELDS = new Set(["buttonUrl", "secondaryUrl", "barUrl"]);
 
 const PAGE_SLUG_LABELS: Record<string, string> = {
@@ -544,6 +545,29 @@ export default function PagesClient({
                       onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
                       className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
                     />
+                  )}
+                  {AR_FIELDS.has(field) && (
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-500 mb-1 block">{FIELD_LABELS[field] || field} — Arabic</label>
+                      {TEXTAREA_FIELDS.has(field) ? (
+                        <textarea
+                          dir="rtl"
+                          value={content[field + "_ar"] || ""}
+                          onChange={(e) => setContent((c) => ({ ...c, [field + "_ar"]: e.target.value }))}
+                          rows={field === "body" ? 5 : field === "messages" ? 4 : 3}
+                          placeholder="بالعربية (optional — English is shown if empty)"
+                          className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                        />
+                      ) : (
+                        <input
+                          dir="rtl"
+                          value={content[field + "_ar"] || ""}
+                          onChange={(e) => setContent((c) => ({ ...c, [field + "_ar"]: e.target.value }))}
+                          placeholder="بالعربية (optional — English is shown if empty)"
+                          className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
                 );

@@ -4,9 +4,9 @@ export interface ShippingConfig {
   /** true when governorates are managed in the admin: shipping is priced per governorate */
   adminDriven: boolean;
   /** Active governorates with their shipping price and the cities listed under them (customers can also type another city) */
-  governorates: { name: string; price: number; cities: string[] }[];
+  governorates: { name: string; nameAr?: string; price: number; cities: string[]; /** Arabic label of a city, by its English name (display only) */ citiesAr?: Record<string, string> }[];
   /** Flat priced city list, used only when no governorates are set up (older setup) */
-  zones: { city: string; price: number }[];
+  zones: { city: string; cityAr?: string; price: number }[];
   /** Is there anything to choose from at all? */
   hasZones: boolean;
 }
@@ -17,7 +17,13 @@ export async function loadShipping(): Promise<ShippingConfig> {
     include: { zones: { where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { city: "asc" }] } },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
-  const governorates = govs.map((g) => ({ name: g.name, price: g.shippingPrice, cities: g.zones.map((z) => z.city) }));
+  const governorates = govs.map((g) => ({
+    name: g.name,
+    nameAr: g.nameAr || undefined,
+    price: g.shippingPrice,
+    cities: g.zones.map((z) => z.city),
+    citiesAr: Object.fromEntries(g.zones.filter((z) => z.cityAr).map((z) => [z.city, z.cityAr as string])),
+  }));
   const adminDriven = governorates.length > 0;
 
   const legacy = adminDriven
@@ -30,7 +36,7 @@ export async function loadShipping(): Promise<ShippingConfig> {
   return {
     adminDriven,
     governorates,
-    zones: legacy.map((z) => ({ city: z.city, price: z.price })),
+    zones: legacy.map((z) => ({ city: z.city, cityAr: z.cityAr || undefined, price: z.price })),
     hasZones: adminDriven || legacy.length > 0,
   };
 }

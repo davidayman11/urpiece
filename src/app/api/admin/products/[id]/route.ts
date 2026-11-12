@@ -9,7 +9,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   const body = await req.json();
-  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const { name, nameAr, descriptionAr, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const nn = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
   const photos = splitPhotos(images);
   const toDate = (v: unknown) => (v ? new Date(v as string) : null);
   const type = saleType === "FIXED" ? "FIXED" : "PERCENT";
@@ -22,6 +23,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       name,
       slug,
       description,
+      nameAr: nn(nameAr),
+      descriptionAr: nn(descriptionAr),
       categoryId: categoryId || null,
       isActive,
       isFeatured,
@@ -40,6 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         where: { id: v.id },
         data: {
           name: v.name,
+          nameAr: nn(v.nameAr),
           price: v.price,
           costPrice: v.costPrice,
           inventory: v.inventory,
@@ -54,6 +58,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           productId: id,
           images: JSON.stringify(photos.forVariant(String(v.key || ""))),
           name: v.name,
+          nameAr: nn(v.nameAr),
           price: v.price,
           costPrice: v.costPrice,
           inventory: v.inventory || 0,

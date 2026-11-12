@@ -9,8 +9,8 @@ type CategoryWithCount = Category & { _count: { products: number } };
 
 interface Props { categories: CategoryWithCount[] }
 
-interface Form { name: string; description: string; image: string; isActive: boolean; sortOrder: string }
-const emptyForm = (): Form => ({ name: "", description: "", image: "", isActive: true, sortOrder: "0" });
+interface Form { name: string; nameAr: string; descriptionAr: string; description: string; image: string; isActive: boolean; sortOrder: string }
+const emptyForm = (): Form => ({ name: "", nameAr: "", descriptionAr: "", description: "", image: "", isActive: true, sortOrder: "0" });
 
 export default function CategoriesClient({ categories }: Props) {
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function CategoriesClient({ categories }: Props) {
   const openCreate = () => { setForm(emptyForm()); setEditId(null); setModal("create"); };
   const openEdit = (c: CategoryWithCount) => {
     setEditId(c.id);
-    setForm({ name: c.name, description: c.description || "", image: c.image || "", isActive: c.isActive, sortOrder: String(c.sortOrder) });
+    setForm({ name: c.name, nameAr: c.nameAr || "", descriptionAr: c.descriptionAr || "", description: c.description || "", image: c.image || "", isActive: c.isActive, sortOrder: String(c.sortOrder) });
     setModal("edit");
   };
 
@@ -108,6 +108,27 @@ export default function CategoriesClient({ categories }: Props) {
                 <input
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Name (Arabic)</label>
+                <input
+                  dir="rtl"
+                  value={form.nameAr}
+                  onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
+                  placeholder="بالعربية (optional)"
+                  className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Description (Arabic)</label>
+                <textarea
+                  dir="rtl"
+                  value={form.descriptionAr}
+                  onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value }))}
+                  placeholder="بالعربية (optional)"
+                  rows={2}
                   className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none"
                 />
               </div>
