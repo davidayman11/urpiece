@@ -97,6 +97,7 @@ model Variant {
   price      Float
   costPrice  Float
   inventory  Int         @default(0)
+  images     String      @default("[]")
   sku        String?
   isActive   Boolean     @default(true)
   orderItems OrderItem[]

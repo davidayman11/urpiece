@@ -33,7 +33,7 @@ export interface BundleViewItem {
   id: string;
   productId: string;
   variantId: string | null;
-  product: { name: string; images: string; slug: string; isActive: boolean; variants: { id: string; name: string; price: number; inventory: number; isActive: boolean }[] };
+  product: { name: string; images: string; slug: string; isActive: boolean; variants: { id: string; name: string; price: number; inventory: number; isActive: boolean; images?: string }[] };
 }
 export interface BundleView {
   id: string; name: string; slug: string; description: string | null; image: string | null;

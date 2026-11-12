@@ -5,6 +5,8 @@ import { parseJson } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 import ProductGallery from "@/components/store/ProductGallery";
 import AddToCartButton from "@/components/store/AddToCartButton";
+import { VariantSelectionProvider } from "@/components/store/VariantSelection";
+import { parseImgs } from "@/lib/product-images";
 import type { Metadata } from "next";
 
 interface Props {
@@ -36,7 +38,8 @@ export default async function ProductPage({ params }: Props) {
     data: { views: { increment: 1 } },
   });
 
-  const images = parseJson<string[]>(product.images, []);
+  const images = parseImgs(product.images);
+  const variantImages = Object.fromEntries(product.variants.map((v) => [v.id, parseImgs(v.images)]));
   const totalInventory = product.variants.reduce((s, v) => s + v.inventory, 0);
   const isOutOfStock = totalInventory === 0;
   const isLowStock = !isOutOfStock && totalInventory <= 5;
@@ -45,9 +48,10 @@ export default async function ProductPage({ params }: Props) {
   return (
     <div className="pt-20 pb-24 bg-[#F5EFE2]">
       <div className="max-w-7xl mx-auto px-6">
+        <VariantSelectionProvider initialVariantId={product.variants[0]?.id || ""}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
           {/* Gallery */}
-          <ProductGallery images={images} name={product.name} />
+          <ProductGallery images={images} variantImages={variantImages} name={product.name} />
 
           {/* Info */}
           <div className="md:pt-8">
@@ -119,6 +123,7 @@ export default async function ProductPage({ params }: Props) {
             </div>
           </div>
         </div>
+        </VariantSelectionProvider>
       </div>
     </div>
   );

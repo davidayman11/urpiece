@@ -8,6 +8,7 @@ import { formatPrice, parseJson } from "@/lib/utils";
 import { formatAddress } from "@/lib/checkout-fields";
 import { statusInfo, TRACKER_STEPS, PAYMENT_STATUS } from "@/lib/order-status";
 import CopyButton from "@/components/store/CopyButton";
+import { coverImage } from "@/lib/product-images";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function OrderDetailPage({ params }: Props) {
   const order = await prisma.order.findUnique({
     where: { orderNumber },
     include: {
-      items: { include: { product: { select: { images: true, slug: true } } } },
+      items: { include: { product: { select: { images: true, slug: true, variants: { select: { images: true } } } } } },
       statusHistory: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -107,7 +108,7 @@ export default async function OrderDetailPage({ params }: Props) {
               <h2 className={heading}>Items</h2>
               <div className="divide-y divide-[#EDE6D4]">
                 {order.items.map((item) => {
-                  const img = parseJson<string[]>(item.product?.images || "[]", [])[0];
+                  const img = coverImage(item.product?.images || "[]", item.product?.variants || []);
                   return (
                     <div key={item.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
                       <div className="relative w-16 h-20 shrink-0 bg-[#EDE6D4] overflow-hidden">

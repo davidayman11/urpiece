@@ -2,14 +2,27 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useVariantSelection } from "@/components/store/VariantSelection";
+import { galleryImages } from "@/lib/product-images";
 
 interface Props {
+  /** photos shown for every variant */
   images: string[];
+  /** photos that belong to one variant, by variant id */
+  variantImages?: Record<string, string[]>;
   name: string;
 }
 
-export default function ProductGallery({ images, name }: Props) {
-  const [current, setCurrent] = useState(0);
+export default function ProductGallery({ images: general, variantImages = {}, name }: Props) {
+  const sel = useVariantSelection();
+  const variantId = sel?.variantId ?? "";
+  const images = galleryImages(general, variantImages[variantId] || [], Object.values(variantImages));
+
+  // Picking a different variant starts again from its first photo
+  const [pos, setPos] = useState({ v: variantId, i: 0 });
+  const current = pos.v === variantId ? Math.min(pos.i, Math.max(0, images.length - 1)) : 0;
+  const setCurrent = (next: number | ((p: number) => number)) =>
+    setPos({ v: variantId, i: typeof next === "function" ? next(current) : next });
 
   if (images.length === 0) {
     return (

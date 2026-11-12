@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import { summarizeBundle, type BundleView } from "@/lib/bundles";
+import { coverImage } from "@/lib/product-images";
 
 export default function BundleCard({ bundle }: { bundle: BundleView }) {
   const s = summarizeBundle(bundle);
@@ -15,7 +16,7 @@ export default function BundleCard({ bundle }: { bundle: BundleView }) {
           <div className="absolute inset-0 grid grid-cols-2">
             {bundle.items.slice(0, 4).map((it) => {
               let img = "";
-              try { img = (JSON.parse(it.product.images) as string[])[0] || ""; } catch { /* no image */ }
+              img = coverImage(it.product.images, it.product.variants);
               return (
                 <div key={it.id} className="relative bg-[#E0D8C4]">
                   {img && <Image src={img} alt="" fill className="object-cover" />}

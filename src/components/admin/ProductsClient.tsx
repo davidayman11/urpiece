@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatPrice, parseJson, slugify } from "@/lib/utils";
 import { salePrice, saleLabel, saleStatus, activeSaleValue } from "@/lib/pricing";
+import { parseImgs, coverImage } from "@/lib/product-images";
 
 // ISO <-> <input type="datetime-local"> (local time)
 const toLocalInput = (d?: Date | string | null) => {
@@ -27,6 +28,8 @@ interface Props {
 
 interface VariantForm {
   id?: string;
+  /** temporary id used to link photos to a variant before it is saved */
+  key: string;
   name: string;
   price: string;
   costPrice: string;
@@ -46,11 +49,15 @@ interface ProductForm {
   saleType: "PERCENT" | "FIXED";
   saleStartsAt: string;
   saleEndsAt: string;
-  images: string[];
+  images: PhotoForm[];
   variants: VariantForm[];
 }
 
+/** variantKey "" = shown for every variant */
+interface PhotoForm { url: string; variantKey: string }
+
 const emptyVariant = (): VariantForm => ({
+  key: `new-${Math.random().toString(36).slice(2)}`,
   name: "", price: "", costPrice: "", inventory: "0", options: "", sku: "",
 });
 
@@ -67,6 +74,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadFor, setUploadFor] = useState(""); // which variant new photos belong to ("" = all)
   const [search, setSearch] = useState("");
   const [onlyLow, setOnlyLow] = useState(initialLow);
   const [threshold, setThreshold] = useState(String(lowStockThreshold));
@@ -91,9 +99,12 @@ export default function ProductsClient({ products: initial, categories, lowStock
       saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
       saleStartsAt: toLocalInput(p.saleStartsAt),
       saleEndsAt: toLocalInput(p.saleEndsAt),
-      images: parseJson<string[]>(p.images, []),
+      images: [
+        ...parseImgs(p.images).map((url) => ({ url, variantKey: "" })),
+        ...p.variants.flatMap((v) => parseImgs(v.images).map((url) => ({ url, variantKey: v.id }))),
+      ],
       variants: p.variants.map((v) => ({
-        id: v.id, name: v.name, price: String(v.price), costPrice: String(v.costPrice),
+        id: v.id, key: v.id, name: v.name, price: String(v.price), costPrice: String(v.costPrice),
         inventory: String(v.inventory), options: v.options, sku: v.sku || "",
       })),
     });
@@ -103,6 +114,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
   const uploadImages = async (files: FileList) => {
     setUploading(true);
     const urls: string[] = [];
+    const target = uploadFor;
     for (const file of Array.from(files)) {
       const fd = new FormData();
       fd.append("file", file);
@@ -111,7 +123,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
       const data = await res.json();
       if (data.url) urls.push(data.url);
     }
-    setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
+    setForm((f) => ({ ...f, images: [...f.images, ...urls.map((url) => ({ url, variantKey: target }))] }));
     setUploading(false);
   };
 
@@ -210,7 +222,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
               <tr><td colSpan={7} className="p-8 text-center text-gray-400">No products found</td></tr>
             ) : (
               filtered.map((p) => {
-                const imgs = parseJson<string[]>(p.images, []);
+                const cover = coverImage(p.images, p.variants);
                 const totalStock = p.variants.reduce((a, v) => a + v.inventory, 0);
                 const minPrice = p.variants.length ? Math.min(...p.variants.map((v) => v.price)) : 0;
                 return (
@@ -218,7 +230,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded bg-[#EDE6D4] overflow-hidden shrink-0">
-                          {imgs[0] && <Image src={imgs[0]} alt={p.name} width={40} height={40} className="object-cover w-full h-full" />}
+                          {cover && <Image src={cover} alt={p.name} width={40} height={40} className="object-cover w-full h-full" />}
                         </div>
                         <div>
                           <p className="font-medium text-gray-800">{p.name}</p>
@@ -393,20 +405,47 @@ export default function ProductsClient({ products: initial, categories, lowStock
                   onChange={(e) => e.target.files && uploadImages(e.target.files)}
                   className="text-sm text-gray-500"
                 />
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                  New photos are for
+                  <select value={uploadFor} onChange={(e) => setUploadFor(e.target.value)} className="border border-gray-200 rounded px-2 py-1 text-xs bg-white">
+                    <option value="">All variants</option>
+                    {form.variants.map((v, vi) => (
+                      <option key={v.key} value={v.key}>{v.name || `Variant ${vi + 1}`} only</option>
+                    ))}
+                  </select>
+                  <span className="text-gray-400">(choose before you upload; you can change each photo afterwards)</span>
+                </div>
                 {uploading && <p className="text-xs text-[#A8975E] mt-1">Uploading...</p>}
                 {form.images.length > 0 && (
-                  <div className="flex gap-2 mt-2 flex-wrap">
+                  <div className="flex gap-3 mt-3 flex-wrap">
                     {form.images.map((img, i) => (
-                      <div key={i} className="relative w-16 h-16">
-                        <Image src={img} alt="" fill className="object-cover rounded" />
-                        <button
-                          onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
-                        >×</button>
+                      <div key={i} className="w-24">
+                        <div className="relative w-24 h-24">
+                          <Image src={img.url} alt="" fill className="object-cover rounded" />
+                          <button
+                            onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
+                            aria-label="Remove photo"
+                          >×</button>
+                        </div>
+                        <select
+                          value={img.variantKey}
+                          onChange={(e) => setForm((f) => ({ ...f, images: f.images.map((x, j) => (j === i ? { ...x, variantKey: e.target.value } : x)) }))}
+                          className="mt-1 w-full border border-gray-200 rounded px-1 py-1 text-[11px] bg-white"
+                          title="Which variant this photo is for"
+                        >
+                          <option value="">All variants</option>
+                          {form.variants.map((v, vi) => (
+                            <option key={v.key} value={v.key}>{v.name || `Variant ${vi + 1}`} only</option>
+                          ))}
+                        </select>
                       </div>
                     ))}
                   </div>
                 )}
+                <p className="text-[11px] text-gray-400 mt-2">
+                  Tip: choose &quot;Gold only&quot; under a photo and customers will see it when they pick Gold. Photos marked &quot;All variants&quot; always show.
+                </p>
               </div>
 
               {/* Variants */}
@@ -478,7 +517,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
                       )}
                       {form.variants.length > 1 && (
                         <button
-                          onClick={() => setForm((f) => ({ ...f, variants: f.variants.filter((_, j) => j !== i) }))}
+                          onClick={() => setForm((f) => ({ ...f, variants: f.variants.filter((_, j) => j !== i), images: f.images.map((x) => (x.variantKey === v.key ? { ...x, variantKey: "" } : x)) }))}
                           className="text-xs text-red-500 hover:underline"
                         >
                           Remove variant

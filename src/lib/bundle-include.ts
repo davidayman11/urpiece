@@ -6,7 +6,7 @@ export const bundleInclude = {
       product: {
         select: {
           name: true, images: true, slug: true, isActive: true,
-          variants: { select: { id: true, name: true, price: true, inventory: true, isActive: true }, orderBy: { price: "asc" as const } },
+          variants: { select: { id: true, name: true, price: true, inventory: true, isActive: true, images: true }, orderBy: { price: "asc" as const } },
         },
       },
     },

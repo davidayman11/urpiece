@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { slugify } from "@/lib/utils";
+import { splitPhotos } from "@/lib/product-images";
 
 export async function GET() {
   const { error } = await requireAdmin();
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const photos = splitPhotos(images);
   const toDate = (v: unknown) => (v ? new Date(v as string) : null);
   const type = saleType === "FIXED" ? "FIXED" : "PERCENT";
   const saleValue = type === "PERCENT" ? Math.min(100, Math.max(0, Number(salePercent) || 0)) : Math.max(0, Number(salePercent) || 0);
@@ -44,9 +46,10 @@ export async function POST(req: NextRequest) {
       saleType: type,
       saleStartsAt: toDate(saleStartsAt),
       saleEndsAt: toDate(saleEndsAt),
-      images: JSON.stringify(images || []),
+      images: JSON.stringify(photos.general),
       variants: {
-        create: variants.map((v: { name: string; price: number; costPrice: number; inventory: number; sku?: string; options?: string }) => ({
+        create: variants.map((v: { key?: string; name: string; price: number; costPrice: number; inventory: number; sku?: string; options?: string }) => ({
+          images: JSON.stringify(photos.forVariant(String(v.key || ""))),
           name: v.name,
           price: v.price,
           costPrice: v.costPrice,

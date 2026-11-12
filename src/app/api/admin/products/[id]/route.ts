@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { splitPhotos } from "@/lib/product-images";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await requireAdmin();
@@ -9,6 +10,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const body = await req.json();
   const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const photos = splitPhotos(images);
   const toDate = (v: unknown) => (v ? new Date(v as string) : null);
   const type = saleType === "FIXED" ? "FIXED" : "PERCENT";
   const saleValue = type === "PERCENT" ? Math.min(100, Math.max(0, Number(salePercent) || 0)) : Math.max(0, Number(salePercent) || 0);
@@ -27,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       saleType: type,
       saleStartsAt: toDate(saleStartsAt),
       saleEndsAt: toDate(saleEndsAt),
-      images: JSON.stringify(images || []),
+      images: JSON.stringify(photos.general),
     },
   });
 
@@ -43,12 +45,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           inventory: v.inventory,
           sku: v.sku || null,
           options: v.options || "{}",
+          images: JSON.stringify(photos.forVariant(String(v.key || v.id))),
         },
       });
     } else {
       await prisma.variant.create({
         data: {
           productId: id,
+          images: JSON.stringify(photos.forVariant(String(v.key || ""))),
           name: v.name,
           price: v.price,
           costPrice: v.costPrice,

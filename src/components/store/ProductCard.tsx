@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
+import { parseImgs } from "@/lib/product-images";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
@@ -11,7 +12,9 @@ interface Props {
 }
 
 export default function ProductCard({ product }: Props) {
-  const images = parseJson<string[]>(product.images, []);
+  const general = parseImgs(product.images);
+  // a product whose photos are all assigned to variants still needs a card picture
+  const images = general.length > 0 ? general : [...new Set(product.variants.flatMap((v) => parseImgs(v.images)))];
   const firstImage = images[0];
   const secondImage = images[1];
   const minPrice = product.variants.length > 0

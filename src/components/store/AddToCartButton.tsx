@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useVariantSelection } from "@/components/store/VariantSelection";
+import { parseImgs } from "@/lib/product-images";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
@@ -12,9 +14,11 @@ interface Props {
 
 export default function AddToCartButton({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
-  const [selectedVariantId, setSelectedVariantId] = useState<string>(
-    product.variants[0]?.id || ""
-  );
+  // The chosen variant is shared with the photo gallery (so the right photos show)
+  const shared = useVariantSelection();
+  const [localVariantId, setLocalVariantId] = useState<string>(product.variants[0]?.id || "");
+  const selectedVariantId = shared?.variantId || localVariantId;
+  const setSelectedVariantId = (id: string) => { setLocalVariantId(id); shared?.setVariantId(id); };
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -42,7 +46,7 @@ export default function AddToCartButton({ product }: Props) {
       productName: product.name,
       variantName: selectedVariant.name,
       price: salePrice(selectedVariant.price, sale, product.saleType),
-      image: images[0] || "",
+      image: parseImgs(selectedVariant.images)[0] || images[0] || "",
       quantity: qty,
     });
     setAdded(true);

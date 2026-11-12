@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
-import { parseJson } from "@/lib/utils";
+import { coverImage } from "@/lib/product-images";
 import BundleBuyBox, { type BuyItem } from "@/components/store/BundleBuyBox";
 import { bundleInclude } from "@/lib/bundle-include";
 import type { Metadata } from "next";
@@ -25,7 +25,7 @@ export default async function BundlePage({ params }: Props) {
     id: it.id,
     productName: it.product.name,
     slug: it.product.slug,
-    image: parseJson<string[]>(it.product.images, [])[0] || "",
+    image: coverImage(it.product.images, it.product.variants),
     fixedVariantId: it.variantId,
     variants: it.product.variants.filter((v) => v.isActive),
   }));
