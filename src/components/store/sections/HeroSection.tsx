@@ -49,7 +49,7 @@ export default function HeroSection({ content }: Props) {
   const scrollDown = () => sectionRef.current?.nextElementSibling?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
-    <section ref={sectionRef} className={`relative ${heightClass} flex items-center overflow-hidden`}>
+    <section data-font-area="hero" ref={sectionRef} className={`relative ${heightClass} flex items-center overflow-hidden`}>
       {/* Background */}
       {content.image ? (
         <>

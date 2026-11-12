@@ -71,7 +71,7 @@ export default async function MarqueeStrip({ content }: Props) {
   );
 
   return (
-    <div
+    <div data-font-area="strip"
       role="region"
       aria-label={t("home.marquee.region")}
       className="marquee-strip overflow-hidden py-4"

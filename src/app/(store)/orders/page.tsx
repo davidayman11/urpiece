@@ -30,7 +30,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const justPlaced = placed ? orders.find((o) => o.orderNumber === placed) : undefined;
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="orders" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-xl mx-auto px-6">
         {justPlaced && (
           <div role="status" className="mb-8 flex items-start gap-3 bg-[#A8975E]/10 border border-[#A8975E]/40 p-4">

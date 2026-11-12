@@ -244,7 +244,7 @@ export default function CheckoutPage() {
   if (items.length === 0) return null;
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="checkout" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-5xl mx-auto px-6">
         <h1 className="font-serif text-4xl font-light text-[#1C1711] mb-10">{t("checkout.title")}</h1>
 

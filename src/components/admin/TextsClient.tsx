@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseSections, type TextDef, type TextSection } from "@/lib/texts/types";
+import { FONT_CATALOG, FONT_CATEGORY_LABELS, textStyleToCss, type FontCategory, type TextStyle, type TextStyles } from "@/lib/fonts";
 
 const placeholdersOf = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[0]))];
 
@@ -57,7 +58,24 @@ function SectionsEditor({ value, onChange }: { value: string; onChange: (json: s
   );
 }
 
-export default function TextsClient({ defs, overrides }: { defs: TextDef[]; overrides: Record<string, string> }) {
+const STYLE_CATEGORIES: FontCategory[] = ["serif", "sans", "script", "arabic"];
+
+export default function TextsClient({
+  defs, overrides, styles: initialStyles, noStyle,
+}: { defs: TextDef[]; overrides: Record<string, string>; styles: TextStyles; noStyle: string[] }) {
+  const noStyleSet = new Set(noStyle);
+  const [styles, setStyles] = useState<TextStyles>(initialStyles);
+  const [savedStyles, setSavedStyles] = useState(JSON.stringify(initialStyles));
+  const setStyle = (key: string, patch: Partial<TextStyle>) =>
+    setStyles((st) => {
+      const next: TextStyle = { ...(st[key] || {}), ...patch };
+      if (!next.font) delete next.font;
+      if (!next.bold) delete next.bold;
+      if (!next.underline) delete next.underline;
+      const all = { ...st };
+      if (Object.keys(next).length) all[key] = next; else delete all[key];
+      return all;
+    });
   const router = useRouter();
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(defs.map((d) => [d.key, overrides[d.key] ?? d.default]))
@@ -77,19 +95,21 @@ export default function TextsClient({ defs, overrides }: { defs: TextDef[]; over
   const matches = (d: TextDef) =>
     !needle || d.label.toLowerCase().includes(needle) || d.default.toLowerCase().includes(needle) || (values[d.key] || "").toLowerCase().includes(needle);
 
-  const dirtyKeys = defs.filter((d) => values[d.key] !== saved[d.key]).map((d) => d.key);
-  const changedCount = defs.filter((d) => values[d.key] !== d.default).length;
+  const stylesDirty = JSON.stringify(styles) !== savedStyles;
+  const dirtyKeys = [...defs.filter((d) => values[d.key] !== saved[d.key]).map((d) => d.key), ...(stylesDirty ? ["__styles"] : [])];
+  const changedCount = defs.filter((d) => values[d.key] !== d.default || styles[d.key]).length;
 
   const save = async () => {
     setSaving(true);
     const res = await fetch("/api/admin/texts", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ values }),
+      body: JSON.stringify({ values, styles }),
     });
     setSaving(false);
     if (res.ok) {
       setSaved(values);
+      setSavedStyles(JSON.stringify(styles));
       setDone(true);
       setTimeout(() => setDone(false), 2500);
       router.refresh();
@@ -167,11 +187,44 @@ export default function TextsClient({ defs, overrides }: { defs: TextDef[]; over
                       )}
                     </div>
                     <Field
+                      style={textStyleToCss(styles[d.key])}
                       value={v}
                       onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => setValues((s) => ({ ...s, [d.key]: e.target.value }))}
                       {...(Field === "textarea" ? { rows: Math.min(6, Math.max(2, Math.ceil(v.length / 70))) } : {})}
                       className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E] ${changed ? "border-[#A8975E]/60 bg-[#A8975E]/5" : "border-gray-200"}`}
                     />
+                    {!noStyleSet.has(d.key) ? (
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <select
+                          value={styles[d.key]?.font || ""}
+                          onChange={(e) => setStyle(d.key, { font: e.target.value || undefined })}
+                          aria-label="Font for this text"
+                          className="border border-gray-200 rounded px-2 py-1 text-xs bg-white max-w-[11rem]"
+                        >
+                          <option value="">Default font</option>
+                          {STYLE_CATEGORIES.map((c) => (
+                            <optgroup key={c} label={FONT_CATEGORY_LABELS[c]}>
+                              {FONT_CATALOG.filter((f) => f.category === c).map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+                            </optgroup>
+                          ))}
+                        </select>
+                        <button
+                          type="button" aria-pressed={!!styles[d.key]?.bold} title="Bold"
+                          onClick={() => setStyle(d.key, { bold: !styles[d.key]?.bold })}
+                          className={`w-7 h-7 rounded border text-sm font-bold ${styles[d.key]?.bold ? "bg-[#A8975E] text-white border-[#A8975E]" : "bg-white text-gray-600 border-gray-200 hover:border-[#A8975E]"}`}
+                        >B</button>
+                        <button
+                          type="button" aria-pressed={!!styles[d.key]?.underline} title="Underline"
+                          onClick={() => setStyle(d.key, { underline: !styles[d.key]?.underline })}
+                          className={`w-7 h-7 rounded border text-sm underline ${styles[d.key]?.underline ? "bg-[#A8975E] text-white border-[#A8975E]" : "bg-white text-gray-600 border-gray-200 hover:border-[#A8975E]"}`}
+                        >U</button>
+                        {styles[d.key] && (
+                          <button type="button" onClick={() => setStyles((st) => { const n = { ...st }; delete n[d.key]; return n; })} className="text-[11px] text-gray-500 hover:underline">Clear style</button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 mt-1.5">Font / bold / underline are not available for this one (it is shown inside a box, tab title or pop-up).</p>
+                    )}
                     {changed && <p className="text-[11px] text-gray-400 mt-1">Default: {d.default}</p>}
                     {missing.length > 0 && (
                       <p className="text-[11px] text-amber-600 mt-1">Heads up: the default includes {missing.join(", ")} — it won&apos;t show if you remove it.</p>

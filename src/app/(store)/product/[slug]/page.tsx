@@ -56,7 +56,7 @@ export default async function ProductPage({ params }: Props) {
   ].filter((x) => x.title || x.body);
 
   return (
-    <div className="pt-20 pb-24 bg-[#F5EFE2]">
+    <div data-font-area="product" className="pt-20 pb-24 bg-[#F5EFE2]">
       <div className="max-w-7xl mx-auto px-6">
         <VariantSelectionProvider initialVariantId={product.variants[0]?.id || ""}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">

@@ -22,7 +22,7 @@ export default async function ContactPage() {
   const shippingNote = c.shippingNote || "Orders are shipped within 2–5 business days. Delivery times vary by location.";
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="contact" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-lg mx-auto px-6">
         {eyebrow && (
           <p className="text-xs tracking-[0.3em] uppercase text-[#A8975E] mb-3" style={{ color: c.eyebrowColor || undefined }}>{eyebrow}</p>

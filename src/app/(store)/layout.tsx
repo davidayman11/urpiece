@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
 import { getTexts, getT } from "@/lib/texts/server";
 import { TextsProvider } from "@/components/store/TextsProvider";
+import { getFontSettings } from "@/lib/font-settings";
+import { buildFontCss, buildFontsUrl, fontsInUse } from "@/lib/fonts";
 import { parseJson } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -45,11 +47,16 @@ async function getAnnouncement() {
 }
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [tagline, announcement, customer, bundleCount, texts] = await Promise.all([
-    getSiteTagline(), getAnnouncement(), getCustomer(), prisma.bundle.count({ where: { isActive: true } }), getTexts(),
+  const [tagline, announcement, customer, bundleCount, texts, fonts] = await Promise.all([
+    getSiteTagline(), getAnnouncement(), getCustomer(), prisma.bundle.count({ where: { isActive: true } }), getTexts(), getFontSettings(),
   ]);
+  // Fonts chosen in Admin > Fonts / Site Text: CSS for the sections + one Google Fonts link for the extra fonts
+  const fontCss = buildFontCss(fonts.config);
+  const fontsUrl = buildFontsUrl(fontsInUse(fonts.config, fonts.styles));
   return (
-    <TextsProvider texts={texts}>
+    <TextsProvider texts={texts} styles={fonts.styles}>
+      {fontsUrl && <link rel="stylesheet" href={fontsUrl} precedence="default" />}
+      {fontCss && <style dangerouslySetInnerHTML={{ __html: fontCss }} />}
     <div style={{ "--announce-h": announcement ? `${ANNOUNCEMENT_HEIGHT}px` : "0px" } as React.CSSProperties}>
       {announcement && <AnnouncementBar {...announcement} />}
       <Navbar tagline={tagline} customerName={customer?.name || ""} hasBundles={bundleCount > 0} />

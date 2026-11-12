@@ -41,7 +41,7 @@ export default async function AnnouncementBar({ messages, bgColor, textColor, sp
   );
 
   return (
-    <div
+    <div data-font-area="announce"
       role="region"
       aria-label={t("announce.region")}
       className="announce-bar fixed top-0 left-0 right-0 z-[60] overflow-hidden flex items-center"

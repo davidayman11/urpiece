@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { TEXT_DEFAULTS, TEXT_DEFS, normalizeSections } from "@/lib/texts";
+import { normalizeTextStyles } from "@/lib/fonts";
 
 /**
  * Save the texts the admin edited. Body: { values: { [key]: string } }.
@@ -29,6 +30,17 @@ export async function PUT(req: NextRequest) {
     const value = String(raw ?? "").replace(/\r\n/g, "\n").trim().slice(0, 3000);
     if (!value || value === TEXT_DEFAULTS[key]) removes.push(key);
     else upserts.push({ key, value });
+  }
+
+  // font / bold / underline chosen for individual texts
+  if (body && "styles" in body) {
+    const styles = normalizeTextStyles(body.styles, (k) => k in TEXT_DEFAULTS);
+    if (Object.keys(styles).length === 0) {
+      await prisma.siteSetting.deleteMany({ where: { key: "textStyles" } });
+    } else {
+      const value = JSON.stringify(styles);
+      await prisma.siteSetting.upsert({ where: { key: "textStyles" }, update: { value }, create: { key: "textStyles", value } });
+    }
   }
 
   await prisma.$transaction([

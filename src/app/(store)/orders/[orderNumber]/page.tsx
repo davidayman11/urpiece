@@ -59,7 +59,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
   const isNew = order.status === "PENDING";
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="orders" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-4xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-10">

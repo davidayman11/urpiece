@@ -26,7 +26,7 @@ export default async function AccountPage() {
   ]);
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="account" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-3xl mx-auto px-6">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>

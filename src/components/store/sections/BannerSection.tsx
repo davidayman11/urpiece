@@ -7,7 +7,7 @@ interface Props {
 
 export default function BannerSection({ content }: Props) {
   return (
-    <section className="relative overflow-hidden py-32 my-10">
+    <section data-font-area="banner" className="relative overflow-hidden py-32 my-10">
       {content.image && (
         <Image
           src={content.image}

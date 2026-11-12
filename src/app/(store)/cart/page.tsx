@@ -20,7 +20,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="pt-32 pb-24 min-h-screen flex flex-col items-center justify-center text-center px-6">
+      <div data-font-area="cart" className="pt-32 pb-24 min-h-screen flex flex-col items-center justify-center text-center px-6">
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="text-[#C4B07A] mb-6">
           <path d="M8 8h12l8 32h28l8-24H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <circle cx="30" cy="56" r="4" fill="currentColor"/>
@@ -41,7 +41,7 @@ export default function CartPage() {
   const cartTotal = total();
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="cart" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-5xl mx-auto px-6">
         <h1 className="font-serif text-4xl font-light text-[#1C1711] mb-10">{t("cart.title")}</h1>
 

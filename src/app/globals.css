@@ -12,6 +12,9 @@
   --dark-muted: #5A5040;
   --dark-lighter: #8A7E6E;
   --white: #FEFCF8;
+  /* Fonts for headings / body text. Admin > Fonts can override these for the whole site or for one section. */
+  --site-font-heading: 'Cormorant Garamond', Georgia, serif;
+  --site-font-body: 'Jost', system-ui, sans-serif;
 }
 
 @theme inline {
@@ -42,13 +45,13 @@ html {
 body {
   background: var(--cream);
   color: var(--dark);
-  font-family: 'Jost', system-ui, sans-serif;
+  font-family: var(--site-font-body);
   font-weight: 300;
   -webkit-font-smoothing: antialiased;
 }
 
 .font-serif {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: var(--site-font-heading);
 }
 
 /* Animations */

@@ -37,7 +37,7 @@ export default function TrackOrderForm() {
   };
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="orders" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-md mx-auto px-6">
         <div className="text-center mb-8">
           <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3">{t("orders.track.eyebrow")}</p>

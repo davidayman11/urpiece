@@ -50,7 +50,7 @@ export default function PopupManager() {
   const dismiss = () => setVisible(false);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={dismiss}>
+    <div data-font-area="popup" className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={dismiss}>
       <div className="absolute inset-0 bg-[#1C1711]/50 backdrop-blur-sm" />
       <div
         className="relative bg-[#F5EFE2] max-w-sm w-full shadow-2xl animate-fade-up"

@@ -13,7 +13,7 @@ export default function FeaturedProducts({ products, content = {} }: Props) {
   const linkText = content.linkText || "View All";
 
   return (
-    <section className="bg-[#F5EFE2] py-20">
+    <section data-font-area="featured" className="bg-[#F5EFE2] py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="flex items-end justify-between mb-12">

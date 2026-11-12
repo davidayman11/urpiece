@@ -249,6 +249,13 @@ model MonthlyReport {
   @@unique([year, month])
 }
 
+/// Small admin-edited settings stored as JSON: "fonts" (font per site section) and "textStyles" (font/bold/underline per text).
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 /// Text overrides edited from Admin > Site Text. Missing key = use the default from src/lib/texts.
 model SiteText {
   key       String   @id

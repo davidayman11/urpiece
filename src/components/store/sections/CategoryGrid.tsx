@@ -17,7 +17,7 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
   const linkText = content.linkText || "All Pieces";
 
   return (
-    <section className="bg-[#F5EFE2] py-20">
+    <section data-font-area="categories" className="bg-[#F5EFE2] py-20">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-end justify-between mb-10">
           <div>

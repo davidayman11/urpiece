@@ -20,7 +20,7 @@ export default async function AboutPage() {
   const quote = c.quote || "";
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="about" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-2xl mx-auto px-6">
         {eyebrow && (
           <p className="text-xs tracking-[0.3em] uppercase text-[#A8975E] mb-3" style={{ color: c.eyebrowColor || undefined }}>{eyebrow}</p>

@@ -40,7 +40,7 @@ export default async function ShopPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="bg-[#F5EFE2] min-h-screen">
+    <div data-font-area="shop" className="bg-[#F5EFE2] min-h-screen">
       {/* Page banner */}
       <div className="bg-[#1C1711] pt-32 pb-14 px-6">
         <div className="max-w-7xl mx-auto">

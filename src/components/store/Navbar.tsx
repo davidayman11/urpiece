@@ -43,7 +43,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
 
   return (
     <>
-      <header
+      <header data-font-area="menu"
         style={{ top: "var(--announce-h, 0px)" }}
         className={`fixed left-0 right-0 z-50 transition-all duration-500 ${
           solidNav
@@ -114,7 +114,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
       </header>
 
       {/* Mobile drawer */}
-      <div
+      <div data-font-area="menu"
         className={`fixed inset-0 z-[100] transition-all duration-300 ${
           menuOpen ? "pointer-events-auto" : "pointer-events-none"
         }`}

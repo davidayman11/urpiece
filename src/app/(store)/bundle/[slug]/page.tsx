@@ -35,7 +35,7 @@ export default async function BundlePage({ params }: Props) {
   const cover = bundle.image || items[0]?.image || "";
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="bundles" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-10 lg:gap-16">
         <div className="relative aspect-[4/5] bg-[#EDE6D4] overflow-hidden">
           {cover && <Image src={cover} alt={bundle.name} fill className="object-cover" priority />}

@@ -158,7 +158,7 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
   );
 
   return (
-    <div className="pt-28 pb-20 min-h-screen px-4 md:px-6">
+    <div data-font-area="account" className="pt-28 pb-20 min-h-screen px-4 md:px-6">
       <div className="max-w-4xl mx-auto grid md:grid-cols-[1fr_1.15fr] bg-[#FBF8F0] border border-[#EDE6D4] shadow-[0_20px_60px_-30px_rgba(28,23,17,0.35)]">
         {/* Brand panel */}
         <aside className="hidden md:flex flex-col justify-between bg-[#1C1711] text-[#F5EFE2] p-10 relative overflow-hidden">

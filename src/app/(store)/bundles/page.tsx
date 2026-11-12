@@ -19,7 +19,7 @@ export default async function BundlesPage() {
   })) as unknown as BundleView[];
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div data-font-area="bundles" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
           <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3">{t("bundle.list.eyebrow")}</p>

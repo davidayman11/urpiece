@@ -9,7 +9,7 @@ export default function EditorialSection({ content }: Props) {
   const imageRight = content.imagePosition !== "left";
 
   return (
-    <section className="max-w-7xl mx-auto px-6 py-20">
+    <section data-font-area="editorial" className="max-w-7xl mx-auto px-6 py-20">
       <div className={`grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch ${imageRight ? "" : "md:[direction:rtl]"}`}>
         {/* Image */}
         <div className="relative aspect-[4/5] md:aspect-auto min-h-[500px] overflow-hidden" style={imageRight ? {} : { direction: "ltr" }}>
