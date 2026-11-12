@@ -13,7 +13,7 @@ const NAV_LINKS = [
   ["My Orders", "/orders"],
 ] as const;
 
-export default function Navbar({ tagline = "" }: { tagline?: string }) {
+export default function Navbar({ tagline = "", customerName = "" }: { tagline?: string; customerName?: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -72,6 +72,17 @@ export default function Navbar({ tagline = "" }: { tagline?: string }) {
               }`}
             >
               Shop
+            </Link>
+            <Link
+              href={customerName ? "/account" : "/account/login"}
+              className={`p-1.5 transition-colors duration-300 ${textColor}`}
+              aria-label={customerName ? "My account" : "Sign in"}
+              title={customerName ? `Hi, ${customerName.split(" ")[0]}` : "Sign in"}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
             </Link>
             <Link
               href="/cart"
@@ -141,6 +152,20 @@ export default function Navbar({ tagline = "" }: { tagline?: string }) {
                 {label}
               </Link>
             ))}
+          </div>
+
+          {/* Account */}
+          <div className="px-6 pb-5 -mt-3 flex flex-col gap-3 border-b border-[#EDE6D4]">
+            {customerName ? (
+              <Link href="/account" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]">
+                Hi, {customerName.split(" ")[0]} · My account
+              </Link>
+            ) : (
+              <>
+                <Link href="/account/login" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]">Sign in</Link>
+                <Link href="/account/register" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#5A5040] hover:text-[#A8975E]">Create account</Link>
+              </>
+            )}
           </div>
 
           {/* Category quick-links */}

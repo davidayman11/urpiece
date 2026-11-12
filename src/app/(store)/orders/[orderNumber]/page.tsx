@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getCustomer } from "@/lib/customer-auth";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -19,6 +20,8 @@ const heading = "text-[10px] tracking-[0.3em] uppercase text-[#A8975E] mb-4";
 
 export default async function OrderDetailPage({ params }: Props) {
   const { orderNumber } = await params;
+  const customer = await getCustomer();
+  if (!customer) redirect(`/account/login?next=${encodeURIComponent(`/orders/${orderNumber}`)}`);
   const order = await prisma.order.findUnique({
     where: { orderNumber },
     include: {
@@ -27,7 +30,8 @@ export default async function OrderDetailPage({ params }: Props) {
     },
   });
 
-  if (!order) notFound();
+  // Only the account that placed the order can see it
+  if (!order || order.customerId !== customer.id) notFound();
 
   const st = statusInfo(order.status);
   const shipping = parseJson<Record<string, string>>(order.shippingAddress, {});
@@ -198,7 +202,7 @@ export default async function OrderDetailPage({ params }: Props) {
                 Continue shopping
               </Link>
               <Link href="/orders" className="block text-center border border-[#EDE6D4] text-[#5A5040] py-3 text-xs tracking-widest uppercase hover:border-[#A8975E] transition-colors">
-                Track another order
+                All my orders
               </Link>
             </div>
           </div>

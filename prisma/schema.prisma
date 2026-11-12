@@ -24,9 +24,32 @@ model Customer {
   phone     String?
   address   String?
   city      String?
+  passwordHash   String?
+  registeredAt   DateTime?
+  sessionVersion Int       @default(0)
+  addresses Address[]
   orders    Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label       String   @default("")
+  fullName    String
+  phone       String   @default("")
+  governorate String   @default("")
+  city        String   @default("")
+  building    String   @default("")
+  street      String   @default("")
+  notes       String   @default("")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([customerId])
 }
 
 model Category {

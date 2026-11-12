@@ -21,6 +21,11 @@ interface PaymentSettings {
 
 type CheckoutStep = "details" | "payment" | "confirm";
 
+interface SavedAddress {
+  id: string; label: string; fullName: string; phone: string; governorate: string;
+  city: string; building: string; street: string; isDefault: boolean;
+}
+
 export default function CheckoutPage() {
   const { items, total, clearCart } = useCartStore();
   const router = useRouter();
@@ -35,6 +40,9 @@ export default function CheckoutPage() {
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddr, setSelectedAddr] = useState<string>("new");
+  const [saveAddress, setSaveAddress] = useState(true);
   const [zones, setZones] = useState<{ city: string; price: number }[]>([]);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", governorate: "", city: "", building: "", address: "",
@@ -43,8 +51,47 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (items.length === 0) router.push("/cart");
     fetch("/api/settings/payment").then((r) => r.json()).then(setPaySettings).catch(() => {});
-    fetch("/api/shipping").then((r) => r.json()).then((z) => Array.isArray(z) && setZones(z)).catch(() => {});
+    fetch("/api/shipping")
+      .then((r) => r.json())
+      .then((z) => {
+        if (!Array.isArray(z)) return;
+        setZones(z);
+        // a saved address may use a city that is no longer in the shipping list
+        setForm((f) => (z.length > 0 && f.city && !z.some((x: { city: string }) => x.city === f.city) ? { ...f, city: "" } : f));
+      })
+      .catch(() => {});
   }, [items, router]);
+
+  const applyAddress = (a: SavedAddress) => {
+    setSelectedAddr(a.id);
+    setForm((f) => ({
+      ...f, name: a.fullName || f.name, phone: a.phone || f.phone,
+      governorate: a.governorate,
+      city: zones.length > 0 && !zones.some((z) => z.city === a.city) ? "" : a.city,
+      building: a.building, address: a.street,
+    }));
+  };
+  const useNewAddress = () => {
+    setSelectedAddr("new");
+    setForm((f) => ({ ...f, governorate: "", city: "", building: "", address: "" }));
+  };
+
+  // Signed-in customer: prefill details and load saved addresses (default one is selected)
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await fetch("/api/account/me").then((r) => (r.ok ? r.json() : null));
+        if (me?.customer) {
+          setForm((f) => ({ ...f, name: f.name || me.customer.name, email: me.customer.email, phone: f.phone || me.customer.phone || "" }));
+        }
+        const res = await fetch("/api/account/addresses").then((r) => (r.ok ? r.json() : null));
+        const list: SavedAddress[] = res?.addresses || [];
+        setAddresses(list);
+        const def = list.find((a) => a.isDefault) || list[0];
+        if (def) applyAddress(def);
+      } catch { /* the form still works without saved data */ }
+    })();
+  }, []);
 
   // Prices, discounts and shipping all come from the server so they always match the order
   useEffect(() => {
@@ -99,9 +146,11 @@ export default function CheckoutPage() {
       fd.append("items", JSON.stringify(items));
       fd.append("custom", JSON.stringify(customValues));
       if (quote?.promoCode) fd.append("promoCode", quote.promoCode);
+      fd.append("saveAddress", saveAddress && selectedAddr === "new" ? "1" : "0");
 
       const res = await fetch("/api/orders", { method: "POST", body: fd });
       const data = await res.json();
+      if (res.status === 401) { router.push("/account/login?next=/checkout"); return; }
       if (!res.ok) throw new Error(data.error);
       clearCart();
       router.push(`/orders/${data.orderNumber}`);
@@ -174,6 +223,42 @@ export default function CheckoutPage() {
                   <p className="text-xs text-[#8A7E6E] mt-1">Where should we deliver your order?</p>
                 </div>
 
+                {addresses.length > 0 && (
+                  <div>
+                    <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-2">Deliver to</p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {addresses.map((a) => (
+                        <button
+                          type="button"
+                          key={a.id}
+                          onClick={() => applyAddress(a)}
+                          className={`text-left p-4 border text-sm transition-colors ${
+                            selectedAddr === a.id ? "border-[#A8975E] bg-[#A8975E]/5" : "border-[#EDE6D4] hover:border-[#C4B07A]"
+                          }`}
+                        >
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="text-[#1C1711] font-medium truncate">{a.label || a.fullName}</span>
+                            {a.isDefault && <span className="text-[9px] tracking-[0.2em] uppercase text-[#A8975E] shrink-0">Default</span>}
+                          </span>
+                          <span className="block text-[#8A7E6E] mt-1">
+                            {[a.building && `Building ${a.building}`, a.street, a.city, a.governorate].filter(Boolean).join(", ")}
+                          </span>
+                          <span className="block text-[#8A7E6E]">{a.phone}</span>
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={useNewAddress}
+                        className={`p-4 border text-sm text-left transition-colors ${
+                          selectedAddr === "new" ? "border-[#A8975E] bg-[#A8975E]/5" : "border-dashed border-[#EDE6D4] hover:border-[#C4B07A]"
+                        }`}
+                      >
+                        <span className="text-[#A8975E]">+ Use a new address</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {textFields.map(({ field, label, type, placeholder, autoComplete, inputMode, full }) => (
                     <div key={field} className={full ? "sm:col-span-2" : ""} style={{ order: orderOf(field) }}>
@@ -189,8 +274,9 @@ export default function CheckoutPage() {
                         value={form[field]}
                         onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
                         onBlur={() => setTouched((t) => ({ ...t, [field]: true }))}
+                        readOnly={field === "email"}
                         aria-invalid={!!fieldError(field)}
-                        className={`${inputCls} ${fieldError(field) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                        className={`${inputCls} ${field === "email" ? "opacity-60" : ""} ${fieldError(field) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
                       />
                       {fieldError(field) && <p className="text-[11px] text-red-600 mt-1">{fieldError(field)}</p>}
                     </div>
@@ -314,6 +400,13 @@ export default function CheckoutPage() {
                     </div>
                   ))}
                 </div>
+
+                {selectedAddr === "new" && (
+                  <label className="flex items-center gap-2 text-sm text-[#5A5040] cursor-pointer">
+                    <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} />
+                    Save this address to my account
+                  </label>
+                )}
 
                 {/* Promo */}
                 <div className="flex gap-2">

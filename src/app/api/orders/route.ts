@@ -4,12 +4,19 @@ import { generateOrderNumber } from "@/lib/utils";
 import { put } from "@vercel/blob";
 import { quoteOrder, QuoteError } from "@/lib/pricing-engine";
 import { parseFieldModes, parseCustomFields } from "@/lib/checkout-fields";
+import { getCustomer } from "@/lib/customer-auth";
 
 export async function POST(req: NextRequest) {
   try {
+    // Orders need a signed-in customer account
+    const account = await getCustomer();
+    if (!account) {
+      return NextResponse.json({ error: "Please sign in to place an order" }, { status: 401 });
+    }
+
     const fd = await req.formData();
     const name = fd.get("name") as string;
-    const email = fd.get("email") as string;
+    const email = account.email; // always the account email
     const phone = fd.get("phone") as string | null;
     const address = fd.get("address") as string;
     const city = fd.get("city") as string | null;
@@ -75,18 +82,10 @@ export async function POST(req: NextRequest) {
       screenshotPath = blob.url;
     }
 
-    // Find or create customer
-    const orderName = name?.trim() || "Guest";
-    const orderEmail = email?.trim() || "";
-    let customer: { id: string } | null = null;
-    if (orderEmail) {
-      customer = await prisma.customer.findUnique({ where: { email: orderEmail } });
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: { email: orderEmail, name: orderName, phone: phone || undefined, address: [building, address].filter(Boolean).join(", ") || undefined, city: city || undefined },
-        });
-      }
-    }
+    // Order belongs to the signed-in account
+    const orderName = name?.trim() || account.name || "Guest";
+    const orderEmail = account.email;
+    const customer = { id: account.id };
 
     const orderNumber = generateOrderNumber();
 
@@ -95,7 +94,7 @@ export async function POST(req: NextRequest) {
       const o = await tx.order.create({
         data: {
           orderNumber,
-          customerId: customer?.id,
+          customerId: customer.id,
           customerName: orderName,
           customerEmail: orderEmail,
           customerPhone: phone || undefined,
@@ -148,6 +147,34 @@ export async function POST(req: NextRequest) {
 
       return o;
     });
+
+    // Optionally remember this address on the account (best effort, never blocks the order)
+    if (fd.get("saveAddress") === "1" && (address?.trim() || building?.trim())) {
+      try {
+        const existing = await prisma.address.findMany({ where: { customerId: account.id } });
+        const same = existing.some(
+          (a) =>
+            a.street === (address || "") && a.building === (building || "") &&
+            a.city === (city || "") && a.governorate === (governorate || "")
+        );
+        if (!same && existing.length < 10) {
+          await prisma.address.create({
+            data: {
+              customerId: account.id,
+              fullName: orderName,
+              phone: phone || "",
+              governorate: governorate || "",
+              city: city || "",
+              building: building || "",
+              street: address || "",
+              isDefault: existing.length === 0,
+            },
+          });
+        }
+      } catch (e) {
+        console.error("Could not save address:", e);
+      }
+    }
 
     return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
   } catch (error) {

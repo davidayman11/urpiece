@@ -4,6 +4,7 @@ import Footer from "@/components/store/Footer";
 import PopupManager from "@/components/store/PopupManager";
 import AnnouncementBar, { ANNOUNCEMENT_HEIGHT } from "@/components/store/AnnouncementBar";
 import { prisma } from "@/lib/prisma";
+import { getCustomer } from "@/lib/customer-auth";
 import { parseJson } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -41,11 +42,11 @@ async function getAnnouncement() {
 }
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [tagline, announcement] = await Promise.all([getSiteTagline(), getAnnouncement()]);
+  const [tagline, announcement, customer] = await Promise.all([getSiteTagline(), getAnnouncement(), getCustomer()]);
   return (
     <div style={{ "--announce-h": announcement ? `${ANNOUNCEMENT_HEIGHT}px` : "0px" } as React.CSSProperties}>
       {announcement && <AnnouncementBar {...announcement} />}
-      <Navbar tagline={tagline} />
+      <Navbar tagline={tagline} customerName={customer?.name || ""} />
       <main className="min-h-screen" style={{ paddingTop: "var(--announce-h)" }}>{children}</main>
       <Footer />
       <PopupManager />
