@@ -18,3 +18,27 @@ export function saleLabel(value: number | null | undefined, type: string | null 
   if (v <= 0) return "";
   return type === "FIXED" ? `-${v} EGP` : `-${v}%`;
 }
+
+export interface SaleInfo {
+  salePercent: number;
+  saleType: string;
+  saleStartsAt?: Date | string | null;
+  saleEndsAt?: Date | string | null;
+}
+
+/** "ACTIVE" inside the window, "SCHEDULED" before it, "ENDED" after it, "NONE" without a sale. */
+export function saleStatus(p: SaleInfo, now: Date = new Date()): "NONE" | "SCHEDULED" | "ACTIVE" | "ENDED" {
+  if (!p.salePercent || p.salePercent <= 0) return "NONE";
+  if (p.saleStartsAt && now < new Date(p.saleStartsAt)) return "SCHEDULED";
+  if (p.saleEndsAt && now > new Date(p.saleEndsAt)) return "ENDED";
+  return "ACTIVE";
+}
+
+/** Sale value that applies right now (0 when none/scheduled/ended). */
+export function activeSaleValue(p: SaleInfo, now?: Date): number {
+  return saleStatus(p, now) === "ACTIVE" ? p.salePercent : 0;
+}
+
+export function productSalePrice(price: number, p: SaleInfo, now?: Date): number {
+  return salePrice(price, activeSaleValue(p, now), p.saleType);
+}

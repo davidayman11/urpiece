@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatPrice, parseJson, slugify } from "@/lib/utils";
-import { salePrice, saleLabel } from "@/lib/pricing";
+import { salePrice, saleLabel, saleStatus, activeSaleValue } from "@/lib/pricing";
+
+// ISO <-> <input type="datetime-local"> (local time)
+const toLocalInput = (d?: Date | string | null) => {
+  if (!d) return "";
+  const x = new Date(d);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}`;
+};
 import type { Product, Variant, Category } from "@prisma/client";
 
 type ProductWithVariants = Product & { variants: Variant[]; category: Category | null };
@@ -33,6 +41,8 @@ interface ProductForm {
   isFeatured: boolean;
   salePercent: string;
   saleType: "PERCENT" | "FIXED";
+  saleStartsAt: string;
+  saleEndsAt: string;
   images: string[];
   variants: VariantForm[];
 }
@@ -42,7 +52,7 @@ const emptyVariant = (): VariantForm => ({
 });
 
 const emptyForm = (): ProductForm => ({
-  name: "", slug: "", description: "", categoryId: "", isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT",
+  name: "", slug: "", description: "", categoryId: "", isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
   images: [], variants: [emptyVariant()],
 });
 
@@ -64,6 +74,8 @@ export default function ProductsClient({ products: initial, categories }: Props)
       categoryId: p.categoryId || "", isActive: p.isActive, isFeatured: p.isFeatured,
       salePercent: p.salePercent ? String(p.salePercent) : "",
       saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
+      saleStartsAt: toLocalInput(p.saleStartsAt),
+      saleEndsAt: toLocalInput(p.saleEndsAt),
       images: parseJson<string[]>(p.images, []),
       variants: p.variants.map((v) => ({
         id: v.id, name: v.name, price: String(v.price), costPrice: String(v.costPrice),
@@ -95,6 +107,8 @@ export default function ProductsClient({ products: initial, categories }: Props)
       slug: form.slug || slugify(form.name),
       salePercent: parseFloat(form.salePercent) || 0,
       saleType: form.saleType,
+      saleStartsAt: form.saleStartsAt ? new Date(form.saleStartsAt).toISOString() : null,
+      saleEndsAt: form.saleEndsAt ? new Date(form.saleEndsAt).toISOString() : null,
       variants: form.variants.map((v) => ({
         ...v,
         price: parseFloat(v.price) || 0,
@@ -182,13 +196,15 @@ export default function ProductsClient({ products: initial, categories }: Props)
                       <span className={totalStock === 0 ? "text-red-600" : "text-gray-700"}>{totalStock}</span>
                     </td>
                     <td className="p-4 text-gray-700">
-                      {p.salePercent > 0 ? (
+                      {activeSaleValue(p) > 0 ? (
                         <>
                           <span className="line-through text-gray-400 mr-1">{formatPrice(minPrice)}</span>
                           {formatPrice(salePrice(minPrice, p.salePercent, p.saleType))}
                           <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">{saleLabel(p.salePercent, p.saleType)}</span>
                         </>
                       ) : formatPrice(minPrice)}
+                      {saleStatus(p) === "SCHEDULED" && <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600">Sale scheduled</span>}
+                      {saleStatus(p) === "ENDED" && <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">Sale ended</span>}
                     </td>
                     <td className="p-4">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${p.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
@@ -306,6 +322,27 @@ export default function ProductsClient({ products: initial, categories }: Props)
                       {formatPrice(parseFloat(form.variants[0].price))} → {formatPrice(salePrice(parseFloat(form.variants[0].price), parseFloat(form.salePercent), form.saleType))}
                     </span>
                   )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">Starts (optional — empty = now)</label>
+                    <input
+                      type="datetime-local"
+                      value={form.saleStartsAt}
+                      onChange={(e) => setForm((f) => ({ ...f, saleStartsAt: e.target.value }))}
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">Ends (optional — empty = no end)</label>
+                    <input
+                      type="datetime-local"
+                      value={form.saleEndsAt}
+                      min={form.saleStartsAt || undefined}
+                      onChange={(e) => setForm((f) => ({ ...f, saleEndsAt: e.target.value }))}
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]"
+                    />
+                  </div>
                 </div>
               </div>
 

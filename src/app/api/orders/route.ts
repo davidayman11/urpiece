@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
 import { put } from "@vercel/blob";
-import { salePrice } from "@/lib/pricing";
+import { productSalePrice } from "@/lib/pricing";
 import { parseRequired } from "@/lib/checkout-fields";
 
 export async function POST(req: NextRequest) {
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
       items.map(async (item) => {
         const variant = await prisma.variant.findUnique({
           where: { id: item.variantId },
-          include: { product: { select: { salePercent: true, saleType: true } } },
+          include: { product: { select: { salePercent: true, saleType: true, saleStartsAt: true, saleEndsAt: true } } },
         });
         if (!variant) throw new Error(`Variant ${item.variantId} not found`);
         if (variant.inventory < item.quantity) throw new Error(`Insufficient stock for ${item.productName}`);
-        return { ...item, price: salePrice(variant.price, variant.product.salePercent, variant.product.saleType), costPrice: variant.costPrice };
+        return { ...item, price: productSalePrice(variant.price, variant.product), costPrice: variant.costPrice };
       })
     );
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice, parseJson } from "@/lib/utils";
-import { salePrice, saleLabel } from "@/lib/pricing";
+import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import type { Product, Variant } from "@prisma/client";
 
 interface Props {
@@ -19,7 +19,7 @@ export default function AddToCartButton({ product }: Props) {
   const [added, setAdded] = useState(false);
 
   const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
-  const sale = product.salePercent > 0 ? product.salePercent : 0;
+  const sale = activeSaleValue(product);
   const images = parseJson<string[]>(product.images, []);
 
   if (product.variants.length === 0) {

@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType } = body;
+  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const toDate = (v: unknown) => (v ? new Date(v as string) : null);
   const type = saleType === "FIXED" ? "FIXED" : "PERCENT";
   const saleValue = type === "PERCENT" ? Math.min(100, Math.max(0, Number(salePercent) || 0)) : Math.max(0, Number(salePercent) || 0);
 
@@ -41,6 +42,8 @@ export async function POST(req: NextRequest) {
       isFeatured: isFeatured ?? false,
       salePercent: saleValue,
       saleType: type,
+      saleStartsAt: toDate(saleStartsAt),
+      saleEndsAt: toDate(saleEndsAt),
       images: JSON.stringify(images || []),
       variants: {
         create: variants.map((v: { name: string; price: number; costPrice: number; inventory: number; sku?: string; options?: string }) => ({

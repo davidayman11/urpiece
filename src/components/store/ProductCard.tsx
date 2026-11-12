@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
-import { salePrice, saleLabel } from "@/lib/pricing";
+import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
@@ -20,7 +20,7 @@ export default function ProductCard({ product }: Props) {
   const maxPrice = product.variants.length > 0
     ? Math.max(...product.variants.map((v) => v.price))
     : 0;
-  const sale = product.salePercent > 0 ? product.salePercent : 0;
+  const sale = activeSaleValue(product);
   const totalInventory = product.variants.reduce((s, v) => s + v.inventory, 0);
   const inStock = totalInventory > 0;
   const isLowStock = inStock && totalInventory <= 5;

@@ -8,7 +8,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   const body = await req.json();
-  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType } = body;
+  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const toDate = (v: unknown) => (v ? new Date(v as string) : null);
   const type = saleType === "FIXED" ? "FIXED" : "PERCENT";
   const saleValue = type === "PERCENT" ? Math.min(100, Math.max(0, Number(salePercent) || 0)) : Math.max(0, Number(salePercent) || 0);
 
@@ -24,6 +25,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       isFeatured,
       salePercent: saleValue,
       saleType: type,
+      saleStartsAt: toDate(saleStartsAt),
+      saleEndsAt: toDate(saleEndsAt),
       images: JSON.stringify(images || []),
     },
   });

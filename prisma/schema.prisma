@@ -55,6 +55,8 @@ model Product {
   isFeatured  Boolean     @default(false)
   salePercent Float       @default(0)
   saleType    String      @default("PERCENT")
+  saleStartsAt DateTime?
+  saleEndsAt   DateTime?
   tags        String      @default("[]")
   views       Int         @default(0)
   orderItems  OrderItem[]
