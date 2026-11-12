@@ -4,14 +4,15 @@ import { useState, useEffect } from "react";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { DEFAULT_REQUIRED, type RequiredFields } from "@/lib/checkout-fields";
+import { DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
 import Image from "next/image";
 
 interface PaymentSettings {
   instapayId?: string;
   instapayPhone?: string;
   instructions?: string;
-  requiredFields?: RequiredFields;
+  fieldModes?: FieldModes;
+  customFields?: CustomField[];
   extraFields?: { id: string; label: string; value: string; type: "text" | "link" | "qr" }[];
 }
 
@@ -29,6 +30,7 @@ export default function CheckoutPage() {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [zones, setZones] = useState<{ city: string; price: number }[]>([]);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", address: "", city: "",
@@ -70,6 +72,7 @@ export default function CheckoutPage() {
       fd.append("screenshot", screenshotFile);
       fd.append("items", JSON.stringify(items));
       fd.append("discount", String(discount));
+      fd.append("custom", JSON.stringify(customValues));
       if (promoData) fd.append("promoCode", promoData.code);
 
       const res = await fetch("/api/orders", { method: "POST", body: fd });
@@ -84,11 +87,16 @@ export default function CheckoutPage() {
     }
   };
 
-  const req = { ...DEFAULT_REQUIRED, ...(paySettings.requiredFields || {}) };
+  const modes = { ...DEFAULT_MODES, ...(paySettings.fieldModes || {}) };
+  const customFields = paySettings.customFields || [];
+  const isHidden = (field: string) =>
+    modes[field as keyof FieldModes] === "hidden" && !(field === "city" && zones.length > 0);
   const isRequired = (field: string) =>
-    field === "name" || field === "email" || (field === "city" && zones.length > 0) || !!req[field as keyof RequiredFields];
-  const mark = (field: string) =>
-    isRequired(field) ? <span className="text-[#A8975E]">*</span> : <span className="normal-case tracking-normal text-[#C4B8A0]">(optional)</span>;
+    (field === "city" && zones.length > 0) || modes[field as keyof FieldModes] === "required";
+  const mark = (required: boolean) =>
+    required ? <span className="text-[#A8975E]">*</span> : <span className="normal-case tracking-normal text-[#C4B8A0]">(optional)</span>;
+  const customError = (f: CustomField) =>
+    touched["c_" + f.id] && f.required && !(customValues[f.id] || "").trim() ? "This field is required" : "";
 
   const fieldError = (field: string): string => {
     if (!touched[field]) return "";
@@ -102,12 +110,12 @@ export default function CheckoutPage() {
   const inputCls =
     "w-full border bg-transparent px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none transition-colors";
 
-  const textFields = [
+  const textFields = ([
     { field: "name", label: "Full Name", type: "text", placeholder: "Your full name", autoComplete: "name", inputMode: undefined, full: true },
     { field: "email", label: "Email", type: "email", placeholder: "you@example.com", autoComplete: "email", inputMode: "email" as const, full: false },
     { field: "phone", label: "Phone Number", type: "tel", placeholder: "01XXXXXXXXX", autoComplete: "tel", inputMode: "tel" as const, full: false },
     { field: "address", label: "Street Address", type: "text", placeholder: "Street, building, apartment", autoComplete: "street-address", inputMode: undefined, full: true },
-  ] as const;
+  ] as const).filter((f) => !isHidden(f.field));
 
   if (items.length === 0) return null;
 
@@ -140,7 +148,7 @@ export default function CheckoutPage() {
                   {textFields.map(({ field, label, type, placeholder, autoComplete, inputMode, full }) => (
                     <div key={field} className={full ? "sm:col-span-2" : ""}>
                       <label htmlFor={field} className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
-                        {label} {mark(field)}
+                        {label} {mark(isRequired(field))}
                       </label>
                       <input
                         id={field}
@@ -158,9 +166,10 @@ export default function CheckoutPage() {
                     </div>
                   ))}
 
+                  {!isHidden("city") && (
                   <div className="sm:col-span-2">
                     <label htmlFor="city" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
-                      City {mark("city")}
+                      City {mark(isRequired("city"))}
                     </label>
                     {zones.length > 0 ? (
                       <div className="relative">
@@ -201,6 +210,53 @@ export default function CheckoutPage() {
                       </p>
                     )}
                   </div>
+                  )}
+
+                  {customFields.map((f) => (
+                    <div key={f.id} className="sm:col-span-2">
+                      <label htmlFor={`c_${f.id}`} className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
+                        {f.label} {mark(f.required)}
+                      </label>
+                      {f.type === "textarea" ? (
+                        <textarea
+                          id={`c_${f.id}`}
+                          rows={3}
+                          placeholder={f.placeholder}
+                          value={customValues[f.id] || ""}
+                          onChange={(e) => setCustomValues((v) => ({ ...v, [f.id]: e.target.value }))}
+                          onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
+                          className={`${inputCls} ${customError(f) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                        />
+                      ) : f.type === "select" ? (
+                        <div className="relative">
+                          <select
+                            id={`c_${f.id}`}
+                            value={customValues[f.id] || ""}
+                            onChange={(e) => setCustomValues((v) => ({ ...v, [f.id]: e.target.value }))}
+                            onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
+                            className={`${inputCls} appearance-none pr-10 cursor-pointer ${customError(f) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                          >
+                            <option value="">Select…</option>
+                            {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                          <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                            <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <input
+                          id={`c_${f.id}`}
+                          type="text"
+                          placeholder={f.placeholder}
+                          value={customValues[f.id] || ""}
+                          onChange={(e) => setCustomValues((v) => ({ ...v, [f.id]: e.target.value }))}
+                          onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
+                          className={`${inputCls} ${customError(f) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                        />
+                      )}
+                      {customError(f) && <p className="text-[11px] text-red-600 mt-1">{customError(f)}</p>}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Promo */}
@@ -228,8 +284,11 @@ export default function CheckoutPage() {
 
                 <button
                   onClick={() => {
-                    setTouched({ name: true, email: true, phone: true, address: true, city: true });
-                    if (["name", "email", "phone", "address", "city"].some((f) => fieldError(f))) return;
+                    const t: Record<string, boolean> = { name: true, email: true, phone: true, address: true, city: true };
+                    customFields.forEach((f) => { t["c_" + f.id] = true; });
+                    setTouched(t);
+                    if (["name", "email", "phone", "address", "city"].some((f) => !isHidden(f) && fieldError(f))) return;
+                    if (customFields.some((f) => customError({ ...f }) || (f.required && !(customValues[f.id] || "").trim()))) return;
                     setStep("payment");
                   }}
                   className="w-full bg-[#A8975E] text-[#F5EFE2] py-3.5 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors"
@@ -330,10 +389,15 @@ export default function CheckoutPage() {
               <div className="space-y-6">
                 <h2 className="font-serif text-2xl text-[#1C1711]">Review Your Order</h2>
                 <div className="bg-[#EDE6D4] p-5 space-y-2 text-sm">
-                  <p><span className="text-[#8A7E6E]">Name:</span> {form.name}</p>
-                  <p><span className="text-[#8A7E6E]">Email:</span> {form.email}</p>
-                  <p><span className="text-[#8A7E6E]">Phone:</span> {form.phone}</p>
-                  <p><span className="text-[#8A7E6E]">Address:</span> {form.address}, {form.city}</p>
+                  {form.name && <p><span className="text-[#8A7E6E]">Name:</span> {form.name}</p>}
+                  {form.email && <p><span className="text-[#8A7E6E]">Email:</span> {form.email}</p>}
+                  {form.phone && <p><span className="text-[#8A7E6E]">Phone:</span> {form.phone}</p>}
+                  {(form.address || form.city) && (
+                    <p><span className="text-[#8A7E6E]">Address:</span> {[form.address, form.city].filter(Boolean).join(", ")}</p>
+                  )}
+                  {customFields.filter((f) => (customValues[f.id] || "").trim()).map((f) => (
+                    <p key={f.id}><span className="text-[#8A7E6E]">{f.label}:</span> {customValues[f.id]}</p>
+                  ))}
                 </div>
                 <div className="space-y-3">
                   {items.map((i) => (

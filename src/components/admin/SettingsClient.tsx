@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PaymentSettings } from "@prisma/client";
 
-import { parseRequired } from "@/lib/checkout-fields";
+import { parseFieldModes, parseCustomFields, BUILTIN_FIELDS, type CustomField, type FieldMode } from "@/lib/checkout-fields";
 
 type ExtraField = { id: string; label: string; value: string; type: "text" | "link" | "qr" };
 
@@ -18,7 +18,8 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
     instructions: settings?.instructions || "Transfer the total amount via InstaPay. Upload your receipt screenshot after the transfer.",
   });
   const [extra, setExtra] = useState<ExtraField[]>(parseExtra(settings?.extraFields));
-  const [required, setRequired] = useState(parseRequired(settings?.requiredFields));
+  const [modes, setModes] = useState(parseFieldModes(settings?.requiredFields));
+  const [custom, setCustom] = useState<CustomField[]>(parseCustomFields(settings?.customFields));
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -28,7 +29,7 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
     const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, extraFields: extra, requiredFields: required }),
+      body: JSON.stringify({ ...form, extraFields: extra, requiredFields: modes, customFields: custom }),
     });
     setSaving(false);
     if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
@@ -58,27 +59,92 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
         <div>
           <h2 className="font-medium text-gray-700">Checkout form</h2>
           <p className="text-xs text-gray-400 mt-1">
-            Choose which customer details must be filled before ordering. Name and email are always required.
+            Choose how each customer detail behaves at checkout. Name and email can&apos;t be hidden.
             If you have shipping cities set up, the city is always required (it decides the shipping price).
           </p>
         </div>
-        {([
-          ["phone", "Phone number"],
-          ["address", "Street address"],
-          ["city", "City"],
-        ] as const).map(([key, label]) => (
-          <label key={key} className="flex items-center justify-between text-sm cursor-pointer">
+        {BUILTIN_FIELDS.map(({ key, label, canHide }) => (
+          <div key={key} className="flex items-center justify-between text-sm">
             <span className="text-gray-700">{label}</span>
-            <span className="flex items-center gap-2 text-xs text-gray-500">
-              {required[key] ? "Required" : "Optional"}
-              <input
-                type="checkbox"
-                checked={required[key]}
-                onChange={(e) => setRequired((r) => ({ ...r, [key]: e.target.checked }))}
-              />
-            </span>
-          </label>
+            <select
+              value={modes[key]}
+              onChange={(e) => setModes((m) => ({ ...m, [key]: e.target.value as FieldMode }))}
+              className="border border-gray-200 rounded px-3 py-1.5 text-sm"
+            >
+              <option value="required">Required</option>
+              <option value="optional">Optional</option>
+              {canHide && <option value="hidden">Hidden</option>}
+            </select>
+          </div>
         ))}
+
+        {/* Custom checkout fields */}
+        <div className="pt-4 border-t border-gray-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">Your own fields</h3>
+            <button
+              onClick={() =>
+                setCustom((l) => [...l, { id: Math.random().toString(36).slice(2), label: "", type: "text", required: false, placeholder: "", options: [] }])
+              }
+              className="text-xs text-[#A8975E] hover:underline"
+            >
+              + Add field
+            </button>
+          </div>
+          <p className="text-xs text-gray-400">
+            Add any extra question to checkout (e.g. Gift message, Landmark, Preferred delivery time). Answers appear on the order.
+          </p>
+          {custom.map((f) => {
+            const patch = (p: Partial<CustomField>) => setCustom((l) => l.map((x) => (x.id === f.id ? { ...x, ...p } : x)));
+            return (
+              <div key={f.id} className="border border-gray-100 rounded p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    value={f.label}
+                    onChange={(e) => patch({ label: e.target.value })}
+                    placeholder="Field label"
+                    className="border border-gray-200 rounded px-3 py-2 text-sm"
+                  />
+                  <select
+                    value={f.type}
+                    onChange={(e) => patch({ type: e.target.value as CustomField["type"] })}
+                    className="border border-gray-200 rounded px-3 py-2 text-sm"
+                  >
+                    <option value="text">Short text</option>
+                    <option value="textarea">Long text</option>
+                    <option value="select">Dropdown</option>
+                  </select>
+                </div>
+                {f.type === "select" ? (
+                  <textarea
+                    value={(f.options || []).join("\n")}
+                    onChange={(e) => patch({ options: e.target.value.split("\n") })}
+                    placeholder={"One choice per line\nMorning\nEvening"}
+                    rows={3}
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                  />
+                ) : (
+                  <input
+                    value={f.placeholder || ""}
+                    onChange={(e) => patch({ placeholder: e.target.value })}
+                    placeholder="Placeholder hint (optional)"
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                  />
+                )}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                    <input type="checkbox" checked={f.required} onChange={(e) => patch({ required: e.target.checked })} />
+                    Required
+                  </label>
+                  <button onClick={() => setCustom((l) => l.filter((x) => x.id !== f.id))} className="text-xs text-red-500 hover:underline">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <button
           onClick={save}
           disabled={saving}

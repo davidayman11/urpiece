@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
 import { put } from "@vercel/blob";
 import { productSalePrice } from "@/lib/pricing";
-import { parseRequired } from "@/lib/checkout-fields";
+import { parseFieldModes, parseCustomFields } from "@/lib/checkout-fields";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,19 +19,30 @@ export async function POST(req: NextRequest) {
     const screenshot = fd.get("screenshot") as File | null;
 
     const settings = await prisma.paymentSettings.findFirst();
-    const required = parseRequired(settings?.requiredFields);
+    const modes = parseFieldModes(settings?.requiredFields);
+    const customDefs = parseCustomFields(settings?.customFields);
     const activeZones = await prisma.shippingZone.count({ where: { isActive: true } });
-    if (!name || !email || !itemsJson) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-    if (required.phone && !phone?.trim()) {
-      return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
-    }
-    if (required.address && !address?.trim()) {
-      return NextResponse.json({ error: "Street address is required" }, { status: 400 });
-    }
-    if ((required.city || activeZones > 0) && !city?.trim()) {
-      return NextResponse.json({ error: "City is required" }, { status: 400 });
+    const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
+
+    if (!itemsJson) return bad("Missing required fields");
+    if (modes.name === "required" && !name?.trim()) return bad("Name is required");
+    if (modes.email === "required" && !email?.trim()) return bad("Email is required");
+    if (modes.phone === "required" && !phone?.trim()) return bad("Phone number is required");
+    if (modes.address === "required" && !address?.trim()) return bad("Street address is required");
+    if ((modes.city === "required" || activeZones > 0) && !city?.trim()) return bad("City is required");
+
+    // Admin-defined custom fields: store answers keyed by the label (snapshot)
+    let customAnswers: Record<string, string> = {};
+    try { customAnswers = JSON.parse((fd.get("custom") as string) || "{}") || {}; } catch { /* ignore */ }
+    const customData: Record<string, string> = {};
+    for (const f of customDefs) {
+      const v = String(customAnswers[f.id] ?? "").trim().slice(0, 1000);
+      if (!v) {
+        if (f.required) return bad(`${f.label} is required`);
+        continue;
+      }
+      if (f.type === "select" && !(f.options || []).includes(v)) return bad(`Invalid choice for ${f.label}`);
+      customData[f.label] = v;
     }
 
     const items: { productId: string; variantId: string; productName: string; variantName: string; price: number; quantity: number }[] =
@@ -72,11 +83,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Find or create customer
-    let customer = await prisma.customer.findUnique({ where: { email } });
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: { email, name, phone: phone || undefined, address: address || undefined, city: city || undefined },
-      });
+    const orderName = name?.trim() || "Guest";
+    const orderEmail = email?.trim() || "";
+    let customer: { id: string } | null = null;
+    if (orderEmail) {
+      customer = await prisma.customer.findUnique({ where: { email: orderEmail } });
+      if (!customer) {
+        customer = await prisma.customer.create({
+          data: { email: orderEmail, name: orderName, phone: phone || undefined, address: address || undefined, city: city || undefined },
+        });
+      }
     }
 
     // Validate promo code if provided
@@ -92,14 +108,15 @@ export async function POST(req: NextRequest) {
       const o = await tx.order.create({
         data: {
           orderNumber,
-          customerId: customer!.id,
-          customerName: name,
-          customerEmail: email,
+          customerId: customer?.id,
+          customerName: orderName,
+          customerEmail: orderEmail,
           customerPhone: phone || undefined,
           shippingAddress: JSON.stringify({ address: address || "", city: city || "" }),
           subtotal,
           discount,
           shippingFee,
+          customData: JSON.stringify(customData),
           total,
           promoCodeId: promoCodeRecord?.id,
           promoCodeUsed: promoCode || undefined,

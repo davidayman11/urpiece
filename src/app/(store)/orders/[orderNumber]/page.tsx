@@ -100,8 +100,13 @@ export default async function OrderDetailPage({ params }: Props) {
           <h2 className="text-xs tracking-widest uppercase text-[#5A5040] mb-3">Shipping To</h2>
           <div className="text-sm text-[#5A5040] space-y-1">
             <p>{order.customerName}</p>
-            <p>{shipping.address}{shipping.city ? `, ${shipping.city}` : ""}</p>
-            <p>{order.customerPhone}</p>
+            {(shipping.address || shipping.city) && (
+              <p>{[shipping.address, shipping.city].filter(Boolean).join(", ")}</p>
+            )}
+            {order.customerPhone && <p>{order.customerPhone}</p>}
+            {Object.entries(parseJson<Record<string, string>>(order.customData, {})).map(([k, v]) => (
+              <p key={k}><span className="text-[#8A7E6E]">{k}:</span> {v}</p>
+            ))}
           </div>
         </div>
 
