@@ -12,6 +12,7 @@ interface OrderItem {
   id: string;
   productName: string;
   variantName?: string;
+  bundleName?: string | null;
   price: number;
   costPrice: number;
   quantity: number;
@@ -181,6 +182,7 @@ export default function OrderDetailAdmin({ order: initial }: { order: Order }) {
                   <div>
                     <p className="text-sm font-medium text-gray-800">{item.productName}</p>
                     {item.variantName && <p className="text-xs text-gray-500">{item.variantName}</p>}
+                    {item.bundleName && <p className="text-[11px] text-[#A8975E]">🎁 Part of bundle: {item.bundleName}</p>}
                     <p className="text-xs text-gray-400 mt-1">Qty: {item.quantity}</p>
                   </div>
                   <div className="text-right">

@@ -1,12 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { productSalePrice } from "@/lib/pricing";
 import { loadShipping, findFee } from "@/lib/shipping";
+import { bundlePrice, allocateBundle } from "@/lib/bundles";
 import type { PromoCode } from "@prisma/client";
 
 export class QuoteError extends Error {}
 
+/** A normal product line (variantId) or a bundle (bundleId + the variant chosen for each bundle item). */
+export interface QuoteItemInput {
+  variantId?: string;
+  quantity: number;
+  bundleId?: string;
+  selections?: Record<string, string>;
+}
+
 export interface QuoteInput {
-  items: { variantId: string; quantity: number }[];
+  items: QuoteItemInput[];
   promoCode?: string | null;
   city?: string | null;
   governorate?: string | null;
@@ -24,12 +33,15 @@ export interface QuoteLine {
   unitPrice: number;
   costPrice: number;
   inventory: number;
+  /** set when this line comes from a bundle */
+  bundleName?: string;
 }
 
 export interface Quote {
   lines: QuoteLine[];
   subtotal: number;
   saleSavings: number;
+  bundleSavings: number;
   ruleName: string | null;
   ruleDiscount: number;
   promoCode: string | null;
@@ -77,16 +89,45 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
 
   // ---- items
   if (!input.items.length) throw new QuoteError("Your cart is empty");
+  const plainIds = input.items.filter((i) => !i.bundleId).map((i) => i.variantId || "");
+  const bundleIds = [...new Set(input.items.filter((i) => i.bundleId).map((i) => i.bundleId as string))];
+  const bundles = bundleIds.length
+    ? await prisma.bundle.findMany({ where: { id: { in: bundleIds }, isActive: true }, include: { items: { orderBy: { sortOrder: "asc" } } } })
+    : [];
+  const bundleVariantIds = input.items.flatMap((i) =>
+    i.bundleId
+      ? Object.values(i.selections || {}).concat(bundles.find((b) => b.id === i.bundleId)?.items.map((bi) => bi.variantId || "") || [])
+      : []
+  );
   const variants = await prisma.variant.findMany({
-    where: { id: { in: input.items.map((i) => i.variantId) } },
+    where: { id: { in: [...plainIds, ...bundleVariantIds].filter(Boolean) } },
     include: { product: true },
   });
   const byId = new Map(variants.map((v) => [v.id, v]));
-  const baseLines = input.items.map((i) => {
-    const v = byId.get(i.variantId);
-    if (!v) throw new QuoteError("An item in your cart is no longer available");
-    return { v, quantity: Math.max(1, Math.floor(Number(i.quantity) || 1)) };
-  });
+  type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string };
+  const baseLines: BaseLine[] = [];
+  for (const i of input.items) {
+    const quantity = Math.max(1, Math.floor(Number(i.quantity) || 1));
+    if (!i.bundleId) {
+      const v = byId.get(i.variantId || "");
+      if (!v) throw new QuoteError("An item in your cart is no longer available");
+      baseLines.push({ v, quantity });
+      continue;
+    }
+    const bundle = bundles.find((b) => b.id === i.bundleId);
+    if (!bundle || bundle.items.length === 0) throw new QuoteError("A bundle in your cart is no longer available");
+    const parts = bundle.items.map((bi) => {
+      const v = byId.get(bi.variantId || (i.selections || {})[bi.id] || "");
+      if (!v || v.productId !== bi.productId || !v.isActive) {
+        throw new QuoteError(`Please choose an option for every item in "${bundle.name}"`);
+      }
+      return v;
+    });
+    const listTotal = parts.reduce((s2, v) => s2 + v.price, 0);
+    const total = bundlePrice(bundle.priceType, bundle.priceValue, listTotal);
+    const alloc = allocateBundle(parts.map((v) => v.price), total);
+    parts.forEach((v, idx) => baseLines.push({ v, quantity, fixedUnit: alloc[idx], bundleName: bundle.name }));
+  }
 
   // ---- shipping city
   let cityFee = 0;
@@ -123,16 +164,17 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   );
 
   const build = (o: Opts) => {
-    const lines: QuoteLine[] = baseLines.map(({ v, quantity }) => ({
+    const lines: QuoteLine[] = baseLines.map(({ v, quantity, fixedUnit, bundleName }) => ({
       variantId: v.id,
       productId: v.productId,
       productName: v.product.name,
       variantName: v.name,
       quantity,
       listPrice: v.price,
-      unitPrice: o.sale ? productSalePrice(v.price, v.product) : v.price,
+      unitPrice: fixedUnit !== undefined ? fixedUnit : o.sale ? productSalePrice(v.price, v.product) : v.price,
       costPrice: v.costPrice,
       inventory: v.inventory,
+      bundleName,
     }));
     const subtotal = round(lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0));
     const listSubtotal = round(lines.reduce((s, l) => s + l.listPrice * l.quantity, 0));
@@ -199,7 +241,11 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   if (promoInvalid && input.strict) throw new QuoteError(promoMessage || "Invalid promo code");
 
   const applied: string[] = [];
-  const saleSavings = opts.sale ? round(r.listSubtotal - r.subtotal) : 0;
+  const saved = (pred: (l: QuoteLine) => boolean) =>
+    round(r.lines.filter(pred).reduce((s, l) => s + (l.listPrice - l.unitPrice) * l.quantity, 0));
+  const saleSavings = opts.sale ? saved((l) => !l.bundleName) : 0;
+  const bundleSavings = saved((l) => !!l.bundleName);
+  if (bundleSavings > 0) applied.push("Bundle savings");
   if (saleSavings > 0) applied.push("Sale prices");
   if (r.ruleDiscount > 0 && r.ruleName) applied.push(r.ruleName);
   if (r.promoDiscount > 0 && promo) applied.push(`Promo ${promo.code}`);
@@ -226,6 +272,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     lines: r.lines,
     subtotal: r.subtotal,
     saleSavings,
+    bundleSavings,
     ruleName: r.ruleDiscount > 0 ? r.ruleName : null,
     ruleDiscount: r.ruleDiscount,
     promoCode: r.promoDiscount > 0 && promo ? promo.code : null,

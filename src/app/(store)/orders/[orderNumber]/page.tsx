@@ -118,6 +118,7 @@ export default async function OrderDetailPage({ params }: Props) {
                           {item.productName}
                         </Link>
                         {item.variantName && <p className="text-xs text-[#8A7E6E] mt-0.5">{item.variantName}</p>}
+                        {item.bundleName && <p className="text-[10px] tracking-[0.15em] uppercase text-[#A8975E] mt-0.5">Bundle · {item.bundleName}</p>}
                         <p className="text-xs text-[#8A7E6E] mt-1">
                           {formatPrice(item.price)} × {item.quantity}
                         </p>

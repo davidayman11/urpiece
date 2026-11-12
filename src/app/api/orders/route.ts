@@ -60,8 +60,15 @@ export async function POST(req: NextRequest) {
     let rawItems: { variantId: string; quantity: number }[] = [];
     try { rawItems = JSON.parse(itemsJson); } catch { return bad("Invalid cart"); }
     const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true });
+    // Stock is checked per variant across ALL lines (a bundle and a normal purchase can share a variant)
+    const wanted = new Map<string, { qty: number; stock: number; name: string }>();
     for (const l of quote.lines) {
-      if (l.inventory < l.quantity) return bad(`Insufficient stock for ${l.productName}`);
+      const cur = wanted.get(l.variantId) || { qty: 0, stock: l.inventory, name: l.productName };
+      cur.qty += l.quantity;
+      wanted.set(l.variantId, cur);
+    }
+    for (const w of wanted.values()) {
+      if (w.stock < w.qty) return bad(`Insufficient stock for ${w.name}`);
     }
     const { subtotal, discount, shippingFee, total } = quote;
 
@@ -79,6 +86,7 @@ export async function POST(req: NextRequest) {
       price: l.unitPrice,
       costPrice: l.costPrice,
       quantity: l.quantity,
+      bundleName: l.bundleName || null,
     }));
 
     // Handle screenshot upload
@@ -129,6 +137,7 @@ export async function POST(req: NextRequest) {
               price: item.price,
               costPrice: item.costPrice,
               quantity: item.quantity,
+              bundleName: item.bundleName,
             })),
           },
           statusHistory: {

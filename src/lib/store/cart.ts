@@ -10,6 +10,9 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  /** set for bundles: the bundle and the option chosen for each of its items */
+  bundleId?: string;
+  selections?: Record<string, string>;
 }
 
 interface CartStore {

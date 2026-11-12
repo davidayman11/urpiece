@@ -15,9 +15,10 @@ export default async function PagesAdminPage() {
   const sections = await prisma.siteSection.findMany({
     orderBy: [{ pageSlug: "asc" }, { sortOrder: "asc" }],
   });
-  const [categories, products] = await Promise.all([
+  const [categories, products, bundleOpts] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true, isActive: true } }),
     prisma.product.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, name: true, isActive: true, isFeatured: true } }),
+    prisma.bundle.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, name: true, isActive: true } }),
   ]);
-  return <AdminLayout><PagesClient sections={sections} categories={categories} products={products} /></AdminLayout>;
+  return <AdminLayout><PagesClient sections={sections} categories={categories} products={products} bundleOpts={bundleOpts} /></AdminLayout>;
 }

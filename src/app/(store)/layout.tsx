@@ -42,11 +42,13 @@ async function getAnnouncement() {
 }
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [tagline, announcement, customer] = await Promise.all([getSiteTagline(), getAnnouncement(), getCustomer()]);
+  const [tagline, announcement, customer, bundleCount] = await Promise.all([
+    getSiteTagline(), getAnnouncement(), getCustomer(), prisma.bundle.count({ where: { isActive: true } }),
+  ]);
   return (
     <div style={{ "--announce-h": announcement ? `${ANNOUNCEMENT_HEIGHT}px` : "0px" } as React.CSSProperties}>
       {announcement && <AnnouncementBar {...announcement} />}
-      <Navbar tagline={tagline} customerName={customer?.name || ""} />
+      <Navbar tagline={tagline} customerName={customer?.name || ""} hasBundles={bundleCount > 0} />
       <main className="min-h-screen" style={{ paddingTop: "var(--announce-h)" }}>{children}</main>
       <Footer />
       <PopupManager />

@@ -47,6 +47,10 @@ const SECTION_TYPES = [
     fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText", "productMode", "productLimit", "productIds"],
   },
   {
+    type: "bundles", label: "Bundles Section", page: "home",
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText", "bundleMode", "bundleLimit", "bundleIds"],
+  },
+  {
     type: "marquee", label: "Scrolling Strip (icon + moving text)", page: "home",
     fields: ["messages", "icon", "bgColor", "textColor", "iconColor", "speed", "direction", "position"],
   },
@@ -97,6 +101,9 @@ const FIELD_LABELS: Record<string, string> = {
   speed: "Scroll time in seconds for one loop (lower = faster, default 30)",
   barUrl: "Link when clicked (optional)",
   categoryIds: "Which categories to show",
+  bundleMode: "Which bundles to show",
+  bundleLimit: "How many bundles to show (default 4)",
+  bundleIds: "Choose the bundles (in the order they appear)",
   productMode: "Which products to show",
   productLimit: "How many products to show (default 8)",
   productIds: "Choose the products (in the order they appear)",
@@ -107,6 +114,10 @@ const FIELD_LABELS: Record<string, string> = {
 
 const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor", "bgColor", "textColor", "iconColor"]);
 const SELECT_FIELDS: Record<string, { value: string; label: string }[]> = {
+  bundleMode: [
+    { value: "all", label: "All active bundles" },
+    { value: "selected", label: "Only the bundles I choose" },
+  ],
   productMode: [
     { value: "featured", label: "Only products marked Featured" },
     { value: "all", label: "All products (newest first)" },
@@ -208,8 +219,8 @@ function PickerList({
 type Opt = { id: string; name: string; isActive: boolean; isFeatured?: boolean };
 
 export default function PagesClient({
-  sections: initial, categories = [], products = [],
-}: { sections: SiteSection[]; categories?: Opt[]; products?: Opt[] }) {
+  sections: initial, categories = [], products = [], bundleOpts = [],
+}: { sections: SiteSection[]; categories?: Opt[]; products?: Opt[]; bundleOpts?: { id: string; name: string; isActive: boolean }[] }) {
   const router = useRouter();
   const [sections, setSections] = useState(initial);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
@@ -400,6 +411,8 @@ export default function PagesClient({
               </div>
 
               {currentTypeDef?.fields.map((field) => {
+                if (field === "bundleIds" && (content.bundleMode || "all") !== "selected") return null;
+                if (field === "bundleLimit" && (content.bundleMode || "all") === "selected") return null;
                 if (field === "productIds" && (content.productMode || "featured") !== "selected") return null;
                 if (field === "productLimit" && (content.productMode || "featured") === "selected") return null;
                 return (
@@ -411,6 +424,20 @@ export default function PagesClient({
                       selected={parseIds(content.categoryIds)}
                       onChange={(ids) => setContent((c) => ({ ...c, categoryIds: JSON.stringify(ids) }))}
                       emptyNote="Nothing ticked = show all categories"
+                    />
+                  ) : field === "bundleIds" ? (
+                    <PickerList
+                      ordered
+                      items={bundleOpts.map((b) => ({ id: b.id, name: b.name, note: b.isActive ? undefined : "hidden" }))}
+                      selected={parseIds(content.bundleIds)}
+                      onChange={(ids) => setContent((c) => ({ ...c, bundleIds: JSON.stringify(ids) }))}
+                    />
+                  ) : field === "bundleLimit" ? (
+                    <input
+                      type="number" min="1" max="12" placeholder="4"
+                      value={content.bundleLimit || ""}
+                      onChange={(e) => setContent((c) => ({ ...c, bundleLimit: e.target.value }))}
+                      className="w-28 border border-gray-200 rounded px-3 py-2 text-sm"
                     />
                   ) : field === "productIds" ? (
                     <PickerList

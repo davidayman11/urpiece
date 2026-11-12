@@ -4,6 +4,9 @@ import HeroSection from "@/components/store/sections/HeroSection";
 import FeaturedProducts from "@/components/store/sections/FeaturedProducts";
 import CategoryGrid from "@/components/store/sections/CategoryGrid";
 import BannerSection from "@/components/store/sections/BannerSection";
+import BundlesSection from "@/components/store/sections/BundlesSection";
+import { bundleInclude } from "@/lib/bundle-include";
+import type { BundleView } from "@/lib/bundles";
 import MarqueeStrip from "@/components/store/sections/MarqueeStrip";
 import EditorialSection from "@/components/store/sections/EditorialSection";
 import type { Product, Category, Variant, SiteSection } from "@prisma/client";
@@ -52,11 +55,26 @@ async function getHomeData() {
   } else {
     featured = await prisma.product.findMany({ where: { isActive: true, isFeatured: true }, include, take: limit });
   }
-  return { sections, featured, categories };
+  // "Bundles": all active bundles, or only the ones picked in the admin
+  const bundleSection = sections.find((s: SiteSection) => s.type === "bundles");
+  const bc = bundleSection ? parseJson<Record<string, string>>(bundleSection.content, {}) : {};
+  let bundles: BundleView[] = [];
+  if (bundleSection) {
+    const picked = parseIds(bc.bundleIds);
+    const found = (await prisma.bundle.findMany({
+      where: { isActive: true, ...(bc.bundleMode === "selected" ? { id: { in: picked } } : {}) },
+      include: bundleInclude,
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    })) as unknown as BundleView[];
+    bundles = bc.bundleMode === "selected"
+      ? picked.map((id) => found.find((b) => b.id === id)).filter((b): b is BundleView => !!b)
+      : found.slice(0, Math.min(12, Math.max(1, parseInt(bc.bundleLimit) || 4)));
+  }
+  return { sections, featured, categories, bundles, bundleSection };
 }
 
 export default async function HomePage() {
-  const { sections, featured, categories } = await getHomeData();
+  const { sections, featured, categories, bundles, bundleSection } = await getHomeData();
 
   const heroSection = sections.find((s: SiteSection) => s.type === "hero");
   const categoriesSection = sections.find((s: SiteSection) => s.type === "categories");
@@ -95,6 +113,10 @@ export default async function HomePage() {
           products={featured as (Product & { variants: Variant[]; category: Category | null })[]}
           content={parseJson<Record<string, string>>(featuredSection.content, {})}
         />
+      )}
+
+      {bundleSection && (
+        <BundlesSection bundles={bundles} content={parseJson<Record<string, string>>(bundleSection.content, {})} />
       )}
 
       {strips("featured")}

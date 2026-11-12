@@ -13,7 +13,7 @@ const NAV_LINKS = [
   ["My Orders", "/orders"],
 ] as const;
 
-export default function Navbar({ tagline = "", customerName = "" }: { tagline?: string; customerName?: string }) {
+export default function Navbar({ tagline = "", customerName = "", hasBundles = false }: { tagline?: string; customerName?: string; hasBundles?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -140,7 +140,7 @@ export default function Navbar({ tagline = "", customerName = "" }: { tagline?: 
 
           {/* Nav links */}
           <div className="flex flex-col px-6 py-8 gap-5">
-            {NAV_LINKS.map(([label, href]) => (
+            {(hasBundles ? ([...NAV_LINKS.slice(0, 2), ["Bundles", "/bundles"], ...NAV_LINKS.slice(2)] as unknown as typeof NAV_LINKS) : NAV_LINKS).map(([label, href]) => (
               <Link
                 key={href}
                 href={href}

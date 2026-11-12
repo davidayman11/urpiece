@@ -119,7 +119,11 @@ export default function CheckoutPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
+            items: items.map((i) =>
+              i.bundleId
+                ? { bundleId: i.bundleId, selections: i.selections, quantity: i.quantity }
+                : { variantId: i.variantId, quantity: i.quantity }
+            ),
             promoCode: appliedCode,
             city: form.city,
             governorate: form.governorate,

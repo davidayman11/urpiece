@@ -128,6 +128,7 @@ export default async function PrintOrderPage({ params, searchParams }: Props) {
                   <td style={{ padding: "8px 4px" }}>
                     {i.productName}
                     {i.variantName && <div style={{ color: "#666", fontSize: 11 }}>{i.variantName}</div>}
+                    {i.bundleName && <div style={{ color: "#666", fontSize: 11 }}>Bundle: {i.bundleName}</div>}
                   </td>
                   <td style={{ padding: "8px 4px", textAlign: "right" }}>{formatPrice(i.price)}</td>
                   <td style={{ padding: "8px 4px", textAlign: "right" }}>{i.quantity}</td>

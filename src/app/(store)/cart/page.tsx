@@ -61,6 +61,9 @@ export default function CartPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-serif text-lg text-[#1C1711]">{item.productName}</h3>
+                  {item.bundleId && (
+                    <p className="text-[9px] tracking-[0.2em] uppercase text-[#A8975E] mt-0.5">Bundle</p>
+                  )}
                   {item.variantName && (
                     <p className="text-xs text-[#8A7E6E] mt-0.5">{item.variantName}</p>
                   )}
