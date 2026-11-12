@@ -26,6 +26,7 @@ export default function CheckoutPage() {
   const [promoData, setPromoData] = useState<{ discount: number; code: string } | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [zones, setZones] = useState<{ city: string; price: number }[]>([]);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", address: "", city: "",
@@ -81,6 +82,25 @@ export default function CheckoutPage() {
     }
   };
 
+  const fieldError = (field: string): string => {
+    if (!touched[field]) return "";
+    const v = form[field as keyof typeof form].trim();
+    if (!v) return field === "city" ? "Please select your city" : "This field is required";
+    if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Enter a valid email address";
+    if (field === "phone" && !/^\+?[0-9\s-]{10,15}$/.test(v)) return "Enter a valid phone number";
+    return "";
+  };
+
+  const inputCls =
+    "w-full border bg-transparent px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none transition-colors";
+
+  const textFields = [
+    { field: "name", label: "Full Name", type: "text", placeholder: "Your full name", autoComplete: "name", inputMode: undefined, full: true },
+    { field: "email", label: "Email", type: "email", placeholder: "you@example.com", autoComplete: "email", inputMode: "email" as const, full: false },
+    { field: "phone", label: "Phone Number", type: "tel", placeholder: "01XXXXXXXXX", autoComplete: "tel", inputMode: "tel" as const, full: false },
+    { field: "address", label: "Street Address", type: "text", placeholder: "Street, building, apartment", autoComplete: "street-address", inputMode: undefined, full: true },
+  ] as const;
+
   if (items.length === 0) return null;
 
   return (
@@ -103,39 +123,77 @@ export default function CheckoutPage() {
             {/* Step 1: Details */}
             {step === "details" && (
               <div className="space-y-5">
-                <h2 className="font-serif text-2xl text-[#1C1711]">Shipping Details</h2>
-                {[
-                  { field: "name", label: "Full Name", type: "text" },
-                  { field: "email", label: "Email", type: "email" },
-                  { field: "phone", label: "Phone Number", type: "tel" },
-                  { field: "address", label: "Street Address", type: "text" },
-                  { field: "city", label: "City", type: "text" },
-                ].map(({ field, label, type }) => (
-                  <div key={field}>
-                    <label className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">{label}</label>
-                    {field === "city" && zones.length > 0 ? (
-                      <select
+                <div>
+                  <h2 className="font-serif text-2xl text-[#1C1711]">Shipping Details</h2>
+                  <p className="text-xs text-[#8A7E6E] mt-1">Where should we deliver your order?</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {textFields.map(({ field, label, type, placeholder, autoComplete, inputMode, full }) => (
+                    <div key={field} className={full ? "sm:col-span-2" : ""}>
+                      <label htmlFor={field} className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
+                        {label} <span className="text-[#A8975E]">*</span>
+                      </label>
+                      <input
+                        id={field}
+                        type={type}
+                        inputMode={inputMode}
+                        autoComplete={autoComplete}
+                        placeholder={placeholder}
+                        value={form[field]}
+                        onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                        onBlur={() => setTouched((t) => ({ ...t, [field]: true }))}
+                        aria-invalid={!!fieldError(field)}
+                        className={`${inputCls} ${fieldError(field) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                      />
+                      {fieldError(field) && <p className="text-[11px] text-red-600 mt-1">{fieldError(field)}</p>}
+                    </div>
+                  ))}
+
+                  <div className="sm:col-span-2">
+                    <label htmlFor="city" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
+                      City <span className="text-[#A8975E]">*</span>
+                    </label>
+                    {zones.length > 0 ? (
+                      <div className="relative">
+                        <select
+                          id="city"
+                          value={form.city}
+                          autoComplete="address-level2"
+                          onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                          onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                          className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("city") ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                        >
+                          <option value="">Select your city</option>
+                          {zones.map((z) => (
+                            <option key={z.city} value={z.city}>
+                              {z.city} — {z.price > 0 ? formatPrice(z.price) : "Free shipping"}
+                            </option>
+                          ))}
+                        </select>
+                        <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                          <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <input
+                        id="city"
+                        type="text"
+                        autoComplete="address-level2"
+                        placeholder="Your city"
                         value={form.city}
                         onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                        className="w-full border border-[#EDE6D4] bg-transparent px-4 py-3 text-sm text-[#1C1711] focus:border-[#A8975E] outline-none"
-                      >
-                        <option value="">Select your city</option>
-                        {zones.map((z) => (
-                          <option key={z.city} value={z.city}>
-                            {z.city} — {z.price > 0 ? formatPrice(z.price) : "Free shipping"}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                    <input
-                      type={type}
-                      value={form[field as keyof typeof form]}
-                      onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                      className="w-full border border-[#EDE6D4] bg-transparent px-4 py-3 text-sm text-[#1C1711] focus:border-[#A8975E] outline-none"
-                    />
+                        className={`${inputCls} border-[#EDE6D4] focus:border-[#A8975E]`}
+                      />
+                    )}
+                    {fieldError("city") && <p className="text-[11px] text-red-600 mt-1">{fieldError("city")}</p>}
+                    {form.city && zones.length > 0 && (
+                      <p className="text-[11px] text-[#8A7E6E] mt-1.5">
+                        Delivery to {form.city}: {shippingFee > 0 ? formatPrice(shippingFee) : "free"}
+                      </p>
                     )}
                   </div>
-                ))}
+                </div>
 
                 {/* Promo */}
                 <div className="flex gap-2">
@@ -162,8 +220,8 @@ export default function CheckoutPage() {
 
                 <button
                   onClick={() => {
-                    if (!form.name || !form.email || !form.address) return alert("Please fill all required fields");
-                    if (zones.length > 0 && !form.city) return alert("Please select your city");
+                    setTouched({ name: true, email: true, phone: true, address: true, city: true });
+                    if (["name", "email", "phone", "address", "city"].some((f) => fieldError(f))) return;
                     setStep("payment");
                   }}
                   className="w-full bg-[#A8975E] text-[#F5EFE2] py-3.5 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors"
