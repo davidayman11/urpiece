@@ -36,7 +36,7 @@ async function getHomeData() {
   // "Featured Products": featured only (default) / all products / the products picked in the admin
   const featSection = sections.find((s: SiteSection) => s.type === "featured");
   const fc = featSection ? parseJson<Record<string, string>>(featSection.content, {}) : {};
-  const mode = fc.mode || fc.productMode || "featured";
+  const mode = fc.productMode || "featured";
   const limit = Math.min(48, Math.max(1, parseInt(fc.productLimit) || 8));
   const include = { variants: { where: { isActive: true } }, category: true } as const;
 
