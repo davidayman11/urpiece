@@ -43,6 +43,17 @@ export interface Quote {
   shippingPending: boolean;
   total: number;
   mode: "STACK" | "ONE";
+  deposit: {
+    /** a deposit rule applies to this order */
+    enabled: boolean;
+    /** amount to transfer now when paying the deposit */
+    amount: number;
+    /** left to pay on delivery */
+    balance: number;
+    /** customer may choose to pay everything now instead */
+    allowFull: boolean;
+    addShipping: boolean;
+  };
   /** Human labels of the discounts that ended up applied */
   applied: string[];
 }
@@ -53,10 +64,11 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   const now = new Date();
-  const [settings, rules, shipping] = await Promise.all([
+  const [settings, rules, shipping, depositRules] = await Promise.all([
     prisma.paymentSettings.findFirst(),
     prisma.discountRule.findMany({ where: { isActive: true } }),
     loadShipping(),
+    prisma.depositRule.findMany({ where: { isActive: true } }),
   ]);
   const mode: "STACK" | "ONE" = settings?.discountMode === "ONE" ? "ONE" : "STACK";
   const salesEnabled = settings?.salesEnabled !== false;
@@ -193,6 +205,23 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   if (r.promoDiscount > 0 && promo) applied.push(`Promo ${promo.code}`);
   if (r.freeShippingApplied) applied.push("Free shipping");
 
+  // ---- deposit: matched on the order amount WITHOUT shipping (after discounts)
+  const orderAmount = round(r.subtotal - r.ruleDiscount - r.promoDiscount);
+  const addShipping = !!settings?.depositAddShipping;
+  let deposit = { enabled: false, amount: r.total, balance: 0, allowFull: settings?.depositAllowFull !== false, addShipping };
+  if (settings?.depositEnabled) {
+    const match = depositRules
+      .filter((d) => orderAmount >= d.minAmount && (d.maxAmount == null || orderAmount < d.maxAmount))
+      .sort((a, b) => b.minAmount - a.minAmount || (a.maxAmount ?? Infinity) - (b.maxAmount ?? Infinity))[0];
+    if (match) {
+      const base = match.type === "PERCENT" ? (orderAmount * match.value) / 100 : match.value;
+      const amount = round(Math.min(r.total, base + (addShipping ? r.shippingFee : 0)));
+      if (amount > 0 && amount < r.total) {
+        deposit = { enabled: true, amount, balance: round(r.total - amount), allowFull: deposit.allowFull, addShipping };
+      }
+    }
+  }
+
   return {
     lines: r.lines,
     subtotal: r.subtotal,
@@ -209,6 +238,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     shippingPending,
     total: r.total,
     mode,
+    deposit,
     applied,
   };
 }

@@ -64,6 +64,13 @@ export async function POST(req: NextRequest) {
       if (l.inventory < l.quantity) return bad(`Insufficient stock for ${l.productName}`);
     }
     const { subtotal, discount, shippingFee, total } = quote;
+
+    // Deposit: only when a rule applies, and the customer chose it (or full payment isn't allowed)
+    const wantsDeposit = fd.get("paymentOption") === "deposit";
+    const useDeposit = quote.deposit.enabled && (wantsDeposit || !quote.deposit.allowFull);
+    const paymentType = useDeposit ? "DEPOSIT" : "FULL";
+    const amountDue = useDeposit ? quote.deposit.amount : total;
+    const balanceDue = useDeposit ? quote.deposit.balance : 0;
     const enrichedItems = quote.lines.map((l) => ({
       productId: l.productId,
       variantId: l.variantId,
@@ -104,6 +111,9 @@ export async function POST(req: NextRequest) {
           discount,
           shippingFee,
           customData: JSON.stringify(customData),
+          paymentType,
+          amountDue,
+          balanceDue,
           total,
           promoCodeId: quote.promoId || undefined,
           promoCodeUsed: quote.promoCode || undefined,

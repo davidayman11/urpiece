@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>("new");
   const [saveAddress, setSaveAddress] = useState(true);
+  const [payOption, setPayOption] = useState<"deposit" | "full">("deposit");
   const [shipping, setShipping] = useState<ShippingConfig>({ adminDriven: false, governorates: [], zones: [], hasZones: false });
   const [form, setForm] = useState({
     name: "", email: "", phone: "", governorate: "", city: "", building: "", address: "",
@@ -142,6 +143,11 @@ export default function CheckoutPage() {
   const cityFee = cityOptions.find((c) => c.city === form.city)?.price ?? 0;
   const shippingFee = quote?.shippingFee ?? 0;
   const finalTotal = quote?.total ?? cartTotal;
+  // Deposit: pay part now, the rest on delivery (rules are set in the admin)
+  const dep = quote?.deposit;
+  const usingDeposit = !!dep?.enabled && (payOption === "deposit" || !dep.allowFull);
+  const payNow = usingDeposit && dep ? dep.amount : finalTotal;
+  const dueOnDelivery = usingDeposit && dep ? dep.balance : 0;
   const unit = (i: { variantId: string; price: number }) =>
     quote?.lines.find((l) => l.variantId === i.variantId)?.unitPrice ?? i.price;
 
@@ -163,6 +169,7 @@ export default function CheckoutPage() {
       fd.append("custom", JSON.stringify(customValues));
       if (quote?.promoCode) fd.append("promoCode", quote.promoCode);
       fd.append("saveAddress", saveAddress && selectedAddr === "new" ? "1" : "0");
+      fd.append("paymentOption", usingDeposit ? "deposit" : "full");
 
       const res = await fetch("/api/orders", { method: "POST", body: fd });
       const data = await res.json();
@@ -501,9 +508,31 @@ export default function CheckoutPage() {
                       )}
                     </div>
                   ))}
+                  {dep?.enabled && (
+                    <fieldset className="mt-4 space-y-2">
+                      <legend className="text-xs tracking-widest uppercase text-[#A8975E] mb-2">How would you like to pay?</legend>
+                      <label className={`flex items-start gap-3 p-4 bg-[#F5EFE2] border cursor-pointer ${usingDeposit ? "border-[#A8975E]" : "border-transparent"}`}>
+                        <input type="radio" name="payOption" className="mt-1" checked={usingDeposit} onChange={() => setPayOption("deposit")} />
+                        <span className="text-sm">
+                          <span className="block text-[#1C1711] font-medium">Pay a deposit now — {formatPrice(dep.amount)}</span>
+                          <span className="block text-[#8A7E6E] mt-0.5">The remaining {formatPrice(dep.balance)} is paid when your order arrives.</span>
+                        </span>
+                      </label>
+                      {dep.allowFull && (
+                        <label className={`flex items-start gap-3 p-4 bg-[#F5EFE2] border cursor-pointer ${!usingDeposit ? "border-[#A8975E]" : "border-transparent"}`}>
+                          <input type="radio" name="payOption" className="mt-1" checked={!usingDeposit} onChange={() => setPayOption("full")} />
+                          <span className="text-sm">
+                            <span className="block text-[#1C1711] font-medium">Pay in full now — {formatPrice(finalTotal)}</span>
+                            <span className="block text-[#8A7E6E] mt-0.5">Nothing to pay on delivery.</span>
+                          </span>
+                        </label>
+                      )}
+                    </fieldset>
+                  )}
                   <div className="mt-4 p-4 bg-[#A8975E] text-center">
-                    <p className="text-xs text-[#F5EFE2]/70 mb-1">Amount to Transfer</p>
-                    <p className="text-2xl font-serif text-[#F5EFE2]">{formatPrice(finalTotal)}</p>
+                    <p className="text-xs text-[#F5EFE2]/70 mb-1">{usingDeposit ? "Deposit to Transfer Now" : "Amount to Transfer"}</p>
+                    <p className="text-2xl font-serif text-[#F5EFE2]">{formatPrice(payNow)}</p>
+                    {usingDeposit && <p className="text-xs text-[#F5EFE2]/80 mt-1">+ {formatPrice(dueOnDelivery)} on delivery</p>}
                   </div>
                 </div>
 
@@ -594,6 +623,18 @@ export default function CheckoutPage() {
                     <span>Total</span>
                     <span className="text-[#A8975E]">{formatPrice(finalTotal)}</span>
                   </div>
+                  {usingDeposit && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#5A5040]">Deposit paid now</span>
+                        <span>{formatPrice(payNow)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#5A5040]">Due on delivery</span>
+                        <span>{formatPrice(dueOnDelivery)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -657,6 +698,12 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span className="text-[#A8975E]">{formatPrice(finalTotal)}</span>
               </div>
+              {usingDeposit && step !== "details" && (
+                <div className="text-xs space-y-1 pt-1">
+                  <div className="flex justify-between"><span className="text-[#5A5040]">Pay now (deposit)</span><span>{formatPrice(payNow)}</span></div>
+                  <div className="flex justify-between"><span className="text-[#5A5040]">On delivery</span><span>{formatPrice(dueOnDelivery)}</span></div>
+                </div>
+              )}
             </div>
           </div>
         </div>

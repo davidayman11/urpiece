@@ -47,6 +47,9 @@ interface Order {
   subtotal: number;
   discount: number;
   shippingFee: number;
+  paymentType?: string;
+  amountDue?: number;
+  balanceDue?: number;
   total: number;
   promoCodeUsed?: string;
   createdAt: Date;
@@ -112,6 +115,16 @@ export default function OrderDetailAdmin({ order: initial }: { order: Order }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {order.paymentType === "DEPOSIT" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+              <p className="font-medium text-amber-900">Deposit order</p>
+              <p className="text-amber-800 mt-1">
+                Customer should have transferred <strong>{formatPrice(order.amountDue ?? 0)}</strong> now.
+                Collect <strong>{formatPrice(order.balanceDue ?? 0)}</strong> on delivery.
+              </p>
+            </div>
+          )}
+
           {/* Payment Screenshot */}
           {order.paymentScreenshot && (
             <div className="bg-white rounded-lg p-5 border border-gray-100">

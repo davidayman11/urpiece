@@ -174,6 +174,18 @@ export default async function OrderDetailPage({ params }: Props) {
                   <span>Total</span>
                   <span className="text-[#A8975E]">{formatPrice(order.total)}</span>
                 </div>
+                {order.paymentType === "DEPOSIT" && (
+                  <div className="pt-3 mt-1 border-t border-[#EDE6D4] space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-[#8A7E6E]">Deposit paid</span>
+                      <span>{formatPrice(order.amountDue)}</span>
+                    </div>
+                    <div className="flex justify-between font-medium">
+                      <span>Due on delivery</span>
+                      <span className="text-[#A8975E]">{formatPrice(order.balanceDue)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

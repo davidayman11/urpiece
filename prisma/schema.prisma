@@ -126,6 +126,9 @@ model Order {
   rejectionReason   String?
   adminNotes        String?
   customData        String              @default("{}")
+  paymentType       String              @default("FULL")
+  amountDue         Float               @default(0)
+  balanceDue        Float               @default(0)
   notes             OrderNote[]
   statusHistory     OrderStatusHistory[]
   createdAt         DateTime            @default(now())
@@ -240,6 +243,17 @@ model MonthlyReport {
   @@unique([year, month])
 }
 
+model DepositRule {
+  id        String   @id @default(cuid())
+  minAmount Float    @default(0)
+  maxAmount Float?
+  type      String   @default("FIXED")
+  value     Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model DiscountRule {
   id        String    @id @default(cuid())
   name      String
@@ -287,6 +301,9 @@ model PaymentSettings {
   fieldOrder String @default("[]")
   freeShippingMin Float?
   discountMode String @default("STACK")
+  depositEnabled Boolean @default(false)
+  depositAllowFull Boolean @default(true)
+  depositAddShipping Boolean @default(false)
   salesEnabled Boolean @default(true)
   promosEnabled Boolean @default(true)
   requiredFields String @default("{\"phone\":true,\"address\":true,\"city\":true}")

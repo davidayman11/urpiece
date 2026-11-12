@@ -1,0 +1,23 @@
+-- AlterTable
+ALTER TABLE "PaymentSettings" ADD COLUMN "depositEnabled" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "depositAllowFull" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "depositAddShipping" BOOLEAN NOT NULL DEFAULT false;
+
+-- CreateTable
+CREATE TABLE "DepositRule" (
+    "id" TEXT NOT NULL,
+    "minAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "maxAmount" DOUBLE PRECISION,
+    "type" TEXT NOT NULL DEFAULT 'FIXED',
+    "value" DOUBLE PRECISION NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "DepositRule_pkey" PRIMARY KEY ("id")
+);
+
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN "paymentType" TEXT NOT NULL DEFAULT 'FULL',
+ADD COLUMN "amountDue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN "balanceDue" DOUBLE PRECISION NOT NULL DEFAULT 0;
