@@ -10,22 +10,48 @@ import type { Product, Category, Variant, SiteSection } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
+const parseIds = (raw?: string): string[] => {
+  try { const v = JSON.parse(raw || "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []; } catch { return []; }
+};
+
 async function getHomeData() {
-  const [sections, featured, categories] = await Promise.all([
+  const [sections, allCategories] = await Promise.all([
     prisma.siteSection.findMany({
       where: { pageSlug: "home", isVisible: true },
       orderBy: { sortOrder: "asc" },
-    }),
-    prisma.product.findMany({
-      where: { isActive: true, isFeatured: true },
-      include: { variants: { where: { isActive: true } }, category: true },
-      take: 8,
     }),
     prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
     }),
   ]);
+
+  // "Shop by Category": the categories picked in the admin (none picked = all of them), in the order picked
+  const catSection = sections.find((s: SiteSection) => s.type === "categories");
+  const pickedCats = parseIds(catSection ? parseJson<Record<string, string>>(catSection.content, {}).categoryIds : "");
+  const categories = pickedCats.length
+    ? pickedCats.map((id) => allCategories.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c)
+    : allCategories;
+
+  // "Featured Products": featured only (default) / all products / the products picked in the admin
+  const featSection = sections.find((s: SiteSection) => s.type === "featured");
+  const fc = featSection ? parseJson<Record<string, string>>(featSection.content, {}) : {};
+  const mode = fc.mode || fc.productMode || "featured";
+  const limit = Math.min(48, Math.max(1, parseInt(fc.productLimit) || 8));
+  const include = { variants: { where: { isActive: true } }, category: true } as const;
+
+  let featured;
+  if (mode === "selected") {
+    const ids = parseIds(fc.productIds);
+    const found = ids.length
+      ? await prisma.product.findMany({ where: { id: { in: ids }, isActive: true }, include })
+      : [];
+    featured = ids.map((id) => found.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
+  } else if (mode === "all") {
+    featured = await prisma.product.findMany({ where: { isActive: true }, include, orderBy: { createdAt: "desc" }, take: limit });
+  } else {
+    featured = await prisma.product.findMany({ where: { isActive: true, isFeatured: true }, include, take: limit });
+  }
   return { sections, featured, categories };
 }
 

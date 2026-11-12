@@ -40,11 +40,11 @@ const SECTION_TYPES = [
   },
   {
     type: "categories", label: "Shop by Category Section", page: "home",
-    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText", "categoryIds"],
   },
   {
     type: "featured", label: "Featured Products Section", page: "home",
-    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText", "productMode", "productLimit", "productIds"],
   },
   {
     type: "marquee", label: "Scrolling Strip (icon + moving text)", page: "home",
@@ -96,6 +96,10 @@ const FIELD_LABELS: Record<string, string> = {
   textColor: "Text Color",
   speed: "Scroll time in seconds for one loop (lower = faster, default 30)",
   barUrl: "Link when clicked (optional)",
+  categoryIds: "Which categories to show",
+  productMode: "Which products to show",
+  productLimit: "How many products to show (default 8)",
+  productIds: "Choose the products (in the order they appear)",
   taglineColor: "Tagline Color",
   eyebrowColor: "Eyebrow Text Color",
   headingColor: "Heading Color",
@@ -103,6 +107,11 @@ const FIELD_LABELS: Record<string, string> = {
 
 const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor", "bgColor", "textColor", "iconColor"]);
 const SELECT_FIELDS: Record<string, { value: string; label: string }[]> = {
+  productMode: [
+    { value: "featured", label: "Only products marked Featured" },
+    { value: "all", label: "All products (newest first)" },
+    { value: "selected", label: "Only the products I choose" },
+  ],
   icon: [
     { value: "heart", label: "Heart" }, { value: "truck", label: "Delivery truck" }, { value: "star", label: "Star" },
     { value: "sparkle", label: "Sparkle" }, { value: "gift", label: "Gift" }, { value: "shield", label: "Shield / guarantee" },
@@ -133,7 +142,74 @@ const PAGE_SLUG_LABELS: Record<string, string> = {
   site: "Site Settings",
 };
 
-export default function PagesClient({ sections: initial }: { sections: SiteSection[] }) {
+const parseIds = (raw?: string): string[] => {
+  try { const v = JSON.parse(raw || "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []; } catch { return []; }
+};
+
+interface PickItem { id: string; name: string; note?: string }
+
+/** Checklist with search. `ordered` keeps the order items were picked in and lets you move them. */
+function PickerList({
+  items, selected, onChange, ordered, emptyNote,
+}: { items: PickItem[]; selected: string[]; onChange: (ids: string[]) => void; ordered?: boolean; emptyNote?: string }) {
+  const [q, setQ] = useState("");
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const chosen = selected.filter((id) => byId.has(id));
+  const shown = items.filter((i) => i.name.toLowerCase().includes(q.toLowerCase()));
+  const toggle = (id: string) => onChange(chosen.includes(id) ? chosen.filter((x) => x !== id) : [...chosen, id]);
+  const move = (i: number, d: -1 | 1) => {
+    const n = [...chosen];
+    const j = i + d;
+    if (j < 0 || j >= n.length) return;
+    [n[i], n[j]] = [n[j], n[i]];
+    onChange(n);
+  };
+
+  return (
+    <div className="border border-gray-200 rounded p-3 space-y-3">
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <span className="text-gray-500">{chosen.length} selected</span>
+        <button type="button" onClick={() => onChange(items.map((i) => i.id))} className="text-[#A8975E] hover:underline">Select all</button>
+        <button type="button" onClick={() => onChange([])} className="text-gray-500 hover:underline">Clear</button>
+        {emptyNote && chosen.length === 0 && <span className="text-gray-400">{emptyNote}</span>}
+      </div>
+
+      {ordered && chosen.length > 0 && (
+        <ol className="space-y-1">
+          {chosen.map((id, i) => (
+            <li key={id} className="flex items-center gap-2 text-sm bg-gray-50 rounded px-2 py-1">
+              <span className="w-5 text-xs text-gray-400">{i + 1}</span>
+              <span className="flex-1 truncate">{byId.get(id)?.name}</span>
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="text-[10px] px-1 text-gray-500 disabled:opacity-25" aria-label="Move up">▲</button>
+              <button type="button" onClick={() => move(i, 1)} disabled={i === chosen.length - 1} className="text-[10px] px-1 text-gray-500 disabled:opacity-25" aria-label="Move down">▼</button>
+              <button type="button" onClick={() => toggle(id)} className="text-xs text-red-500" aria-label="Remove">×</button>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {items.length > 8 && (
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm" />
+      )}
+      <div className="max-h-52 overflow-y-auto divide-y divide-gray-50">
+        {shown.length === 0 && <p className="text-xs text-gray-400 py-2">Nothing found</p>}
+        {shown.map((i) => (
+          <label key={i.id} className="flex items-center gap-2 py-1.5 text-sm cursor-pointer">
+            <input type="checkbox" checked={chosen.includes(i.id)} onChange={() => toggle(i.id)} />
+            <span className="flex-1 truncate">{i.name}</span>
+            {i.note && <span className="text-[10px] text-gray-400">{i.note}</span>}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type Opt = { id: string; name: string; isActive: boolean; isFeatured?: boolean };
+
+export default function PagesClient({
+  sections: initial, categories = [], products = [],
+}: { sections: SiteSection[]; categories?: Opt[]; products?: Opt[] }) {
   const router = useRouter();
   const [sections, setSections] = useState(initial);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
@@ -323,10 +399,34 @@ export default function PagesClient({ sections: initial }: { sections: SiteSecti
                 </select>
               </div>
 
-              {currentTypeDef?.fields.map((field) => (
+              {currentTypeDef?.fields.map((field) => {
+                if (field === "productIds" && (content.productMode || "featured") !== "selected") return null;
+                if (field === "productLimit" && (content.productMode || "featured") === "selected") return null;
+                return (
                 <div key={field}>
                   <label className="text-xs text-gray-500 mb-1 block">{FIELD_LABELS[field] || field}</label>
-                  {field === "image" ? (
+                  {field === "categoryIds" ? (
+                    <PickerList
+                      items={categories.map((c) => ({ id: c.id, name: c.name, note: c.isActive ? undefined : "hidden" }))}
+                      selected={parseIds(content.categoryIds)}
+                      onChange={(ids) => setContent((c) => ({ ...c, categoryIds: JSON.stringify(ids) }))}
+                      emptyNote="Nothing ticked = show all categories"
+                    />
+                  ) : field === "productIds" ? (
+                    <PickerList
+                      ordered
+                      items={products.map((p) => ({ id: p.id, name: p.name, note: p.isActive ? (p.isFeatured ? "featured" : undefined) : "hidden" }))}
+                      selected={parseIds(content.productIds)}
+                      onChange={(ids) => setContent((c) => ({ ...c, productIds: JSON.stringify(ids) }))}
+                    />
+                  ) : field === "productLimit" ? (
+                    <input
+                      type="number" min="1" max="48" placeholder="8"
+                      value={content.productLimit || ""}
+                      onChange={(e) => setContent((c) => ({ ...c, productLimit: e.target.value }))}
+                      className="w-28 border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                  ) : field === "image" ? (
                     <div className="space-y-2">
                       <input
                         type="text"
@@ -412,7 +512,8 @@ export default function PagesClient({ sections: initial }: { sections: SiteSecti
                     />
                   )}
                 </div>
-              ))}
+                );
+              })}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
