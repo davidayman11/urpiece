@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
+import { statusInfo } from "@/lib/order-status";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -14,30 +16,26 @@ interface Order {
   items: { productName: string; quantity: number }[];
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Pending", color: "text-yellow-700 bg-yellow-50" },
-  AWAITING_PAYMENT: { label: "Awaiting Payment", color: "text-orange-700 bg-orange-50" },
-  PAYMENT_UPLOADED: { label: "Payment Uploaded", color: "text-blue-700 bg-blue-50" },
-  PAYMENT_REJECTED: { label: "Payment Rejected", color: "text-red-700 bg-red-50" },
-  CONFIRMED: { label: "Confirmed", color: "text-green-700 bg-green-50" },
-  PROCESSING: { label: "Processing", color: "text-purple-700 bg-purple-50" },
-  SHIPPED: { label: "Shipped", color: "text-indigo-700 bg-indigo-50" },
-  COMPLETED: { label: "Completed", color: "text-emerald-700 bg-emerald-50" },
-  CANCELLED: { label: "Cancelled", color: "text-gray-700 bg-gray-50" },
-};
-
 export default function OrdersPage() {
-  const [email, setEmail] = useState("");
+  const router = useRouter();
+  const [query, setQuery] = useState("");
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const lookup = async () => {
-    if (!email) return;
-    setLoading(true);
+    const q = query.trim();
+    if (!q) return;
     setError("");
+    // An order number (UP-XXXX-XXXX) goes straight to the order page
+    if (!q.includes("@")) {
+      if (/^UP-/i.test(q)) router.push(`/orders/${q.toUpperCase()}`);
+      else setError("Enter the email you used at checkout, or your order number (starts with UP-).");
+      return;
+    }
+    setLoading(true);
     try {
-      const res = await fetch(`/api/orders/track?email=${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/orders/track?email=${encodeURIComponent(q)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setOrders(data.orders);
@@ -50,59 +48,61 @@ export default function OrdersPage() {
 
   return (
     <div className="pt-28 pb-24 min-h-screen">
-      <div className="max-w-2xl mx-auto px-6">
-        <h1 className="font-serif text-4xl font-light text-[#1C1711] mb-3">Track Your Order</h1>
-        <p className="text-sm text-[#8A7E6E] mb-10">Enter the email you used at checkout to view your orders.</p>
+      <div className="max-w-xl mx-auto px-6">
+        <div className="text-center mb-10">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3">Your orders</p>
+          <h1 className="font-serif text-4xl font-light text-[#1C1711] mb-3">Track Your Order</h1>
+          <p className="text-sm text-[#8A7E6E]">Enter the email you used at checkout, or your order number.</p>
+        </div>
 
-        <div className="flex gap-3 mb-10">
+        <div className="flex gap-2 mb-3">
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && lookup()}
-            placeholder="your@email.com"
-            className="flex-1 border border-[#EDE6D4] bg-transparent px-4 py-3 text-sm"
+            placeholder="you@example.com  or  UP-XXXX-XXXX"
+            className="flex-1 border border-[#EDE6D4] bg-[#FBF8F0] px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none focus:border-[#A8975E] transition-colors"
           />
           <button
             onClick={lookup}
             disabled={loading}
             className="px-6 py-3 bg-[#A8975E] text-[#F5EFE2] text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors disabled:opacity-60"
           >
-            {loading ? "..." : "Find"}
+            {loading ? "…" : "Find"}
           </button>
         </div>
 
-        {error && <p className="text-sm text-red-600 mb-6">{error}</p>}
+        {error && <p className="text-xs text-red-600 mb-6">{error}</p>}
 
         {orders !== null && (
-          <div>
+          <div className="mt-8">
             {orders.length === 0 ? (
-              <p className="text-sm text-[#8A7E6E] text-center py-10">No orders found for this email.</p>
+              <div className="text-center py-12 bg-[#FBF8F0] border border-[#EDE6D4]">
+                <p className="text-sm text-[#5A5040]">No orders found for this email.</p>
+                <p className="text-xs text-[#8A7E6E] mt-1">Check the spelling, or try your order number instead.</p>
+              </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {orders.map((order) => {
-                  const st = STATUS_LABELS[order.status] || { label: order.status, color: "text-gray-700 bg-gray-50" };
+                  const st = statusInfo(order.status);
                   return (
                     <Link
                       key={order.id}
                       href={`/orders/${order.orderNumber}`}
-                      className="block border border-[#EDE6D4] p-5 hover:border-[#A8975E] transition-colors"
+                      className="block bg-[#FBF8F0] border border-[#EDE6D4] p-5 hover:border-[#A8975E] transition-colors"
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-xs tracking-widest uppercase text-[#A8975E]">{order.orderNumber}</p>
-                          <p className="mt-1 text-sm text-[#5A5040]">
+                        <div className="min-w-0">
+                          <p className="text-[11px] tracking-[0.2em] uppercase text-[#A8975E] break-all">{order.orderNumber}</p>
+                          <p className="mt-1.5 text-sm text-[#1C1711]">
                             {order.items.slice(0, 2).map((i) => `${i.productName} ×${i.quantity}`).join(", ")}
                             {order.items.length > 2 && ` +${order.items.length - 2} more`}
                           </p>
-                          <p className="mt-1 text-xs text-[#8A7E6E]">
-                            {format(new Date(order.createdAt), "d MMM yyyy")}
-                          </p>
+                          <p className="mt-1 text-xs text-[#8A7E6E]">{format(new Date(order.createdAt), "d MMM yyyy")}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className={`text-xs px-2.5 py-1 rounded-full ${st.color}`}>
-                            {st.label}
-                          </span>
+                          <span className={`text-[11px] px-2.5 py-1 rounded-full ${st.tone}`}>{st.label}</span>
                           <p className="mt-2 text-sm font-medium text-[#1C1711]">{formatPrice(order.total)}</p>
                         </div>
                       </div>
