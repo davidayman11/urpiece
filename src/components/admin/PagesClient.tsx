@@ -28,7 +28,7 @@ const PAGE_SLUGS = [
 const SECTION_TYPES = [
   {
     type: "hero", label: "Hero Section", page: "home",
-    fields: ["tagline", "taglineColor", "heading", "headingColor", "subheading", "buttonText", "buttonUrl", "secondaryText", "secondaryUrl", "image"],
+    fields: ["tagline", "taglineColor", "heading", "headingColor", "subheading", "buttonText", "buttonUrl", "secondaryText", "secondaryUrl", "image", "height"],
   },
   {
     type: "banner", label: "Banner", page: "home",
@@ -100,6 +100,7 @@ const FIELD_LABELS: Record<string, string> = {
   textColor: "Text Color",
   speed: "Scroll time in seconds for one loop (lower = faster, default 30)",
   barUrl: "Link when clicked (optional)",
+  height: "Banner height",
   categoryIds: "Which categories to show",
   bundleMode: "Which bundles to show",
   bundleLimit: "How many bundles to show (default 4)",
@@ -114,6 +115,12 @@ const FIELD_LABELS: Record<string, string> = {
 
 const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor", "bgColor", "textColor", "iconColor"]);
 const SELECT_FIELDS: Record<string, { value: string; label: string }[]> = {
+  height: [
+    { value: "medium", label: "Medium — next section peeks in (recommended)" },
+    { value: "tall", label: "Tall" },
+    { value: "compact", label: "Compact" },
+    { value: "full", label: "Full screen" },
+  ],
   bundleMode: [
     { value: "all", label: "All active bundles" },
     { value: "selected", label: "Only the bundles I choose" },

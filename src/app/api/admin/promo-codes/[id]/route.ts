@@ -16,6 +16,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       maxDiscount: data.maxDiscount ? parseFloat(data.maxDiscount) : null,
       usageLimit: data.usageLimit ? parseInt(data.usageLimit) : null,
       isActive: data.isActive,
+      requiresLogin: !!data.requiresLogin,
       startsAt: data.startsAt ? new Date(data.startsAt) : null,
       expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
     },

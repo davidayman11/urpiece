@@ -8,6 +8,7 @@ import type { Quote } from "@/lib/pricing-engine";
 import type { ShippingConfig } from "@/lib/shipping";
 import { formatAddress, EGYPT_GOVERNORATES, DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
 import Image from "next/image";
+import Link from "next/link";
 import { useT } from "@/components/store/TextsProvider";
 
 interface PaymentSettings {
@@ -46,6 +47,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>("new");
   const [saveAddress, setSaveAddress] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
   const [payOption, setPayOption] = useState<"deposit" | "full">("deposit");
   const [cityOther, setCityOther] = useState(false);
   const [shipping, setShipping] = useState<ShippingConfig>({ adminDriven: false, governorates: [], zones: [], hasZones: false });
@@ -108,6 +110,7 @@ export default function CheckoutPage() {
       try {
         const me = await fetch("/api/account/me").then((r) => (r.ok ? r.json() : null));
         if (me?.customer) {
+          setSignedIn(true);
           setForm((f) => ({ ...f, name: f.name || me.customer.name, email: me.customer.email, phone: f.phone || me.customer.phone || "" }));
         }
         const res = await fetch("/api/account/addresses").then((r) => (r.ok ? r.json() : null));
@@ -187,10 +190,14 @@ export default function CheckoutPage() {
 
       const res = await fetch("/api/orders", { method: "POST", body: fd });
       const data = await res.json();
-      if (res.status === 401) { router.push("/account/login?next=/checkout"); return; }
       if (!res.ok) throw new Error(data.error);
       clearCart();
-      router.push(`/orders?placed=${encodeURIComponent(data.orderNumber)}`);
+      // Signed-in customers go to their orders list; guests open their order with its private link
+      router.push(
+        signedIn
+          ? `/orders?placed=${encodeURIComponent(data.orderNumber)}`
+          : `/orders/${encodeURIComponent(data.orderNumber)}?t=${encodeURIComponent(data.accessToken || "")}`
+      );
     } catch (e) {
       alert(e instanceof Error ? e.message : t("checkout.err.orderFailed"));
     } finally {
@@ -271,6 +278,13 @@ export default function CheckoutPage() {
                   <p className="text-xs text-[#8A7E6E] mt-1">{t("checkout.details.subtitle")}</p>
                 </div>
 
+                {!signedIn && (
+                  <p className="text-xs text-[#5A5040] bg-[#FBF8F0] border border-[#E0D6BD] px-4 py-3">
+                    {t("checkout.guest.banner")}{" "}
+                    <Link href="/account/login?next=/checkout" className="text-[#A8975E] underline underline-offset-4">{t("checkout.guest.signIn")}</Link>
+                  </p>
+                )}
+
                 {addresses.length > 0 && (
                   <div>
                     <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-2">{t("checkout.details.deliverTo")}</p>
@@ -322,9 +336,9 @@ export default function CheckoutPage() {
                         value={form[field]}
                         onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
                         onBlur={() => setTouched((t) => ({ ...t, [field]: true }))}
-                        readOnly={field === "email"}
+                        readOnly={field === "email" && signedIn}
                         aria-invalid={!!fieldError(field)}
-                        className={`${field === "email" ? `${inputBase} bg-[#EFE8D6] text-[#7A705E] cursor-not-allowed` : inputCls} ${fieldError(field) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
+                        className={`${field === "email" && signedIn ? `${inputBase} bg-[#EFE8D6] text-[#7A705E] cursor-not-allowed` : inputCls} ${fieldError(field) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                       />
                       {fieldError(field) && <p className="text-[11px] text-red-600 mt-1">{fieldError(field)}</p>}
                     </div>
@@ -473,7 +487,7 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                {selectedAddr === "new" && (
+                {signedIn && selectedAddr === "new" && (
                   <label className="flex items-center gap-2 text-sm text-[#5A5040] cursor-pointer">
                     <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} />
                     {t("checkout.fields.saveAddress")}
@@ -497,6 +511,13 @@ export default function CheckoutPage() {
                   </button>
                 </div>
                 {promoError && <p className="text-xs text-red-600">{promoError}</p>}
+                {quote?.promoNeedsLogin && !signedIn && (
+                  <p className="text-xs">
+                    <Link href="/account/login?next=/checkout" className="text-[#A8975E] underline underline-offset-4">{t("checkout.promo.signIn")}</Link>{" "}
+                    {t("checkout.promo.or")}{" "}
+                    <Link href="/account/register?next=/checkout" className="text-[#A8975E] underline underline-offset-4">{t("checkout.promo.createAccount")}</Link>
+                  </p>
+                )}
                 {promoData && (
                   <p className="text-xs text-green-700">
                     {t("checkout.promo.applied", { amount: formatPrice(promoData.discount) })}

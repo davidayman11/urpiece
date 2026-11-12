@@ -22,6 +22,8 @@ export interface QuoteInput {
   governorate?: string | null;
   /** Orders: throw on a bad promo code / unknown city instead of returning a message */
   strict?: boolean;
+  /** is a customer signed in? (promo codes can require it) */
+  signedIn?: boolean;
 }
 
 export interface QuoteLine {
@@ -49,6 +51,8 @@ export interface Quote {
   promoId: string | null;
   promoDiscount: number;
   promoMessage: string | null;
+  /** the entered code only works for signed-in customers */
+  promoNeedsLogin: boolean;
   /** ruleDiscount + promoDiscount (stored on the order) */
   discount: number;
   shippingFee: number;
@@ -147,6 +151,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   let promo: PromoCode | null = null;
   let promoMessage: string | null = null;
   let promoInvalid = false;
+  let promoNeedsLogin = false;
   const code = (input.promoCode || "").trim().toUpperCase();
   if (code) {
     if (!promosEnabled) { promoMessage = tr("checkout.msg.promoUnavailable"); promoInvalid = true; }
@@ -157,6 +162,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
       else if (rec.startsAt && rec.startsAt > now) { promoMessage = tr("checkout.msg.promoNotYet"); promoInvalid = true; }
       else if (rec.expiresAt && rec.expiresAt < now) { promoMessage = tr("checkout.msg.promoExpired"); promoInvalid = true; }
       else if (rec.usageLimit && rec.usedCount >= rec.usageLimit) { promoMessage = tr("checkout.msg.promoLimit"); promoInvalid = true; }
+      else if (rec.requiresLogin && !input.signedIn) { promoMessage = tr("checkout.msg.promoLoginRequired"); promoInvalid = true; promoNeedsLogin = true; }
       else promo = rec;
     }
   }
@@ -281,6 +287,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     promoId: r.promoDiscount > 0 && promo ? promo.id : null,
     promoDiscount: r.promoDiscount,
     promoMessage,
+    promoNeedsLogin,
     discount: round(r.ruleDiscount + r.promoDiscount),
     shippingFee: r.shippingFee,
     freeShippingApplied: r.freeShippingApplied,

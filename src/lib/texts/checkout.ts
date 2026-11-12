@@ -120,4 +120,11 @@ export const checkoutTexts: TextDef[] = [
   { key: "checkout.msg.promoLimit", group: "Checkout — messages", label: "Promo — usage limit reached", default: "This code has reached its usage limit" },
   { key: "checkout.msg.promoMinOrder", group: "Checkout — messages", label: "Promo — minimum order", default: "Minimum order of {amount} EGP required for this code" },
   { key: "checkout.msg.promoBetterDiscount", group: "Checkout — messages", label: "Promo — better discount already applied", default: "Another discount already gives you a better price, so the code wasn't added." },
+  { key: "checkout.msg.promoLoginRequired", group: "Checkout — messages", label: "Promo code that needs an account — message for guests", default: "Please sign in or create an account to use this promo code." },
+  { key: "checkout.promo.signIn", group: "Checkout", label: "Promo code — sign in link", default: "Sign in" },
+  { key: "checkout.promo.createAccount", group: "Checkout", label: "Promo code — create account link", default: "Create an account" },
+  { key: "checkout.promo.or", group: "Checkout", label: "Promo code — word between the two links", default: "or" },
+  { key: "checkout.guest.banner", group: "Checkout", label: "Banner for customers who are not signed in", default: "Have an account? Sign in for saved addresses and promo codes — or continue as a guest." },
+  { key: "checkout.guest.signIn", group: "Checkout", label: "Guest banner — sign in link", default: "Sign in" },
+  { key: "checkout.msg.emailInvalid", group: "Checkout — messages", label: "Order error — email is not valid", default: "Enter a valid email address" },
 ];

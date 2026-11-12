@@ -129,6 +129,7 @@ model Order {
   rejectionReason   String?
   adminNotes        String?
   customData        String              @default("{}")
+  accessToken       String?
   paymentType       String              @default("FULL")
   amountDue         Float               @default(0)
   balanceDue        Float               @default(0)
@@ -182,6 +183,7 @@ model PromoCode {
   usageLimit     Int?
   usedCount      Int      @default(0)
   isActive       Boolean  @default(true)
+  requiresLogin  Boolean  @default(false)
   startsAt       DateTime?
   expiresAt      DateTime?
   productIds     String   @default("[]")

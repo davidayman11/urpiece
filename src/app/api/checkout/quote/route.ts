@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { quoteOrder, QuoteError } from "@/lib/pricing-engine";
 import { getT } from "@/lib/texts/server";
+import { getCustomer } from "@/lib/customer-auth";
 
 export async function POST(req: NextRequest) {
   const t = await getT();
@@ -11,6 +12,7 @@ export async function POST(req: NextRequest) {
       promoCode,
       city,
       governorate,
+      signedIn: !!(await getCustomer()),
     }, t);
     return NextResponse.json(quote);
   } catch (e) {

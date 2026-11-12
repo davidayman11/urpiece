@@ -12,6 +12,7 @@ interface Props {
 export default function HeroSection({ content }: Props) {
   const t = useT();
   const textRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const el = textRef.current;
@@ -35,8 +36,20 @@ export default function HeroSection({ content }: Props) {
   const secondaryText = content.secondaryText || "";
   const secondaryUrl = content.secondaryUrl || "/about";
 
+  // Banner height is chosen in the admin (Pages & Sections > Hero). A shorter banner lets the next
+  // section peek in at the bottom, which shows visitors there is more to scroll to.
+  const HEIGHTS: Record<string, string> = {
+    full: "min-h-[100svh]",
+    tall: "min-h-[85svh]",
+    medium: "min-h-[72svh]",
+    compact: "min-h-[58svh]",
+  };
+  const heightClass = HEIGHTS[content.height] || HEIGHTS.medium;
+  const cueTone = content.image ? "text-[#F5EFE2]" : "text-[#5A5040]";
+  const scrollDown = () => sectionRef.current?.nextElementSibling?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   return (
-    <section className="relative min-h-[100svh] flex items-center overflow-hidden">
+    <section ref={sectionRef} className={`relative ${heightClass} flex items-center overflow-hidden`}>
       {/* Background */}
       {content.image ? (
         <>
@@ -114,10 +127,18 @@ export default function HeroSection({ content }: Props) {
         </div>
       </div>
 
-      {/* Scroll cue */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
-        <div className="w-px h-12 bg-[#A8975E] origin-top animate-[scaleY_1.5s_ease-in-out_infinite]" />
-      </div>
+      {/* Scroll cue — clickable, clearly visible */}
+      <button
+        type="button"
+        onClick={scrollDown}
+        aria-label={t("home.hero.scroll")}
+        className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 ${cueTone} opacity-90 hover:opacity-100 transition-opacity`}
+      >
+        <span className="text-[9px] tracking-[0.35em] uppercase">{t("home.hero.scroll")}</span>
+        <svg className="animate-bounce" width="18" height="11" viewBox="0 0 18 11" fill="none" aria-hidden>
+          <path d="M1 1.5l8 8 8-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
     </section>
   );
 }

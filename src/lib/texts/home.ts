@@ -5,6 +5,7 @@ const A = "About page";
 const C = "Contact page";
 
 export const homeTexts: TextDef[] = [
+  { key: "home.hero.scroll", group: H, label: "Hero — \"scroll down\" hint under the banner", default: "Scroll" },
   { key: "home.hero.imageAlt", group: H, label: "Hero — background image alt text", default: "Hero" },
   { key: "home.categories.shopNow", group: H, label: "Category cards — Shop Now hover text", default: "Shop Now" },
   { key: "home.marquee.region", group: H, label: "Scrolling strip — screen reader label", default: "Highlights" },

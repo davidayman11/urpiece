@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +5,7 @@ import { getCustomer } from "@/lib/customer-auth";
 import { formatPrice } from "@/lib/utils";
 import { statusInfo } from "@/lib/order-status";
 import { getT } from "@/lib/texts/server";
+import TrackOrderForm from "@/components/store/TrackOrderForm";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -17,7 +17,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const { placed } = await searchParams;
   const t = await getT();
   const customer = await getCustomer();
-  if (!customer) redirect("/account/login?next=/orders");
+  if (!customer) return <TrackOrderForm />;
 
   // Orders from before the account was created (old guest orders) are not shown
   const orders = await prisma.order.findMany({

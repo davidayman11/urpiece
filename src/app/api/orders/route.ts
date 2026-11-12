@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
 import { put } from "@vercel/blob";
@@ -11,15 +12,12 @@ import { getT } from "@/lib/texts/server";
 export async function POST(req: NextRequest) {
   const t = await getT();
   try {
-    // Orders need a signed-in customer account
+    // Signed-in customers get the order on their account; guests can order too
     const account = await getCustomer();
-    if (!account) {
-      return NextResponse.json({ error: t("checkout.msg.signIn") }, { status: 401 });
-    }
 
     const fd = await req.formData();
     const name = fd.get("name") as string;
-    const email = account.email; // always the account email
+    const email = account ? account.email : String(fd.get("email") || "").trim();
     const phone = fd.get("phone") as string | null;
     const address = fd.get("address") as string;
     const city = fd.get("city") as string | null;
@@ -38,6 +36,7 @@ export async function POST(req: NextRequest) {
     if (!itemsJson) return bad(t("checkout.msg.missingFields"));
     if (modes.name === "required" && !name?.trim()) return bad(t("checkout.msg.nameRequired"));
     if (modes.email === "required" && !email?.trim()) return bad(t("checkout.msg.emailRequired"));
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad(t("checkout.msg.emailInvalid"));
     if (modes.phone === "required" && !phone?.trim()) return bad(t("checkout.msg.phoneRequired"));
     if (modes.address === "required" && !address?.trim()) return bad(t("checkout.msg.streetRequired"));
     if ((modes.governorate === "required" || shipping.adminDriven) && !governorate?.trim()) return bad(t("checkout.msg.governorateRequired"));
@@ -61,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Every price, discount and the shipping fee are computed on the server
     let rawItems: { variantId: string; quantity: number }[] = [];
     try { rawItems = JSON.parse(itemsJson); } catch { return bad(t("checkout.msg.invalidCart")); }
-    const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true }, t);
+    const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true, signedIn: !!account }, t);
     // Stock is checked per variant across ALL lines (a bundle and a normal purchase can share a variant)
     const wanted = new Map<string, { qty: number; stock: number; name: string }>();
     for (const l of quote.lines) {
@@ -100,10 +99,27 @@ export async function POST(req: NextRequest) {
       screenshotPath = blob.url;
     }
 
-    // Order belongs to the signed-in account
-    const orderName = name?.trim() || account.name || "Guest";
-    const orderEmail = account.email;
-    const customer = { id: account.id };
+    const orderName = name?.trim() || account?.name || "Guest";
+    const orderEmail = email;
+
+    // Which customer record does this order belong to?
+    let customerId: string | null = null;
+    if (account) {
+      customerId = account.id;
+    } else if (orderEmail) {
+      const existing = await prisma.customer.findFirst({ where: { email: { equals: orderEmail, mode: "insensitive" } } });
+      if (!existing) {
+        const created = await prisma.customer.create({
+          data: { email: orderEmail.toLowerCase(), name: orderName, phone: phone || null, address: [building, address].filter(Boolean).join(", ") || null, city: city || null },
+        });
+        customerId = created.id;
+      } else if (!existing.passwordHash) {
+        customerId = existing.id; // an earlier guest record
+      }
+      // an email that belongs to a registered account is NOT attached to it (anyone could type that email)
+    }
+    // Secret token so a guest can open their order page from a link
+    const accessToken = randomBytes(16).toString("hex");
 
     const orderNumber = generateOrderNumber();
 
@@ -112,7 +128,8 @@ export async function POST(req: NextRequest) {
       const o = await tx.order.create({
         data: {
           orderNumber,
-          customerId: customer.id,
+          customerId: customerId ?? undefined,
+          accessToken,
           customerName: orderName,
           customerEmail: orderEmail,
           customerPhone: phone || undefined,
@@ -171,7 +188,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Optionally remember this address on the account (best effort, never blocks the order)
-    if (fd.get("saveAddress") === "1" && (address?.trim() || building?.trim())) {
+    if (account && fd.get("saveAddress") === "1" && (address?.trim() || building?.trim())) {
       try {
         const existing = await prisma.address.findMany({ where: { customerId: account.id } });
         const same = existing.some(
@@ -198,7 +215,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
+    return NextResponse.json({ orderNumber: order.orderNumber, accessToken }, { status: 201 });
   } catch (error) {
     if (error instanceof QuoteError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

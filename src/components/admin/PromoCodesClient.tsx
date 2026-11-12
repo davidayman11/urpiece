@@ -8,12 +8,12 @@ import type { PromoCode } from "@prisma/client";
 interface Form {
   code: string; discountType: string; discountValue: string;
   minOrderAmount: string; maxDiscount: string; usageLimit: string;
-  isActive: boolean; startsAt: string; expiresAt: string;
+  isActive: boolean; requiresLogin: boolean; startsAt: string; expiresAt: string;
 }
 const emptyForm = (): Form => ({
   code: "", discountType: "PERCENTAGE", discountValue: "",
   minOrderAmount: "", maxDiscount: "", usageLimit: "",
-  isActive: true, startsAt: "", expiresAt: "",
+  isActive: true, requiresLogin: false, startsAt: "", expiresAt: "",
 });
 
 export default function PromoCodesClient({ codes }: { codes: PromoCode[] }) {
@@ -32,6 +32,7 @@ export default function PromoCodesClient({ codes }: { codes: PromoCode[] }) {
       maxDiscount: c.maxDiscount ? String(c.maxDiscount) : "",
       usageLimit: c.usageLimit ? String(c.usageLimit) : "",
       isActive: c.isActive,
+      requiresLogin: c.requiresLogin,
       startsAt: c.startsAt ? new Date(c.startsAt).toISOString().split("T")[0] : "",
       expiresAt: c.expiresAt ? new Date(c.expiresAt).toISOString().split("T")[0] : "",
     });
@@ -92,6 +93,7 @@ export default function PromoCodesClient({ codes }: { codes: PromoCode[] }) {
                   <td className="p-4 text-gray-600">
                     {c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : `EGP ${c.discountValue}`}
                     {c.minOrderAmount ? <span className="text-xs text-gray-400 ml-1">(min {c.minOrderAmount})</span> : null}
+                    {c.requiresLogin && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">Login required</span>}
                   </td>
                   <td className="p-4 text-gray-500">
                     {c.usedCount}{c.usageLimit ? ` / ${c.usageLimit}` : ""}
@@ -179,6 +181,15 @@ export default function PromoCodesClient({ codes }: { codes: PromoCode[] }) {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
                 Active
+              </label>
+              <label className="flex items-start gap-2 text-sm cursor-pointer border border-gray-100 rounded p-3">
+                <input type="checkbox" className="mt-1" checked={form.requiresLogin} onChange={(e) => setForm((f) => ({ ...f, requiresLogin: e.target.checked }))} />
+                <span>
+                  <span className="block text-gray-800">Customer must be signed in to use this code</span>
+                  <span className="block text-xs text-gray-400 mt-0.5">
+                    Guests who try it are asked to sign in or create an account first. Leave unticked and anyone can use the code.
+                  </span>
+                </span>
               </label>
             </div>
             <div className="p-5 border-t flex gap-3 justify-end">

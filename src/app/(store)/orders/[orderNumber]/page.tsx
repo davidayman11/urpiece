@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { timingSafeEqual } from "crypto";
 import { getCustomer } from "@/lib/customer-auth";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,16 +16,24 @@ export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ orderNumber: string }>;
+  searchParams: Promise<{ t?: string }>;
+}
+
+/** Compare two secret strings without leaking where they differ */
+function sameSecret(a: string, b: string) {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
 }
 
 const card = "bg-[#FBF8F0] border border-[#E0D6BD] p-6";
 const heading = "text-[10px] tracking-[0.3em] uppercase text-[#A8975E] mb-4";
 
-export default async function OrderDetailPage({ params }: Props) {
+export default async function OrderDetailPage({ params, searchParams }: Props) {
   const { orderNumber } = await params;
+  const { t: token } = await searchParams;
   const t = await getT();
   const customer = await getCustomer();
-  if (!customer) redirect(`/account/login?next=${encodeURIComponent(`/orders/${orderNumber}`)}`);
   const order = await prisma.order.findUnique({
     where: { orderNumber },
     include: {
@@ -33,8 +42,15 @@ export default async function OrderDetailPage({ params }: Props) {
     },
   });
 
-  // Only the account that placed the order can see it
-  if (!order || order.customerId !== customer.id) notFound();
+  if (!order) notFound();
+  // Only the account that placed the order, or someone holding its private link, can see it
+  const isOwner = !!customer && order.customerId === customer.id;
+  const hasLink = !!token && !!order.accessToken && sameSecret(token, order.accessToken);
+  if (!isOwner && !hasLink) {
+    // guests are sent to the "find my order" page; a signed-in customer opening someone else's order gets a 404
+    if (!customer) redirect("/orders");
+    notFound();
+  }
 
   const st = statusInfo(order.status, t);
   const shipping = parseJson<Record<string, string>>(order.shippingAddress, {});
