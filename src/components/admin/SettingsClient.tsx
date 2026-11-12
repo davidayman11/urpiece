@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { PaymentSettings } from "@prisma/client";
 
+import { parseRequired } from "@/lib/checkout-fields";
+
 type ExtraField = { id: string; label: string; value: string; type: "text" | "link" | "qr" };
 
 function parseExtra(raw?: string | null): ExtraField[] {
@@ -16,6 +18,7 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
     instructions: settings?.instructions || "Transfer the total amount via InstaPay. Upload your receipt screenshot after the transfer.",
   });
   const [extra, setExtra] = useState<ExtraField[]>(parseExtra(settings?.extraFields));
+  const [required, setRequired] = useState(parseRequired(settings?.requiredFields));
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -25,7 +28,7 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
     const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, extraFields: extra }),
+      body: JSON.stringify({ ...form, extraFields: extra, requiredFields: required }),
     });
     setSaving(false);
     if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
@@ -50,6 +53,40 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
   return (
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">Settings</h1>
+
+      <div className="bg-white rounded-lg p-6 border border-gray-100 space-y-4">
+        <div>
+          <h2 className="font-medium text-gray-700">Checkout form</h2>
+          <p className="text-xs text-gray-400 mt-1">
+            Choose which customer details must be filled before ordering. Name and email are always required.
+            If you have shipping cities set up, the city is always required (it decides the shipping price).
+          </p>
+        </div>
+        {([
+          ["phone", "Phone number"],
+          ["address", "Street address"],
+          ["city", "City"],
+        ] as const).map(([key, label]) => (
+          <label key={key} className="flex items-center justify-between text-sm cursor-pointer">
+            <span className="text-gray-700">{label}</span>
+            <span className="flex items-center gap-2 text-xs text-gray-500">
+              {required[key] ? "Required" : "Optional"}
+              <input
+                type="checkbox"
+                checked={required[key]}
+                onChange={(e) => setRequired((r) => ({ ...r, [key]: e.target.checked }))}
+              />
+            </span>
+          </label>
+        ))}
+        <button
+          onClick={save}
+          disabled={saving}
+          className="px-6 py-2.5 bg-[#A8975E] text-white rounded text-sm hover:bg-[#8A7A4A] disabled:opacity-60"
+        >
+          {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Settings"}
+        </button>
+      </div>
 
       <div className="bg-white rounded-lg p-6 border border-gray-100 space-y-5">
         <h2 className="font-medium text-gray-700">InstaPay Payment Settings</h2>

@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { DEFAULT_REQUIRED, type RequiredFields } from "@/lib/checkout-fields";
 import Image from "next/image";
 
 interface PaymentSettings {
   instapayId?: string;
   instapayPhone?: string;
   instructions?: string;
+  requiredFields?: RequiredFields;
   extraFields?: { id: string; label: string; value: string; type: "text" | "link" | "qr" }[];
 }
 
@@ -82,10 +84,16 @@ export default function CheckoutPage() {
     }
   };
 
+  const req = { ...DEFAULT_REQUIRED, ...(paySettings.requiredFields || {}) };
+  const isRequired = (field: string) =>
+    field === "name" || field === "email" || (field === "city" && zones.length > 0) || !!req[field as keyof RequiredFields];
+  const mark = (field: string) =>
+    isRequired(field) ? <span className="text-[#A8975E]">*</span> : <span className="normal-case tracking-normal text-[#C4B8A0]">(optional)</span>;
+
   const fieldError = (field: string): string => {
     if (!touched[field]) return "";
     const v = form[field as keyof typeof form].trim();
-    if (!v) return field === "city" ? "Please select your city" : "This field is required";
+    if (!v) return isRequired(field) ? (field === "city" ? "Please select your city" : "This field is required") : "";
     if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Enter a valid email address";
     if (field === "phone" && !/^\+?[0-9\s-]{10,15}$/.test(v)) return "Enter a valid phone number";
     return "";
@@ -132,7 +140,7 @@ export default function CheckoutPage() {
                   {textFields.map(({ field, label, type, placeholder, autoComplete, inputMode, full }) => (
                     <div key={field} className={full ? "sm:col-span-2" : ""}>
                       <label htmlFor={field} className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
-                        {label} <span className="text-[#A8975E]">*</span>
+                        {label} {mark(field)}
                       </label>
                       <input
                         id={field}
@@ -152,7 +160,7 @@ export default function CheckoutPage() {
 
                   <div className="sm:col-span-2">
                     <label htmlFor="city" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
-                      City <span className="text-[#A8975E]">*</span>
+                      City {mark("city")}
                     </label>
                     {zones.length > 0 ? (
                       <div className="relative">

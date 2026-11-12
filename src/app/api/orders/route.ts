@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
 import { put } from "@vercel/blob";
 import { salePrice } from "@/lib/pricing";
+import { parseRequired } from "@/lib/checkout-fields";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,8 +18,20 @@ export async function POST(req: NextRequest) {
     const promoCode = fd.get("promoCode") as string | null;
     const screenshot = fd.get("screenshot") as File | null;
 
-    if (!name || !email || !address || !itemsJson) {
+    const settings = await prisma.paymentSettings.findFirst();
+    const required = parseRequired(settings?.requiredFields);
+    const activeZones = await prisma.shippingZone.count({ where: { isActive: true } });
+    if (!name || !email || !itemsJson) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+    if (required.phone && !phone?.trim()) {
+      return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
+    }
+    if (required.address && !address?.trim()) {
+      return NextResponse.json({ error: "Street address is required" }, { status: 400 });
+    }
+    if ((required.city || activeZones > 0) && !city?.trim()) {
+      return NextResponse.json({ error: "City is required" }, { status: 400 });
     }
 
     const items: { productId: string; variantId: string; productName: string; variantName: string; price: number; quantity: number }[] =
@@ -40,8 +53,7 @@ export async function POST(req: NextRequest) {
     // Prices and shipping are computed on the server
     const subtotal = enrichedItems.reduce((s, i) => s + i.price * i.quantity, 0);
     let shippingFee = 0;
-    const zoneCount = await prisma.shippingZone.count({ where: { isActive: true } });
-    if (zoneCount > 0) {
+    if (activeZones > 0) {
       const zone = city ? await prisma.shippingZone.findFirst({ where: { city, isActive: true } }) : null;
       if (!zone) {
         return NextResponse.json({ error: "Please select a valid city" }, { status: 400 });
@@ -63,7 +75,7 @@ export async function POST(req: NextRequest) {
     let customer = await prisma.customer.findUnique({ where: { email } });
     if (!customer) {
       customer = await prisma.customer.create({
-        data: { email, name, phone: phone || undefined, address, city: city || undefined },
+        data: { email, name, phone: phone || undefined, address: address || undefined, city: city || undefined },
       });
     }
 
@@ -84,7 +96,7 @@ export async function POST(req: NextRequest) {
           customerName: name,
           customerEmail: email,
           customerPhone: phone || undefined,
-          shippingAddress: JSON.stringify({ address, city }),
+          shippingAddress: JSON.stringify({ address: address || "", city: city || "" }),
           subtotal,
           discount,
           shippingFee,

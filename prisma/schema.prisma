@@ -229,5 +229,6 @@ model PaymentSettings {
   instapayPhone String?
   instructions String?
   extraFields String   @default("[]")
+  requiredFields String @default("{\"phone\":true,\"address\":true,\"city\":true}")
   updatedAt   DateTime @updatedAt
 }
