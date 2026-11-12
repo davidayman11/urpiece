@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import AdminLayout from "@/components/admin/AdminLayout";
 import DashboardClient from "@/components/admin/DashboardClient";
 import { formatPrice } from "@/lib/utils";
+import LowStockCard from "@/components/admin/LowStockCard";
+import { getLowStock } from "@/lib/low-stock";
 
 export const dynamic = "force-dynamic";
 
@@ -84,11 +86,12 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
 
-  const data = await getDashboardData();
+  const [data, lowStock] = await Promise.all([getDashboardData(), getLowStock()]);
 
   return (
     <AdminLayout>
       <DashboardClient data={data} />
+      <LowStockCard items={lowStock.items} threshold={lowStock.threshold} />
     </AdminLayout>
   );
 }

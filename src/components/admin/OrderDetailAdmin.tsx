@@ -108,9 +108,15 @@ export default function OrderDetailAdmin({ order: initial }: { order: Order }) {
           <h1 className="text-2xl font-semibold text-gray-800 mt-1">{order.orderNumber}</h1>
           <p className="text-sm text-gray-500">Placed {format(new Date(order.createdAt), "d MMMM yyyy, HH:mm")}</p>
         </div>
-        <span className={`text-sm px-3 py-1 rounded-full ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}>
-          {order.status.replace(/_/g, " ")}
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <a href={`/admin/orders/${order.id}/print?type=invoice`} target="_blank" rel="noopener"
+            className="text-xs border border-gray-200 bg-white px-3 py-1.5 rounded hover:bg-gray-50">🧾 Print invoice</a>
+          <a href={`/admin/orders/${order.id}/print?type=label`} target="_blank" rel="noopener"
+            className="text-xs border border-gray-200 bg-white px-3 py-1.5 rounded hover:bg-gray-50">🏷 Shipping label</a>
+          <span className={`text-sm px-3 py-1 rounded-full ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}>
+            {order.status.replace(/_/g, " ")}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

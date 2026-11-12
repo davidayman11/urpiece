@@ -32,6 +32,14 @@ const STATUS_COLORS: Record<string, string> = {
 export default function OrdersAdminClient({ orders }: { orders: Order[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const exportUrl = `/api/admin/orders/export?${new URLSearchParams({
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(search ? { q: search } : {}),
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+  }).toString()}`;
 
   const filtered = orders.filter((o) => {
     const matchSearch =
@@ -40,7 +48,10 @@ export default function OrdersAdminClient({ orders }: { orders: Order[] }) {
       o.customerName.toLowerCase().includes(search.toLowerCase()) ||
       o.customerEmail.toLowerCase().includes(search.toLowerCase());
     const matchStatus = !statusFilter || o.status === statusFilter;
-    return matchSearch && matchStatus;
+    const t = new Date(o.createdAt).getTime();
+    const matchFrom = !from || t >= new Date(`${from}T00:00:00`).getTime();
+    const matchTo = !to || t <= new Date(`${to}T23:59:59.999`).getTime();
+    return matchSearch && matchStatus && matchFrom && matchTo;
   });
 
   return (
@@ -68,6 +79,20 @@ export default function OrdersAdminClient({ orders }: { orders: Order[] }) {
             <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
           ))}
         </select>
+        <label className="flex items-center gap-1.5 text-xs text-gray-500">
+          From
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border border-gray-200 rounded-md px-2 py-1.5 text-sm" />
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-gray-500">
+          To
+          <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="border border-gray-200 rounded-md px-2 py-1.5 text-sm" />
+        </label>
+        <a
+          href={exportUrl}
+          className="ml-auto inline-flex items-center gap-2 bg-[#A8975E] text-white px-4 py-2 text-sm rounded-md hover:bg-[#8A7A4A] transition-colors"
+        >
+          ⬇ Export to Excel
+        </a>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-50 overflow-hidden">

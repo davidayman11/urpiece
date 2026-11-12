@@ -302,6 +302,7 @@ model PaymentSettings {
   freeShippingMin Float?
   discountMode String @default("STACK")
   depositEnabled Boolean @default(false)
+  lowStockThreshold Int @default(5)
   depositAllowFull Boolean @default(true)
   depositAddShipping Boolean @default(false)
   salesEnabled Boolean @default(true)

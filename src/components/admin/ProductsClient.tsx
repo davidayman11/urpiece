@@ -20,6 +20,9 @@ type ProductWithVariants = Product & { variants: Variant[]; category: Category |
 interface Props {
   products: ProductWithVariants[];
   categories: Category[];
+  lowStockThreshold?: number;
+  lowStockCount?: number;
+  initialLow?: boolean;
 }
 
 interface VariantForm {
@@ -56,7 +59,7 @@ const emptyForm = (): ProductForm => ({
   images: [], variants: [emptyVariant()],
 });
 
-export default function ProductsClient({ products: initial, categories }: Props) {
+export default function ProductsClient({ products: initial, categories, lowStockThreshold = 5, lowStockCount = 0, initialLow = false }: Props) {
   const router = useRouter();
   const [products, setProducts] = useState(initial);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
@@ -65,6 +68,18 @@ export default function ProductsClient({ products: initial, categories }: Props)
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const [onlyLow, setOnlyLow] = useState(initialLow);
+  const [threshold, setThreshold] = useState(String(lowStockThreshold));
+  const [thresholdSaved, setThresholdSaved] = useState(false);
+  const isLow = (p: ProductWithVariants) => p.variants.some((v) => v.isActive && v.inventory <= lowStockThreshold);
+
+  const saveThreshold = async () => {
+    const res = await fetch("/api/admin/low-stock-settings", {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ threshold }),
+    });
+    if (res.ok) { setThresholdSaved(true); setTimeout(() => setThresholdSaved(false), 2000); router.refresh(); }
+    else { const d = await res.json().catch(() => ({})); alert(d.error || "Could not save"); }
+  };
 
   const openCreate = () => { setForm(emptyForm()); setEditId(null); setModal("create"); };
   const openEdit = (p: ProductWithVariants) => {
@@ -134,8 +149,8 @@ export default function ProductsClient({ products: initial, categories }: Props)
     router.refresh();
   };
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = products.filter(
+    (p) => p.name.toLowerCase().includes(search.toLowerCase()) && (!onlyLow || isLow(p))
   );
 
   return (
@@ -145,6 +160,27 @@ export default function ProductsClient({ products: initial, categories }: Props)
         <button onClick={openCreate} className="bg-[#A8975E] text-white px-4 py-2 text-sm rounded-md hover:bg-[#8A7A4A] transition-colors">
           + Add Product
         </button>
+      </div>
+
+      {/* Low-stock alert */}
+      <div className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm ${lowStockCount > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-gray-100"}`}>
+        <span className={lowStockCount > 0 ? "text-amber-900" : "text-gray-500"}>
+          {lowStockCount > 0 ? `⚠ ${lowStockCount} variant${lowStockCount === 1 ? "" : "s"} low or out of stock` : "No low-stock items"}
+        </span>
+        {lowStockCount > 0 && (
+          <button onClick={() => setOnlyLow((v) => !v)} className="text-xs text-[#A8975E] hover:underline">
+            {onlyLow ? "Show all products" : "Show only these"}
+          </button>
+        )}
+        <span className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+          Alert when stock is
+          <input
+            type="number" min="0" value={threshold} onChange={(e) => setThreshold(e.target.value)}
+            className="w-16 border border-gray-200 rounded px-2 py-1 text-sm bg-white"
+          />
+          or fewer
+          <button onClick={saveThreshold} className="text-[#A8975E] hover:underline">{thresholdSaved ? "✓ Saved" : "Save"}</button>
+        </span>
       </div>
 
       <input
@@ -194,6 +230,7 @@ export default function ProductsClient({ products: initial, categories }: Props)
                     <td className="p-4 text-gray-500">{p.variants.length}</td>
                     <td className="p-4">
                       <span className={totalStock === 0 ? "text-red-600" : "text-gray-700"}>{totalStock}</span>
+                      {isLow(p) && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Low</span>}
                     </td>
                     <td className="p-4 text-gray-700">
                       {activeSaleValue(p) > 0 ? (

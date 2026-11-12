@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useLowStockCount } from "@/components/admin/AdminStockContext";
 
 const NAV = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "⬛" },
@@ -23,6 +24,7 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const lowStock = useLowStockCount();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -54,6 +56,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 <span className="text-base">{icon}</span>
                 <span>{label}</span>
+                {href === "/admin/products" && lowStock > 0 && (
+                  <span
+                    title={`${lowStock} low-stock item${lowStock === 1 ? "" : "s"}`}
+                    className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] flex items-center justify-center"
+                  >
+                    {lowStock}
+                  </span>
+                )}
               </Link>
             );
           })}
