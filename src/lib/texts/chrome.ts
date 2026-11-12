@@ -46,6 +46,9 @@ export const chromeTexts: TextDef[] = [
 
   { key: "popup.close", group: P, label: "Popup — close (X) button screen reader label", default: "Close" },
   { key: "popup.imageAlt", group: P, label: "Popup — image alt text", default: "Promo" },
+  { key: "popup.promoLabel", group: P, label: "Popup — text above the promo code", default: "Your promo code" },
+  { key: "popup.copy", group: P, label: "Popup — copy code button", default: "Copy" },
+  { key: "popup.copied", group: P, label: "Popup — shown after the code is copied", default: "Copied!" },
   { key: "popup.noThanks", group: P, label: "Popup — dismiss link", default: "No thanks" },
 
   { key: "site.title", group: "Browser tab & search results", label: "Site name shown in the browser tab and on every page title", default: "UrPiece" },

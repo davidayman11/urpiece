@@ -12,6 +12,7 @@ interface PopupData {
   buttonText?: string;
   buttonUrl?: string;
   image?: string;
+  promoCode?: string | null;
   frequency: string;
 }
 
@@ -19,6 +20,7 @@ export default function PopupManager() {
   const t = useT();
   const [popup, setPopup] = useState<PopupData | null>(null);
   const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -48,6 +50,17 @@ export default function PopupManager() {
   if (!visible || !popup) return null;
 
   const dismiss = () => setVisible(false);
+  const copyCode = async (code: string) => {
+    try { await navigator.clipboard.writeText(code); }
+    catch {
+      const ta = document.createElement("textarea");
+      ta.value = code; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch {}
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div data-font-area="popup" className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={dismiss}>
@@ -78,6 +91,21 @@ export default function PopupManager() {
           )}
           {popup.body && (
             <p className="text-sm text-[#5A5040] leading-relaxed mb-6">{popup.body}</p>
+          )}
+          {popup.promoCode && (
+            <div className="mb-6">
+              <p className="text-[10px] tracking-[0.25em] uppercase text-[#8A7E6E] mb-2">{t("popup.promoLabel")}</p>
+              <div className="flex items-stretch border border-dashed border-[#A8975E] bg-[#FBF8F0]">
+                <span dir="ltr" className="flex-1 px-4 py-3 text-lg tracking-[0.2em] font-medium text-[#1C1711] select-all">{popup.promoCode}</span>
+                <button
+                  type="button"
+                  onClick={() => copyCode(popup.promoCode as string)}
+                  className="px-5 text-xs tracking-widest uppercase bg-[#1C1711] text-[#F5EFE2] hover:bg-[#3A3228] transition-colors"
+                >
+                  {copied ? t("popup.copied") : t("popup.copy")}
+                </button>
+              </div>
+            </div>
           )}
           {popup.buttonText && popup.buttonUrl && (
             <Link

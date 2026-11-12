@@ -1,0 +1,1 @@
+ALTER TABLE "Popup" ADD COLUMN "promoCode" TEXT;

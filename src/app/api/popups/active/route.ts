@@ -23,5 +23,6 @@ export async function GET() {
     heading: L(lang, popup.heading, popup.headingAr),
     body: L(lang, popup.body, popup.bodyAr),
     buttonText: L(lang, popup.buttonText, popup.buttonTextAr),
+    promoCode: popup.promoCode,
   });
 }

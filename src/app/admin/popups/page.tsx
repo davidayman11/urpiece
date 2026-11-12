@@ -13,5 +13,9 @@ export default async function PopupsAdminPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
   const popups = await prisma.popup.findMany({ orderBy: { createdAt: "desc" } });
-  return <AdminLayout><PopupsAdminClient popups={popups} /></AdminLayout>;
+  const [products, promoCodes] = await Promise.all([
+    prisma.product.findMany({ select: { slug: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.promoCode.findMany({ where: { isActive: true }, select: { code: true }, orderBy: { code: "asc" } }),
+  ]);
+  return <AdminLayout><PopupsAdminClient popups={popups} products={products} promoCodes={promoCodes.map((c) => c.code)} /></AdminLayout>;
 }

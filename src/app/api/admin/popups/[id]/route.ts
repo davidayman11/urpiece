@@ -6,6 +6,7 @@ const arabic = (d: Record<string, unknown>) => ({
   headingAr: String(d.headingAr || "").trim() || null,
   bodyAr: String(d.bodyAr || "").trim() || null,
   buttonTextAr: String(d.buttonTextAr || "").trim() || null,
+  promoCode: String(d.promoCode || "").trim().toUpperCase() || null,
 });
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

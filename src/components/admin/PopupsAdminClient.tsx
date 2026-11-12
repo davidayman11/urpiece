@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 const PAGE_OPTIONS = [
   { label: "Home", value: "/" },
@@ -21,20 +22,36 @@ interface Form {
   title: string; heading: string; body: string;
   headingAr: string; bodyAr: string; buttonTextAr: string;
   buttonText: string; buttonUrl: string; image: string;
+  promoCode: string;
   frequency: string; isActive: boolean;
   startsAt: string; expiresAt: string;
 }
 const emptyForm = (): Form => ({
   title: "", heading: "", body: "", headingAr: "", bodyAr: "", buttonTextAr: "", buttonText: "Shop Now", buttonUrl: "/shop",
-  image: "", frequency: "ONCE_PER_SESSION", isActive: true, startsAt: "", expiresAt: "",
+  image: "", promoCode: "", frequency: "ONCE_PER_SESSION", isActive: true, startsAt: "", expiresAt: "",
 });
 
-export default function PopupsAdminClient({ popups }: { popups: Popup[] }) {
+export default function PopupsAdminClient({ popups, products, promoCodes }: { popups: Popup[]; products: { slug: string; name: string }[]; promoCodes: string[] }) {
   const router = useRouter();
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [form, setForm] = useState<Form>(emptyForm());
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const uploadImage = async (file: File) => {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", "popups");
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.url) setForm((f) => ({ ...f, image: data.url }));
+      else alert("Upload failed");
+    } catch { alert("Upload failed"); }
+    setUploading(false);
+  };
 
   const openCreate = () => { setForm(emptyForm()); setEditId(null); setModal("create"); };
   const openEdit = (p: Popup) => {
@@ -43,7 +60,7 @@ export default function PopupsAdminClient({ popups }: { popups: Popup[] }) {
       title: p.title, heading: p.heading || "", body: p.body || "",
       headingAr: p.headingAr || "", bodyAr: p.bodyAr || "", buttonTextAr: p.buttonTextAr || "",
       buttonText: p.buttonText || "", buttonUrl: p.buttonUrl || "",
-      image: p.image || "", frequency: p.frequency, isActive: p.isActive,
+      image: p.image || "", promoCode: p.promoCode || "", frequency: p.frequency, isActive: p.isActive,
       startsAt: p.startsAt ? new Date(p.startsAt).toISOString().split("T")[0] : "",
       expiresAt: p.expiresAt ? new Date(p.expiresAt).toISOString().split("T")[0] : "",
     });
@@ -127,7 +144,6 @@ export default function PopupsAdminClient({ popups }: { popups: Popup[] }) {
                 { label: "Body text (Arabic)", key: "bodyAr" as keyof Form, textarea: true, rtl: true },
                 { label: "Button Text", key: "buttonText" as keyof Form },
                 { label: "Button Text (Arabic)", key: "buttonTextAr" as keyof Form, rtl: true },
-                { label: "Image URL", key: "image" as keyof Form },
               ].map(({ label, key, textarea, rtl }) => (
                 <div key={key}>
                   <label className="text-xs text-gray-500 mb-1 block">{label}</label>
@@ -139,13 +155,45 @@ export default function PopupsAdminClient({ popups }: { popups: Popup[] }) {
                 </div>
               ))}
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Button URL</label>
+                <label className="text-xs text-gray-500 mb-1 block">Image</label>
+                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])} className="text-sm" />
+                {uploading && <p className="text-xs text-[#A8975E] mt-1">Uploading...</p>}
+                {form.image && (
+                  <div className="mt-2">
+                    <div className="relative h-24 w-full"><Image src={form.image} alt="" fill className="object-cover rounded" /></div>
+                    <button type="button" onClick={() => setForm((p) => ({ ...p, image: "" }))} className="text-xs text-red-500 hover:underline mt-1">Remove image</button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Button goes to</label>
                 <select value={form.buttonUrl} onChange={f("buttonUrl")} className="w-full border border-gray-200 rounded px-3 py-2 text-sm">
-                  <option value="">— Select a page —</option>
-                  {PAGE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
+                  <option value="">— Select a page or product —</option>
+                  <optgroup label="Pages">
+                    {PAGE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Products">
+                    {products.map((p) => (
+                      <option key={p.slug} value={`/product/${p.slug}`}>{p.name}</option>
+                    ))}
+                  </optgroup>
+                  {form.buttonUrl && !PAGE_OPTIONS.some((o) => o.value === form.buttonUrl) && !products.some((p) => `/product/${p.slug}` === form.buttonUrl) && (
+                    <option value={form.buttonUrl}>{form.buttonUrl}</option>
+                  )}
                 </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Promo code to show (customers can copy it)</label>
+                <select value={form.promoCode} onChange={f("promoCode")} className="w-full border border-gray-200 rounded px-3 py-2 text-sm">
+                  <option value="">— No promo code —</option>
+                  {promoCodes.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  {form.promoCode && !promoCodes.includes(form.promoCode) && <option value={form.promoCode}>{form.promoCode} (not active)</option>}
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">Pick one of your active promo codes (create codes in Promo Codes).</p>
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Frequency</label>

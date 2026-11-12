@@ -218,6 +218,7 @@ model Popup {
   headingAr    String?
   bodyAr       String?
   buttonTextAr String?
+  promoCode    String?
 }
 
 model SiteSection {
