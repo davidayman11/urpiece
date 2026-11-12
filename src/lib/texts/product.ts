@@ -17,4 +17,8 @@ export const productTexts: TextDef[] = [
     key: "product.care.body", group: G, label: "Care Instructions — text", multiline: true,
     default: "Store in a cool, dry place away from direct sunlight. Clean gently with a soft cloth.",
   },
+  {
+    key: "product.extraSections", group: G, kind: "sections", default: "[]",
+    label: "Extra boxes under the product (add your own, e.g. Warranty or Size guide)",
+  },
 ];

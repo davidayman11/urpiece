@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { TEXT_DEFAULTS } from "@/lib/texts";
+import { TEXT_DEFAULTS, TEXT_DEFS, normalizeSections } from "@/lib/texts";
 
 /**
  * Save the texts the admin edited. Body: { values: { [key]: string } }.
@@ -17,6 +17,15 @@ export async function PUT(req: NextRequest) {
   const removes: string[] = [];
   for (const [key, raw] of Object.entries(values)) {
     if (!(key in TEXT_DEFAULTS)) continue; // ignore unknown keys
+    if (TEXT_DEFS.find((d) => d.key === key)?.kind === "sections") {
+      // a list of {title, body} blocks: store only a cleaned-up copy
+      let parsed: unknown = [];
+      try { parsed = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { /* treated as empty */ }
+      const clean = normalizeSections(parsed);
+      if (clean.length === 0) removes.push(key);
+      else upserts.push({ key, value: JSON.stringify(clean) });
+      continue;
+    }
     const value = String(raw ?? "").replace(/\r\n/g, "\n").trim().slice(0, 3000);
     if (!value || value === TEXT_DEFAULTS[key]) removes.push(key);
     else upserts.push({ key, value });

@@ -2,9 +2,60 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { TextDef } from "@/lib/texts/types";
+import { parseSections, type TextDef, type TextSection } from "@/lib/texts/types";
 
 const placeholdersOf = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[0]))];
+
+/** Add / remove / reorder your own text boxes (stored as JSON in one text value). */
+function SectionsEditor({ value, onChange }: { value: string; onChange: (json: string) => void }) {
+  // keep blanks while typing: parse leniently without dropping half-typed boxes
+  let list: TextSection[] = [];
+  try { const p = JSON.parse(value || "[]"); list = Array.isArray(p) ? p.map((x) => ({ title: String(x?.title ?? ""), body: String(x?.body ?? "") })) : []; } catch { list = []; }
+  const set = (next: TextSection[]) => onChange(JSON.stringify(next));
+  const move = (i: number, d: -1 | 1) => {
+    const j = i + d;
+    if (j < 0 || j >= list.length) return;
+    const n = [...list];
+    [n[i], n[j]] = [n[j], n[i]];
+    set(n);
+  };
+  return (
+    <div className="space-y-3">
+      {list.length === 0 && <p className="text-xs text-gray-400">No extra boxes yet.</p>}
+      {list.map((sec, i) => (
+        <div key={i} className="border border-[#A8975E]/40 bg-[#A8975E]/[0.04] rounded p-3 flex gap-3">
+          <div className="flex flex-col shrink-0">
+            <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up" className="text-[10px] px-1.5 py-1 text-gray-500 hover:text-[#A8975E] disabled:opacity-25">▲</button>
+            <button type="button" onClick={() => move(i, 1)} disabled={i === list.length - 1} aria-label="Move down" className="text-[10px] px-1.5 py-1 text-gray-500 hover:text-[#A8975E] disabled:opacity-25">▼</button>
+          </div>
+          <div className="flex-1 space-y-2">
+            <input
+              value={sec.title}
+              onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+              placeholder="Box heading (e.g. Warranty)"
+              maxLength={80}
+              className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#A8975E]"
+            />
+            <textarea
+              value={sec.body}
+              onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
+              placeholder="What the box says…"
+              rows={3}
+              maxLength={3000}
+              className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#A8975E]"
+            />
+            <button type="button" onClick={() => set(list.filter((_, j) => j !== i))} className="text-xs text-red-500 hover:underline">Remove this box</button>
+          </div>
+        </div>
+      ))}
+      {list.length < 12 && (
+        <button type="button" onClick={() => set([...list, { title: "", body: "" }])} className="text-sm text-[#A8975E] hover:underline">
+          + Add a box
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function TextsClient({ defs, overrides }: { defs: TextDef[]; overrides: Record<string, string> }) {
   const router = useRouter();
@@ -88,6 +139,18 @@ export default function TextsClient({ defs, overrides }: { defs: TextDef[]; over
               {shown.map((d) => {
                 const v = values[d.key] ?? d.default;
                 const changed = v !== d.default;
+                if (d.kind === "sections") {
+                  const count = parseSections(v).length;
+                  return (
+                    <div key={d.key} className="py-3">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <label className="text-xs text-gray-500">{d.label}</label>
+                        <span className="text-[11px] text-gray-400">{count} box{count === 1 ? "" : "es"}</span>
+                      </div>
+                      <SectionsEditor value={v} onChange={(json) => setValues((st) => ({ ...st, [d.key]: json }))} />
+                    </div>
+                  );
+                }
                 const missing = placeholdersOf(d.default).filter((p) => !v.includes(p));
                 const Field = d.multiline || d.default.length > 70 ? "textarea" : "input";
                 return (

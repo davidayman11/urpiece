@@ -20,6 +20,7 @@ export default function ShippingClient({
   const [busy, setBusy] = useState(false);
   const [govName, setGovName] = useState("");
   const [govPrice, setGovPrice] = useState("");
+  const [bulkPrice, setBulkPrice] = useState("");
   const [govEdits, setGovEdits] = useState<Record<string, { name: string; isActive: boolean; price: string }>>({});
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [newCity, setNewCity] = useState<Record<string, string>>({});
@@ -46,6 +47,13 @@ export default function ShippingClient({
   const addGov = async () => {
     if (!govName.trim()) return alert("Enter a governorate name");
     if (await call("/api/admin/governorates", "POST", { name: govName, shippingPrice: parseFloat(govPrice) || 0 })) { setGovName(""); setGovPrice(""); }
+  };
+  const hiddenGovs = governorates.filter((g) => !g.isActive);
+  const showAllHidden = async () => {
+    if (bulkPrice.trim() === "" || !(parseFloat(bulkPrice) >= 0)) return alert("Enter a shipping price first (0 = free shipping)");
+    if (!confirm(`Show ${hiddenGovs.length} hidden governorates at checkout with a shipping price of ${formatPrice(parseFloat(bulkPrice))} each?`)) return;
+    await call("/api/admin/governorates/bulk", "POST", { price: parseFloat(bulkPrice) });
+    setBulkPrice("");
   };
   const addAllEgypt = async () => {
     if (!confirm("Add all 27 Egyptian governorates? Ones you already have are skipped.")) return;
@@ -167,6 +175,26 @@ export default function ShippingClient({
         </button>
       </div>
 
+      {hiddenGovs.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+          <p className="text-sm text-amber-900">
+            <strong>{hiddenGovs.length} governorate{hiddenGovs.length === 1 ? " is" : "s are"} hidden</strong> from checkout until you give {hiddenGovs.length === 1 ? "it" : "them"} a shipping price and tick <em>Active</em>.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-amber-900">Same price for all hidden ones:</span>
+            <input
+              type="number" min="0" value={bulkPrice} onChange={(e) => setBulkPrice(e.target.value)}
+              placeholder="e.g. 60" className={`w-28 ${inp} bg-white`} aria-label="Price for all hidden governorates"
+            />
+            <span className="text-amber-900">EGP</span>
+            <button onClick={showAllHidden} disabled={busy} className="px-4 py-2 bg-[#A8975E] text-white rounded text-sm hover:bg-[#8A7A4A] disabled:opacity-60">
+              Set price &amp; show them
+            </button>
+          </div>
+          <p className="text-xs text-amber-800">You can still change each governorate&apos;s price below afterwards. Governorates you already switched on are not touched.</p>
+        </div>
+      )}
+
       {governorates.length === 0 && (
         <p className="text-sm text-gray-400 text-center py-6">
           No governorates yet. Until you add some, checkout uses the simple priced city list below.
@@ -202,8 +230,15 @@ export default function ShippingClient({
               <p className="text-xs text-gray-500">
                 {ge.price && parseFloat(ge.price) > 0 ? `Customers in ${g.name} pay ${formatPrice(parseFloat(ge.price))} shipping.` : `Shipping to ${g.name} is free — enter a price above to charge for it.`}
               </p>
-              {g.zones.length === 0 && <p className="text-xs text-gray-400">No cities listed yet — customers will pick &quot;Other&quot; and type their city.</p>}
-              {g.zones.map((z) => cityNameRow(z, g.id))}
+              <details className="group/cities" open={governorates.length <= 3 || g.zones.length === 0 || undefined}>
+                <summary className="cursor-pointer select-none text-xs text-[#A8975E] py-1">
+                  {g.zones.length === 0 ? "No cities listed yet" : `Cities (${g.zones.length}) — click to show / hide`}
+                </summary>
+                <div className="space-y-2 pt-2">
+                  {g.zones.length === 0 && <p className="text-xs text-gray-400">No cities listed yet — customers will pick &quot;Other&quot; and type their city.</p>}
+                  {g.zones.map((z) => cityNameRow(z, g.id))}
+                </div>
+              </details>
 
               <div className="flex gap-2 pt-3 border-t border-gray-50">
                 <input

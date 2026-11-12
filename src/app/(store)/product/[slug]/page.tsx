@@ -7,7 +7,8 @@ import ProductGallery from "@/components/store/ProductGallery";
 import AddToCartButton from "@/components/store/AddToCartButton";
 import { VariantSelectionProvider } from "@/components/store/VariantSelection";
 import { parseImgs } from "@/lib/product-images";
-import { getT } from "@/lib/texts/server";
+import { getT, getTexts } from "@/lib/texts/server";
+import { parseSections } from "@/lib/texts";
 import type { Metadata } from "next";
 
 interface Props {
@@ -46,6 +47,13 @@ export default async function ProductPage({ params }: Props) {
   const isOutOfStock = totalInventory === 0;
   const isLowStock = !isOutOfStock && totalInventory <= 5;
   const viewCount = product.views + 1;
+
+  // Boxes under the buy button: the two built-in ones, then any the admin added in Site Text
+  const sections = [
+    { title: t("product.shipping.title"), body: t("product.shipping.body") },
+    { title: t("product.care.title"), body: t("product.care.body") },
+    ...parseSections((await getTexts())["product.extraSections"]),
+  ].filter((x) => x.title || x.body);
 
   return (
     <div className="pt-20 pb-24 bg-[#F5EFE2]">
@@ -100,28 +108,17 @@ export default async function ProductPage({ params }: Props) {
 
             {/* Details */}
             <div className="mt-8 pt-8 border-t border-[#EDE6D4] space-y-4">
-              <details className="group">
-                <summary className="flex items-center justify-between cursor-pointer text-xs tracking-widest uppercase text-[#5A5040] py-2">
-                  <span>{t("product.shipping.title")}</span>
-                  <svg className="group-open:rotate-180 transition-transform" width="12" height="8" viewBox="0 0 12 8" fill="none">
-                    <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                  </svg>
-                </summary>
-                <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">
-                  {t("product.shipping.body")}
-                </p>
-              </details>
-              <details className="group">
-                <summary className="flex items-center justify-between cursor-pointer text-xs tracking-widest uppercase text-[#5A5040] py-2">
-                  <span>{t("product.care.title")}</span>
-                  <svg className="group-open:rotate-180 transition-transform" width="12" height="8" viewBox="0 0 12 8" fill="none">
-                    <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                  </svg>
-                </summary>
-                <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">
-                  {t("product.care.body")}
-                </p>
-              </details>
+              {sections.map((sec, i) => (
+                <details key={i} className="group">
+                  <summary className="flex items-center justify-between cursor-pointer text-xs tracking-widest uppercase text-[#5A5040] py-2">
+                    <span>{sec.title}</span>
+                    <svg className="group-open:rotate-180 transition-transform" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                      <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                    </svg>
+                  </summary>
+                  <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">{sec.body}</p>
+                </details>
+              ))}
             </div>
           </div>
         </div>
