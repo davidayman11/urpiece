@@ -63,6 +63,8 @@ model Category {
   products    Product[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  nameAr        String?
+  descriptionAr String?
 }
 
 model Product {
@@ -86,6 +88,8 @@ model Product {
   bundleItems BundleItem[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  nameAr        String?
+  descriptionAr String?
 }
 
 model Variant {
@@ -104,6 +108,7 @@ model Variant {
   bundleItems BundleItem[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+  nameAr     String?
 }
 
 model Order {
@@ -210,6 +215,9 @@ model Popup {
   clicks      Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  headingAr    String?
+  bodyAr       String?
+  buttonTextAr String?
 }
 
 model SiteSection {
@@ -276,6 +284,8 @@ model Bundle {
   items       BundleItem[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  nameAr        String?
+  descriptionAr String?
 }
 
 model BundleItem {
@@ -313,6 +323,7 @@ model DiscountRule {
   endsAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  nameAr    String?
 }
 
 model Governorate {
@@ -324,6 +335,7 @@ model Governorate {
   zones     ShippingZone[]
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+  nameAr    String?
 }
 
 model ShippingZone {
@@ -338,6 +350,7 @@ model ShippingZone {
   updatedAt DateTime @updatedAt
 
   @@unique([governorateId, city])
+  cityAr    String?
 }
 
 model PaymentSettings {
@@ -358,4 +371,5 @@ model PaymentSettings {
   promosEnabled Boolean @default(true)
   requiredFields String @default("{\"phone\":true,\"address\":true,\"city\":true}")
   updatedAt   DateTime @updatedAt
+  instructionsAr String?
 }
