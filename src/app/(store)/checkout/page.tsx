@@ -13,6 +13,7 @@ interface PaymentSettings {
   instapayPhone?: string;
   instructions?: string;
   freeShippingMin?: number | null;
+  fieldOrder?: string[];
   fieldModes?: FieldModes;
   customFields?: CustomField[];
   extraFields?: { id: string; label: string; value: string; type: "text" | "link" | "qr" }[];
@@ -119,6 +120,10 @@ export default function CheckoutPage() {
     (field === "city" && zones.length > 0) || modes[field as keyof FieldModes] === "required";
   const mark = (required: boolean) =>
     required ? <span className="text-[#A8975E]">*</span> : <span className="normal-case tracking-normal text-[#C4B8A0]">(optional)</span>;
+  const orderOf = (key: string) => {
+    const i = (paySettings.fieldOrder || []).indexOf(key);
+    return i === -1 ? 999 : i;
+  };
   const customError = (f: CustomField) =>
     touched["c_" + f.id] && f.required && !(customValues[f.id] || "").trim() ? "This field is required" : "";
 
@@ -170,7 +175,7 @@ export default function CheckoutPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {textFields.map(({ field, label, type, placeholder, autoComplete, inputMode, full }) => (
-                    <div key={field} className={full ? "sm:col-span-2" : ""}>
+                    <div key={field} className={full ? "sm:col-span-2" : ""} style={{ order: orderOf(field) }}>
                       <label htmlFor={field} className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
                         {label} {mark(isRequired(field))}
                       </label>
@@ -191,7 +196,7 @@ export default function CheckoutPage() {
                   ))}
 
                   {!isHidden("city") && (
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-2" style={{ order: orderOf("city") }}>
                     <label htmlFor="city" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
                       City {mark(isRequired("city"))}
                     </label>
@@ -238,7 +243,7 @@ export default function CheckoutPage() {
                   )}
 
                   {customFields.map((f) => (
-                    <div key={f.id} className="sm:col-span-2">
+                    <div key={f.id} className="sm:col-span-2" style={{ order: orderOf(`c:${f.id}`) }}>
                       <label htmlFor={`c_${f.id}`} className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
                         {f.label} {mark(f.required)}
                       </label>

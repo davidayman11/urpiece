@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PaymentSettings } from "@prisma/client";
 
-import { parseFieldModes, parseCustomFields, BUILTIN_FIELDS, type CustomField, type FieldMode } from "@/lib/checkout-fields";
+import { parseFieldModes, parseCustomFields, resolveFieldOrder, BUILTIN_FIELDS, type CustomField, type FieldMode } from "@/lib/checkout-fields";
 
 type ExtraField = { id: string; label: string; value: string; type: "text" | "link" | "qr" };
 
@@ -20,6 +20,9 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
   const [extra, setExtra] = useState<ExtraField[]>(parseExtra(settings?.extraFields));
   const [modes, setModes] = useState(parseFieldModes(settings?.requiredFields));
   const [custom, setCustom] = useState<CustomField[]>(parseCustomFields(settings?.customFields));
+  const [order, setOrder] = useState<string[]>(() =>
+    resolveFieldOrder(settings?.fieldOrder, parseCustomFields(settings?.customFields).map((f) => f.id))
+  );
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -29,7 +32,7 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
     const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, extraFields: extra, requiredFields: modes, customFields: custom }),
+      body: JSON.stringify({ ...form, extraFields: extra, requiredFields: modes, customFields: custom, fieldOrder: order }),
     });
     setSaving(false);
     if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
@@ -63,87 +66,117 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
             If you have shipping cities set up, the city is always required (it decides the shipping price).
           </p>
         </div>
-        {BUILTIN_FIELDS.map(({ key, label, canHide }) => (
-          <div key={key} className="flex items-center justify-between text-sm">
-            <span className="text-gray-700">{label}</span>
-            <select
-              value={modes[key]}
-              onChange={(e) => setModes((m) => ({ ...m, [key]: e.target.value as FieldMode }))}
-              className="border border-gray-200 rounded px-3 py-1.5 text-sm"
-            >
-              <option value="required">Required</option>
-              <option value="optional">Optional</option>
-              {canHide && <option value="hidden">Hidden</option>}
-            </select>
-          </div>
-        ))}
+        <p className="text-xs text-gray-400">Use the ▲ ▼ arrows to choose the order customers see these fields in.</p>
 
-        {/* Custom checkout fields */}
-        <div className="pt-4 border-t border-gray-100 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-700">Your own fields</h3>
-            <button
-              onClick={() =>
-                setCustom((l) => [...l, { id: Math.random().toString(36).slice(2), label: "", type: "text", required: false, placeholder: "", options: [] }])
-              }
-              className="text-xs text-[#A8975E] hover:underline"
-            >
-              + Add field
-            </button>
-          </div>
-          <p className="text-xs text-gray-400">
-            Add any extra question to checkout (e.g. Gift message, Landmark, Preferred delivery time). Answers appear on the order.
-          </p>
-          {custom.map((f) => {
-            const patch = (p: Partial<CustomField>) => setCustom((l) => l.map((x) => (x.id === f.id ? { ...x, ...p } : x)));
-            return (
-              <div key={f.id} className="border border-gray-100 rounded p-3 space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    value={f.label}
-                    onChange={(e) => patch({ label: e.target.value })}
-                    placeholder="Field label"
-                    className="border border-gray-200 rounded px-3 py-2 text-sm"
-                  />
+        <div className="space-y-2">
+          {order.map((key, idx) => {
+            const move = (d: -1 | 1) =>
+              setOrder((o) => {
+                const n = [...o];
+                const j = idx + d;
+                if (j < 0 || j >= n.length) return o;
+                [n[idx], n[j]] = [n[j], n[idx]];
+                return n;
+              });
+            const arrows = (
+              <div className="flex flex-col shrink-0">
+                <button type="button" onClick={() => move(-1)} disabled={idx === 0} aria-label="Move up"
+                  className="text-[10px] leading-none px-1.5 py-1 text-gray-500 hover:text-[#A8975E] disabled:opacity-25">▲</button>
+                <button type="button" onClick={() => move(1)} disabled={idx === order.length - 1} aria-label="Move down"
+                  className="text-[10px] leading-none px-1.5 py-1 text-gray-500 hover:text-[#A8975E] disabled:opacity-25">▼</button>
+              </div>
+            );
+
+            const builtin = BUILTIN_FIELDS.find((f) => f.key === key);
+            if (builtin) {
+              return (
+                <div key={key} className="flex items-center gap-3 text-sm border border-gray-100 rounded px-3 py-2">
+                  {arrows}
+                  <span className="flex-1 text-gray-700">{builtin.label}</span>
                   <select
-                    value={f.type}
-                    onChange={(e) => patch({ type: e.target.value as CustomField["type"] })}
-                    className="border border-gray-200 rounded px-3 py-2 text-sm"
+                    value={modes[builtin.key]}
+                    onChange={(e) => setModes((m) => ({ ...m, [builtin.key]: e.target.value as FieldMode }))}
+                    className="border border-gray-200 rounded px-3 py-1.5 text-sm"
                   >
-                    <option value="text">Short text</option>
-                    <option value="textarea">Long text</option>
-                    <option value="select">Dropdown</option>
+                    <option value="required">Required</option>
+                    <option value="optional">Optional</option>
+                    {builtin.canHide && <option value="hidden">Hidden</option>}
                   </select>
                 </div>
-                {f.type === "select" ? (
-                  <textarea
-                    value={(f.options || []).join("\n")}
-                    onChange={(e) => patch({ options: e.target.value.split("\n") })}
-                    placeholder={"One choice per line\nMorning\nEvening"}
-                    rows={3}
-                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
-                  />
-                ) : (
-                  <input
-                    value={f.placeholder || ""}
-                    onChange={(e) => patch({ placeholder: e.target.value })}
-                    placeholder="Placeholder hint (optional)"
-                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
-                  />
-                )}
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                    <input type="checkbox" checked={f.required} onChange={(e) => patch({ required: e.target.checked })} />
-                    Required
-                  </label>
-                  <button onClick={() => setCustom((l) => l.filter((x) => x.id !== f.id))} className="text-xs text-red-500 hover:underline">
-                    Remove
-                  </button>
+              );
+            }
+
+            const f = custom.find((x) => `c:${x.id}` === key);
+            if (!f) return null;
+            const patch = (p: Partial<CustomField>) => setCustom((l) => l.map((x) => (x.id === f.id ? { ...x, ...p } : x)));
+            return (
+              <div key={key} className="flex gap-3 border border-[#A8975E]/30 bg-[#A8975E]/[0.03] rounded p-3">
+                {arrows}
+                <div className="flex-1 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={f.label}
+                      onChange={(e) => patch({ label: e.target.value })}
+                      placeholder="Field label"
+                      className="border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                    <select
+                      value={f.type}
+                      onChange={(e) => patch({ type: e.target.value as CustomField["type"] })}
+                      className="border border-gray-200 rounded px-3 py-2 text-sm"
+                    >
+                      <option value="text">Short text</option>
+                      <option value="textarea">Long text</option>
+                      <option value="select">Dropdown</option>
+                    </select>
+                  </div>
+                  {f.type === "select" ? (
+                    <textarea
+                      value={(f.options || []).join("\n")}
+                      onChange={(e) => patch({ options: e.target.value.split("\n") })}
+                      placeholder={"One choice per line\nMorning\nEvening"}
+                      rows={3}
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                  ) : (
+                    <input
+                      value={f.placeholder || ""}
+                      onChange={(e) => patch({ placeholder: e.target.value })}
+                      placeholder="Placeholder hint (optional)"
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                  )}
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                      <input type="checkbox" checked={f.required} onChange={(e) => patch({ required: e.target.checked })} />
+                      Required
+                    </label>
+                    <button
+                      onClick={() => {
+                        setCustom((l) => l.filter((x) => x.id !== f.id));
+                        setOrder((o) => o.filter((k) => k !== key));
+                      }}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
+
+        <button
+          onClick={() => {
+            const id = Math.random().toString(36).slice(2);
+            setCustom((l) => [...l, { id, label: "", type: "text", required: false, placeholder: "", options: [] }]);
+            setOrder((o) => [...o, `c:${id}`]);
+          }}
+          className="text-xs text-[#A8975E] hover:underline"
+        >
+          + Add your own field (e.g. Gift message, Landmark)
+        </button>
 
         <button
           onClick={save}

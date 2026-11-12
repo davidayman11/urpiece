@@ -60,3 +60,22 @@ export function parseCustomFields(raw?: string | null): CustomField[] {
     return [];
   }
 }
+
+/**
+ * Display order of checkout fields. Keys: "name" | "email" | "phone" | "address" | "city"
+ * | "c:<customFieldId>". Unknown keys are dropped; anything missing is appended
+ * (built-ins in default order first, then custom fields).
+ */
+export function resolveFieldOrder(raw: string | string[] | null | undefined, customIds: string[]): string[] {
+  let stored: unknown = raw;
+  if (typeof raw === "string") {
+    try { stored = JSON.parse(raw || "[]"); } catch { stored = []; }
+  }
+  const valid = new Set<string>([...BUILTIN_FIELDS.map((f) => f.key), ...customIds.map((id) => `c:${id}`)]);
+  const out: string[] = [];
+  for (const k of Array.isArray(stored) ? stored : []) {
+    if (typeof k === "string" && valid.has(k) && !out.includes(k)) out.push(k);
+  }
+  for (const k of valid) if (!out.includes(k)) out.push(k);
+  return out;
+}

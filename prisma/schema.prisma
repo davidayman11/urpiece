@@ -247,6 +247,7 @@ model PaymentSettings {
   instructions String?
   extraFields String   @default("[]")
   customFields String @default("[]")
+  fieldOrder String @default("[]")
   freeShippingMin Float?
   discountMode String @default("STACK")
   salesEnabled Boolean @default(true)
