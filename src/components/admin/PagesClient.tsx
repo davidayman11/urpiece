@@ -55,6 +55,10 @@ const SECTION_TYPES = [
     fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "supportEmail", "paymentNote", "shippingNote"],
   },
   {
+    type: "announcement", label: "Announcement Bar (scrolling, top of site)", page: "site",
+    fields: ["messages", "bgColor", "textColor", "speed", "barUrl"],
+  },
+  {
     type: "settings", label: "Site Settings (Footer / Nav)", page: "site",
     fields: ["tagline", "brandDescription", "contactEmail", "paymentNote", "shippingNote", "copyright"],
   },
@@ -79,20 +83,27 @@ const FIELD_LABELS: Record<string, string> = {
   shippingNote: "Shipping Info",
   copyright: "Copyright Line",
   linkText: "Link Text (e.g. All Pieces / View All)",
+  messages: "Announcements (one per line — they scroll across the top)",
+  bgColor: "Background Color",
+  textColor: "Text Color",
+  speed: "Scroll time in seconds for one loop (lower = faster, default 30)",
+  barUrl: "Link when clicked (optional)",
   taglineColor: "Tagline Color",
   eyebrowColor: "Eyebrow Text Color",
   headingColor: "Heading Color",
 };
 
-const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor"]);
+const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor", "bgColor", "textColor"]);
 const COLOR_DEFAULTS: Record<string, string> = {
   taglineColor: "#A8975E",
   eyebrowColor: "#A8975E",
   headingColor: "#1C1711",
+  bgColor: "#1C1711",
+  textColor: "#F5EFE2",
 };
 
-const TEXTAREA_FIELDS = new Set(["body", "subheading", "brandDescription", "paymentNote", "shippingNote", "copyright", "quote"]);
-const URL_FIELDS = new Set(["buttonUrl", "secondaryUrl"]);
+const TEXTAREA_FIELDS = new Set(["messages", "body", "subheading", "brandDescription", "paymentNote", "shippingNote", "copyright", "quote"]);
+const URL_FIELDS = new Set(["buttonUrl", "secondaryUrl", "barUrl"]);
 
 const PAGE_SLUG_LABELS: Record<string, string> = {
   home: "Home",
@@ -360,8 +371,8 @@ export default function PagesClient({ sections: initial }: { sections: SiteSecti
                     <textarea
                       value={content[field] || ""}
                       onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
-                      rows={field === "body" ? 5 : 3}
-                      placeholder={field === "body" ? "Use \\n\\n to separate paragraphs" : ""}
+                      rows={field === "body" ? 5 : field === "messages" ? 4 : 3}
+                      placeholder={field === "body" ? "Use \\n\\n to separate paragraphs" : field === "messages" ? "Free shipping over 1000 EGP\nNew arrivals every week" : ""}
                       className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
                     />
                   ) : (

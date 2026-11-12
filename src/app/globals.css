@@ -120,3 +120,19 @@ input:focus, textarea:focus, select:focus {
   background: rgba(168, 151, 94, 0.12);
   color: var(--gold-dark);
 }
+
+/* Announcement bar marquee */
+@keyframes announce-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.announce-track {
+  animation: announce-scroll 30s linear infinite;
+  will-change: transform;
+}
+.announce-bar:hover .announce-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .announce-track { animation: none; }
+}

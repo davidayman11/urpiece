@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
 import PopupManager from "@/components/store/PopupManager";
+import AnnouncementBar, { ANNOUNCEMENT_HEIGHT } from "@/components/store/AnnouncementBar";
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 
@@ -21,14 +22,33 @@ async function getSiteTagline() {
   return c.tagline || "";
 }
 
+async function getAnnouncement() {
+  const section = await prisma.siteSection.findFirst({
+    where: { pageSlug: "site", type: "announcement", isVisible: true },
+    orderBy: { sortOrder: "asc" },
+  });
+  if (!section) return null;
+  const c = parseJson<Record<string, string>>(section.content, {});
+  const messages = (c.messages || "").split("\n").map((m) => m.trim()).filter(Boolean);
+  if (messages.length === 0) return null;
+  return {
+    messages,
+    bgColor: c.bgColor,
+    textColor: c.textColor,
+    speed: parseFloat(c.speed) || 30,
+    href: c.barUrl || undefined,
+  };
+}
+
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const tagline = await getSiteTagline();
+  const [tagline, announcement] = await Promise.all([getSiteTagline(), getAnnouncement()]);
   return (
-    <>
+    <div style={{ "--announce-h": announcement ? `${ANNOUNCEMENT_HEIGHT}px` : "0px" } as React.CSSProperties}>
+      {announcement && <AnnouncementBar {...announcement} />}
       <Navbar tagline={tagline} />
-      <main className="min-h-screen">{children}</main>
+      <main className="min-h-screen" style={{ paddingTop: "var(--announce-h)" }}>{children}</main>
       <Footer />
       <PopupManager />
-    </>
+    </div>
   );
 }

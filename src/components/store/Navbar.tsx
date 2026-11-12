@@ -35,7 +35,8 @@ export default function Navbar({ tagline = "" }: { tagline?: string }) {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        style={{ top: "var(--announce-h, 0px)" }}
+        className={`fixed left-0 right-0 z-50 transition-all duration-500 ${
           solidNav
             ? "bg-[#F5EFE2]/96 backdrop-blur-md border-b border-[#EDE6D4]/60 shadow-sm"
             : "bg-transparent border-b border-transparent"
