@@ -217,6 +217,19 @@ model MonthlyReport {
   @@unique([year, month])
 }
 
+model DiscountRule {
+  id        String    @id @default(cuid())
+  name      String
+  minAmount Float     @default(0)
+  type      String    @default("PERCENT")
+  value     Float
+  isActive  Boolean   @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 model ShippingZone {
   id        String   @id @default(cuid())
   city      String   @unique
@@ -235,6 +248,9 @@ model PaymentSettings {
   extraFields String   @default("[]")
   customFields String @default("[]")
   freeShippingMin Float?
+  discountMode String @default("STACK")
+  salesEnabled Boolean @default(true)
+  promosEnabled Boolean @default(true)
   requiredFields String @default("{\"phone\":true,\"address\":true,\"city\":true}")
   updatedAt   DateTime @updatedAt
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
 import { put } from "@vercel/blob";
-import { productSalePrice } from "@/lib/pricing";
+import { quoteOrder, QuoteError } from "@/lib/pricing-engine";
 import { parseFieldModes, parseCustomFields } from "@/lib/checkout-fields";
 
 export async function POST(req: NextRequest) {
@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
     const address = fd.get("address") as string;
     const city = fd.get("city") as string | null;
     const itemsJson = fd.get("items") as string;
-    const discount = Math.max(0, parseFloat((fd.get("discount") as string) || "0") || 0);
     const promoCode = fd.get("promoCode") as string | null;
     const screenshot = fd.get("screenshot") as File | null;
 
@@ -45,35 +44,23 @@ export async function POST(req: NextRequest) {
       customData[f.label] = v;
     }
 
-    const items: { productId: string; variantId: string; productName: string; variantName: string; price: number; quantity: number }[] =
-      JSON.parse(itemsJson);
-
-    // Validate variants and get cost prices
-    const enrichedItems = await Promise.all(
-      items.map(async (item) => {
-        const variant = await prisma.variant.findUnique({
-          where: { id: item.variantId },
-          include: { product: { select: { salePercent: true, saleType: true, saleStartsAt: true, saleEndsAt: true } } },
-        });
-        if (!variant) throw new Error(`Variant ${item.variantId} not found`);
-        if (variant.inventory < item.quantity) throw new Error(`Insufficient stock for ${item.productName}`);
-        return { ...item, price: productSalePrice(variant.price, variant.product), costPrice: variant.costPrice };
-      })
-    );
-
-    // Prices and shipping are computed on the server
-    const subtotal = enrichedItems.reduce((s, i) => s + i.price * i.quantity, 0);
-    let shippingFee = 0;
-    if (activeZones > 0) {
-      const zone = city ? await prisma.shippingZone.findFirst({ where: { city, isActive: true } }) : null;
-      if (!zone) {
-        return NextResponse.json({ error: "Please select a valid city" }, { status: 400 });
-      }
-      shippingFee = zone.price;
+    // Every price, discount and the shipping fee are computed on the server
+    let rawItems: { variantId: string; quantity: number }[] = [];
+    try { rawItems = JSON.parse(itemsJson); } catch { return bad("Invalid cart"); }
+    const quote = await quoteOrder({ items: rawItems, promoCode, city, strict: true });
+    for (const l of quote.lines) {
+      if (l.inventory < l.quantity) return bad(`Insufficient stock for ${l.productName}`);
     }
-    const afterDiscount = Math.max(0, subtotal - discount);
-    if (settings?.freeShippingMin && afterDiscount >= settings.freeShippingMin) shippingFee = 0;
-    const total = afterDiscount + shippingFee;
+    const { subtotal, discount, shippingFee, total } = quote;
+    const enrichedItems = quote.lines.map((l) => ({
+      productId: l.productId,
+      variantId: l.variantId,
+      productName: l.productName,
+      variantName: l.variantName,
+      price: l.unitPrice,
+      costPrice: l.costPrice,
+      quantity: l.quantity,
+    }));
 
     // Handle screenshot upload
     let screenshotPath: string | null = null;
@@ -97,12 +84,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Validate promo code if provided
-    let promoCodeRecord = null;
-    if (promoCode) {
-      promoCodeRecord = await prisma.promoCode.findUnique({ where: { code: promoCode } });
-    }
-
     const orderNumber = generateOrderNumber();
 
     // Create order in a transaction
@@ -120,8 +101,8 @@ export async function POST(req: NextRequest) {
           shippingFee,
           customData: JSON.stringify(customData),
           total,
-          promoCodeId: promoCodeRecord?.id,
-          promoCodeUsed: promoCode || undefined,
+          promoCodeId: quote.promoId || undefined,
+          promoCodeUsed: quote.promoCode || undefined,
           status: "PENDING",
           paymentStatus: screenshot ? "UPLOADED" : "AWAITING_UPLOAD",
           paymentScreenshot: screenshotPath || undefined,
@@ -154,9 +135,9 @@ export async function POST(req: NextRequest) {
       }
 
       // Increment promo usage
-      if (promoCodeRecord) {
+      if (quote.promoId) {
         await tx.promoCode.update({
-          where: { id: promoCodeRecord.id },
+          where: { id: quote.promoId },
           data: { usedCount: { increment: 1 } },
         });
       }
@@ -166,6 +147,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
   } catch (error) {
+    if (error instanceof QuoteError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("Order creation error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create order" },

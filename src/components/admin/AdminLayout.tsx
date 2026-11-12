@@ -14,6 +14,7 @@ const NAV = [
   { label: "Pages & Sections", href: "/admin/pages", icon: "🖼" },
   { label: "Popups", href: "/admin/popups", icon: "💬" },
   { label: "Shipping", href: "/admin/shipping", icon: "🚚" },
+  { label: "Discounts", href: "/admin/discounts", icon: "💰" },
   { label: "Promo Codes", href: "/admin/promo-codes", icon: "🎟" },
   { label: "Expenses", href: "/admin/expenses", icon: "💸" },
   { label: "Reports", href: "/admin/reports", icon: "📊" },

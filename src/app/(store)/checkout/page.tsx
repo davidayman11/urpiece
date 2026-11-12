@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import type { Quote } from "@/lib/pricing-engine";
 import { DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
 import Image from "next/image";
 
@@ -27,7 +28,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [promoError, setPromoError] = useState("");
-  const [promoData, setPromoData] = useState<{ discount: number; code: string } | null>(null);
+  const [appliedCode, setAppliedCode] = useState("");
+  const [quote, setQuote] = useState<Quote | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -43,29 +45,47 @@ export default function CheckoutPage() {
     fetch("/api/shipping").then((r) => r.json()).then((z) => Array.isArray(z) && setZones(z)).catch(() => {});
   }, [items, router]);
 
-  const cartTotal = total();
-  const discount = promoData?.discount || 0;
+  // Prices, discounts and shipping all come from the server so they always match the order
+  useEffect(() => {
+    if (items.length === 0) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/checkout/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
+            promoCode: appliedCode,
+            city: form.city,
+          }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (res.ok) { setQuote(data); setPromoError(data.promoMessage || ""); }
+        else setPromoError(data.error || "");
+      } catch { /* keep the last quote */ }
+    }, 200);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [items, appliedCode, form.city]);
+
+  const cartTotal = quote?.subtotal ?? total();
+  const discount = quote?.discount ?? 0;
+  const promoData = quote?.promoCode ? { code: quote.promoCode, discount: quote.promoDiscount } : null;
   const afterDiscount = Math.max(0, cartTotal - discount);
   const freeMin = paySettings.freeShippingMin || 0;
-  const freeShippingApplied = freeMin > 0 && afterDiscount >= freeMin;
+  const freeShippingApplied = !!quote?.freeShippingApplied;
   const cityFee = zones.find((z) => z.city === form.city)?.price ?? 0;
-  const shippingFee = freeShippingApplied ? 0 : cityFee;
-  const finalTotal = afterDiscount + shippingFee;
+  const shippingFee = quote?.shippingFee ?? 0;
+  const finalTotal = quote?.total ?? cartTotal;
+  const unit = (i: { variantId: string; price: number }) =>
+    quote?.lines.find((l) => l.variantId === i.variantId)?.unitPrice ?? i.price;
 
-  const applyPromo = async () => {
+  const applyPromo = () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
     setPromoError("");
-    try {
-      const res = await fetch("/api/promo/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: promoInput, total: cartTotal }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setPromoError(data.error || "Invalid code"); return; }
-      setPromoData({ discount: data.discount, code: data.code });
-    } catch {
-      setPromoError("Failed to apply code");
-    }
+    setAppliedCode(code);
   };
 
   const submitOrder = async () => {
@@ -76,9 +96,8 @@ export default function CheckoutPage() {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       fd.append("screenshot", screenshotFile);
       fd.append("items", JSON.stringify(items));
-      fd.append("discount", String(discount));
       fd.append("custom", JSON.stringify(customValues));
-      if (promoData) fd.append("promoCode", promoData.code);
+      if (quote?.promoCode) fd.append("promoCode", quote.promoCode);
 
       const res = await fetch("/api/orders", { method: "POST", body: fd });
       const data = await res.json();
@@ -284,7 +303,7 @@ export default function CheckoutPage() {
                 {promoError && <p className="text-xs text-red-600">{promoError}</p>}
                 {promoData && (
                   <p className="text-xs text-green-700">
-                    Code applied — {formatPrice(discount)} discount!
+                    Code applied — {formatPrice(promoData.discount)} discount!
                   </p>
                 )}
 
@@ -409,7 +428,7 @@ export default function CheckoutPage() {
                   {items.map((i) => (
                     <div key={i.id} className="flex justify-between text-sm">
                       <span className="text-[#5A5040]">{i.productName} × {i.quantity}</span>
-                      <span>{formatPrice(i.price * i.quantity)}</span>
+                      <span>{formatPrice(unit(i) * i.quantity)}</span>
                     </div>
                   ))}
                   {shippingFee > 0 && (
@@ -418,10 +437,16 @@ export default function CheckoutPage() {
                       <span>{formatPrice(shippingFee)}</span>
                     </div>
                   )}
+                  {quote && quote.ruleDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-green-700">
+                      <span>{quote.ruleName || "Discount"}</span>
+                      <span>−{formatPrice(quote.ruleDiscount)}</span>
+                    </div>
+                  )}
                   {promoData && (
                     <div className="flex justify-between text-sm text-green-700">
-                      <span>Discount ({promoData.code})</span>
-                      <span>−{formatPrice(discount)}</span>
+                      <span>Promo ({promoData.code})</span>
+                      <span>−{formatPrice(promoData.discount)}</span>
                     </div>
                   )}
                   <div className="pt-3 border-t border-[#EDE6D4] flex justify-between font-medium">
@@ -462,13 +487,25 @@ export default function CheckoutPage() {
               {items.map((i) => (
                 <div key={i.id} className="flex justify-between">
                   <span className="text-[#5A5040] truncate mr-2">{i.productName} ×{i.quantity}</span>
-                  <span className="shrink-0">{formatPrice(i.price * i.quantity)}</span>
+                  <span className="shrink-0">{formatPrice(unit(i) * i.quantity)}</span>
                 </div>
               ))}
+              {quote && quote.saleSavings > 0 && (
+                <div className="flex justify-between text-xs text-[#8A7E6E]">
+                  <span>Sale savings included</span>
+                  <span>{formatPrice(quote.saleSavings)}</span>
+                </div>
+              )}
+              {quote && quote.ruleDiscount > 0 && (
+                <div className="flex justify-between text-green-700">
+                  <span className="truncate mr-2">{quote.ruleName || "Discount"}</span>
+                  <span className="shrink-0">−{formatPrice(quote.ruleDiscount)}</span>
+                </div>
+              )}
               {promoData && (
                 <div className="flex justify-between text-green-700">
-                  <span>Discount</span>
-                  <span>−{formatPrice(discount)}</span>
+                  <span>Promo ({promoData.code})</span>
+                  <span>−{formatPrice(promoData.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-[#5A5040]">
