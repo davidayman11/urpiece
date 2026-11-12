@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseSections, type TextDef, type TextSection } from "@/lib/texts/types";
-import { FONT_CATALOG, FONT_CATEGORY_LABELS, textStyleToCss, type FontCategory, type TextStyle, type TextStyles } from "@/lib/fonts";
+import { FONT_CATALOG, FONT_CATEGORY_LABELS, TEXT_SIZES, textStyleToCss, type FontCategory, type TextSize, type TextStyle, type TextStyles } from "@/lib/fonts";
+import { hasRich, toggleMarker, type RichKind } from "@/lib/rich";
+import RichText from "@/components/RichText";
 
 const placeholdersOf = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[0]))];
 
@@ -49,6 +51,9 @@ function SectionsEditor({ value, onChange }: { value: string; onChange: (json: s
           </div>
         </div>
       ))}
+      <p className="text-[11px] text-gray-400">
+        Tip: put <code className="bg-gray-100 px-1 rounded">**</code> around words for <strong>bold</strong>, <code className="bg-gray-100 px-1 rounded">__</code> for <u>underline</u>, <code className="bg-gray-100 px-1 rounded">&apos;&apos;</code> for <em>italic</em>, <code className="bg-gray-100 px-1 rounded">~~</code> for <s>strikethrough</s>. Example: <code className="bg-gray-100 px-1 rounded">Valid for **1 year**</code>
+      </p>
       {list.length < 12 && (
         <button type="button" onClick={() => set([...list, { title: "", body: "" }])} className="text-sm text-[#A8975E] hover:underline">
           + Add a box
@@ -59,6 +64,26 @@ function SectionsEditor({ value, onChange }: { value: string; onChange: (json: s
 }
 
 const STYLE_CATEGORIES: FontCategory[] = ["serif", "sans", "script", "arabic"];
+
+const BTN_LOOK: Record<string, string> = { bold: "font-bold", italic: "italic", underline: "underline", strike: "line-through" };
+const BTN_LABEL: Record<string, string> = { bold: "B", italic: "I", underline: "U", strike: "S" };
+const BTN_TITLE: Record<string, string> = { bold: "Bold", italic: "Italic", underline: "Underline", strike: "Strikethrough" };
+
+function StyleButton({ kind, on, onClick }: { kind: RichKind; on?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={BTN_TITLE[kind]}
+      aria-pressed={on}
+      // keep the words selected in the text box while clicking
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className={`w-7 h-7 rounded border text-sm ${BTN_LOOK[kind]} ${on ? "bg-[#A8975E] text-white border-[#A8975E]" : "bg-white text-gray-600 border-gray-200 hover:border-[#A8975E]"}`}
+    >
+      {BTN_LABEL[kind]}
+    </button>
+  );
+}
 
 export default function TextsClient({
   defs, overrides, styles: initialStyles, noStyle,
@@ -71,7 +96,11 @@ export default function TextsClient({
       const next: TextStyle = { ...(st[key] || {}), ...patch };
       if (!next.font) delete next.font;
       if (!next.bold) delete next.bold;
+      if (!next.italic) delete next.italic;
       if (!next.underline) delete next.underline;
+      if (!next.strike) delete next.strike;
+      if (!next.size) delete next.size;
+      if (!next.color) delete next.color;
       const all = { ...st };
       if (Object.keys(next).length) all[key] = next; else delete all[key];
       return all;
@@ -81,6 +110,17 @@ export default function TextsClient({
     Object.fromEntries(defs.map((d) => [d.key, overrides[d.key] ?? d.default]))
   );
   const [saved, setSaved] = useState<Record<string, string>>(values); // what is stored right now
+  const fieldRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({});
+  const formatSelection = (key: string, kind: RichKind) => {
+    const el = fieldRefs.current[key];
+    if (!el) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    if (start === end) { alert("First select some words in the box (drag over them), then click the button."); return; }
+    const r = toggleMarker(el.value, start, end, kind);
+    setValues((st) => ({ ...st, [key]: r.value }));
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(r.start, r.end); });
+  };
   const [q, setQ] = useState("");
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -187,43 +227,73 @@ export default function TextsClient({
                       )}
                     </div>
                     <Field
-                      style={textStyleToCss(styles[d.key])}
+                      ref={(el: HTMLInputElement & HTMLTextAreaElement | null) => { fieldRefs.current[d.key] = el; }}
                       value={v}
                       onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => setValues((s) => ({ ...s, [d.key]: e.target.value }))}
                       {...(Field === "textarea" ? { rows: Math.min(6, Math.max(2, Math.ceil(v.length / 70))) } : {})}
                       className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E] ${changed ? "border-[#A8975E]/60 bg-[#A8975E]/5" : "border-gray-200"}`}
                     />
                     {!noStyleSet.has(d.key) ? (
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <select
-                          value={styles[d.key]?.font || ""}
-                          onChange={(e) => setStyle(d.key, { font: e.target.value || undefined })}
-                          aria-label="Font for this text"
-                          className="border border-gray-200 rounded px-2 py-1 text-xs bg-white max-w-[11rem]"
-                        >
-                          <option value="">Default font</option>
-                          {STYLE_CATEGORIES.map((c) => (
-                            <optgroup key={c} label={FONT_CATEGORY_LABELS[c]}>
-                              {FONT_CATALOG.filter((f) => f.category === c).map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
-                            </optgroup>
+                      <div className="mt-2 space-y-2 rounded border border-gray-100 bg-gray-50 p-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] text-gray-500 w-24 shrink-0">Selected words</span>
+                          {(["bold", "italic", "underline", "strike"] as RichKind[]).map((k) => (
+                            <StyleButton key={k} kind={k} onClick={() => formatSelection(d.key, k)} />
                           ))}
-                        </select>
-                        <button
-                          type="button" aria-pressed={!!styles[d.key]?.bold} title="Bold"
-                          onClick={() => setStyle(d.key, { bold: !styles[d.key]?.bold })}
-                          className={`w-7 h-7 rounded border text-sm font-bold ${styles[d.key]?.bold ? "bg-[#A8975E] text-white border-[#A8975E]" : "bg-white text-gray-600 border-gray-200 hover:border-[#A8975E]"}`}
-                        >B</button>
-                        <button
-                          type="button" aria-pressed={!!styles[d.key]?.underline} title="Underline"
-                          onClick={() => setStyle(d.key, { underline: !styles[d.key]?.underline })}
-                          className={`w-7 h-7 rounded border text-sm underline ${styles[d.key]?.underline ? "bg-[#A8975E] text-white border-[#A8975E]" : "bg-white text-gray-600 border-gray-200 hover:border-[#A8975E]"}`}
-                        >U</button>
-                        {styles[d.key] && (
-                          <button type="button" onClick={() => setStyles((st) => { const n = { ...st }; delete n[d.key]; return n; })} className="text-[11px] text-gray-500 hover:underline">Clear style</button>
+                          <span className="text-[10px] text-gray-400">Select words above, then click</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] text-gray-500 w-24 shrink-0">Whole text</span>
+                          <select
+                            value={styles[d.key]?.font || ""}
+                            onChange={(e) => setStyle(d.key, { font: e.target.value || undefined })}
+                            aria-label="Font for this text"
+                            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white max-w-[10rem]"
+                          >
+                            <option value="">Default font</option>
+                            {STYLE_CATEGORIES.map((c) => (
+                              <optgroup key={c} label={FONT_CATEGORY_LABELS[c]}>
+                                {FONT_CATALOG.filter((f) => f.category === c).map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+                              </optgroup>
+                            ))}
+                          </select>
+                          <select
+                            value={styles[d.key]?.size || ""}
+                            onChange={(e) => setStyle(d.key, { size: (e.target.value || undefined) as TextSize | undefined })}
+                            aria-label="Size of this text"
+                            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white"
+                          >
+                            <option value="">Normal size</option>
+                            {TEXT_SIZES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
+                          </select>
+                          <label className="flex items-center gap-1 text-[11px] text-gray-500" title="Text colour">
+                            <input
+                              type="color"
+                              value={styles[d.key]?.color || "#1c1711"}
+                              onChange={(e) => setStyle(d.key, { color: e.target.value })}
+                              className="w-7 h-7 rounded border border-gray-200 cursor-pointer bg-white p-0.5"
+                              aria-label="Text colour"
+                            />
+                            {styles[d.key]?.color && (
+                              <button type="button" onClick={() => setStyle(d.key, { color: undefined })} className="text-[10px] hover:underline">default colour</button>
+                            )}
+                          </label>
+                          {(["bold", "italic", "underline", "strike"] as RichKind[]).map((k) => (
+                            <StyleButton key={k} kind={k} on={!!styles[d.key]?.[k]} onClick={() => setStyle(d.key, { [k]: !styles[d.key]?.[k] })} />
+                          ))}
+                          {styles[d.key] && (
+                            <button type="button" onClick={() => setStyles((st) => { const n = { ...st }; delete n[d.key]; return n; })} className="text-[11px] text-gray-500 hover:underline">Clear style</button>
+                          )}
+                        </div>
+                        {(hasRich(v) || styles[d.key]) && (
+                          <div className="rounded border border-gray-100 bg-[#F5EFE2] px-3 py-2 text-sm text-[#1C1711]">
+                            <span className="text-[10px] uppercase tracking-wider text-gray-400 mr-2">Preview</span>
+                            <RichText text={v} vars={Object.fromEntries([...v.matchAll(/\{(\w+)\}/g)].map((m) => [m[1], m[0]]))} style={textStyleToCss(styles[d.key])} />
+                          </div>
                         )}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-gray-400 mt-1.5">Font / bold / underline are not available for this one (it is shown inside a box, tab title or pop-up).</p>
+                      <p className="text-[10px] text-gray-400 mt-1.5">Formatting is not available for this one (it is shown inside a box, tab title or pop-up).</p>
                     )}
                     {changed && <p className="text-[11px] text-gray-400 mt-1">Default: {d.default}</p>}
                     {missing.length > 0 && (

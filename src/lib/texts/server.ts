@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { TEXT_DEFAULTS, formatText, type TFunction } from "./index";
+import { stripRich } from "@/lib/rich";
 
 /** Defaults + whatever the admin changed. Cached for the duration of one request. */
 export const getTexts = cache(async (): Promise<Record<string, string>> => {
@@ -18,5 +19,5 @@ export const getTexts = cache(async (): Promise<Record<string, string>> => {
 /** Server components / route handlers:  const t = await getT();  t("cart.title")  t("cart.add", { amount }) */
 export async function getT(): Promise<TFunction> {
   const texts = await getTexts();
-  return (key, vars) => formatText(texts[key] ?? TEXT_DEFAULTS[key] ?? key, vars);
+  return (key, vars) => formatText(stripRich(texts[key] ?? TEXT_DEFAULTS[key] ?? key), vars);
 }

@@ -107,7 +107,13 @@ export interface AreaFonts { heading?: string; body?: string }
 export interface FontConfig { areas: Record<string, AreaFonts> }
 
 /** Formatting of one individual text (set in Admin > Site Text). */
-export interface TextStyle { font?: string; bold?: boolean; underline?: boolean }
+export type TextSize = "sm" | "lg" | "xl";
+export const TEXT_SIZES: { value: TextSize; label: string; em: string }[] = [
+  { value: "sm", label: "Smaller", em: "0.85em" },
+  { value: "lg", label: "Larger", em: "1.25em" },
+  { value: "xl", label: "Much larger", em: "1.6em" },
+];
+export interface TextStyle { font?: string; bold?: boolean; italic?: boolean; underline?: boolean; strike?: boolean; size?: TextSize; color?: string }
 export type TextStyles = Record<string, TextStyle>;
 
 /** Keep only known sections and catalog fonts. */
@@ -132,8 +138,12 @@ export function normalizeTextStyles(input: unknown, validKeys: Set<string> | ((k
     const s: TextStyle = {};
     if (isCatalogFont(v.font)) s.font = v.font;
     if (v.bold === true) s.bold = true;
+    if (v.italic === true) s.italic = true;
     if (v.underline === true) s.underline = true;
-    if (s.font || s.bold || s.underline) out[key] = s;
+    if (v.strike === true) s.strike = true;
+    if (TEXT_SIZES.some((z) => z.value === v.size)) s.size = v.size;
+    if (typeof v.color === "string" && /^#[0-9a-fA-F]{6}$/.test(v.color)) s.color = v.color.toLowerCase();
+    if (Object.keys(s).length) out[key] = s;
   }
   return out;
 }
@@ -188,6 +198,11 @@ export function textStyleToCss(s: TextStyle | undefined): React.CSSProperties | 
   const stack = fontStack(s.font);
   if (stack) css.fontFamily = stack;
   if (s.bold) css.fontWeight = 700;
-  if (s.underline) { css.textDecoration = "underline"; css.textUnderlineOffset = "0.2em"; }
+  if (s.italic) css.fontStyle = "italic";
+  const deco = [s.underline && "underline", s.strike && "line-through"].filter(Boolean).join(" ");
+  if (deco) { css.textDecoration = deco; if (s.underline) css.textUnderlineOffset = "0.2em"; }
+  const size = TEXT_SIZES.find((z) => z.value === s.size);
+  if (size) css.fontSize = size.em;
+  if (s.color && /^#[0-9a-fA-F]{6}$/.test(s.color)) css.color = s.color;
   return Object.keys(css).length ? css : undefined;
 }

@@ -12,6 +12,7 @@ import { parseSections } from "@/lib/texts";
 import type { Metadata } from "next";
 
 import { Txt } from "@/components/store/TextsProvider";
+import RichText from "@/components/RichText";
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -113,12 +114,12 @@ export default async function ProductPage({ params }: Props) {
               {sections.map((sec, i) => (
                 <details key={i} className="group">
                   <summary className="flex items-center justify-between cursor-pointer text-xs tracking-widest uppercase text-[#5A5040] py-2">
-                    <span>{sec.tk ? <Txt k={sec.tk} /> : sec.title}</span>
+                    <span>{sec.tk ? <Txt k={sec.tk} /> : <RichText text={sec.title} />}</span>
                     <svg className="group-open:rotate-180 transition-transform" width="12" height="8" viewBox="0 0 12 8" fill="none">
                       <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                     </svg>
                   </summary>
-                  <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">{sec.bk ? <Txt k={sec.bk} /> : sec.body}</p>
+                  <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">{sec.bk ? <Txt k={sec.bk} /> : <RichText text={sec.body} />}</p>
                 </details>
               ))}
             </div>

@@ -3,6 +3,8 @@
 import { createContext, useContext } from "react";
 import { TEXT_DEFAULTS, formatText, type TFunction, type TextVars } from "@/lib/texts";
 import { textStyleToCss, type TextStyles } from "@/lib/fonts";
+import { stripRich } from "@/lib/rich";
+import RichText from "@/components/RichText";
 
 interface Ctx { texts: Record<string, string>; styles: TextStyles }
 const TextsCtx = createContext<Ctx>({ texts: TEXT_DEFAULTS, styles: {} });
@@ -15,7 +17,8 @@ export function TextsProvider({ texts, styles = {}, children }: { texts: Record<
 /** Client components:  const t = useT();  t("checkout.continue")  t("cart.add", { amount }) — plain strings */
 export function useT(): TFunction {
   const { texts } = useContext(TextsCtx);
-  return (key, vars) => formatText(texts[key] ?? TEXT_DEFAULTS[key] ?? key, vars);
+  // plain strings never show formatting markers (they cannot display bold / underline)
+  return (key, vars) => formatText(stripRich(texts[key] ?? TEXT_DEFAULTS[key] ?? key), vars);
 }
 
 /**
@@ -24,7 +27,5 @@ export function useT(): TFunction {
  */
 export function Txt({ k, vars }: { k: string; vars?: TextVars }) {
   const { texts, styles } = useContext(TextsCtx);
-  const text = formatText(texts[k] ?? TEXT_DEFAULTS[k] ?? k, vars);
-  const css = textStyleToCss(styles[k]);
-  return css ? <span style={css}>{text}</span> : <>{text}</>;
+  return <RichText text={texts[k] ?? TEXT_DEFAULTS[k] ?? k} vars={vars} style={textStyleToCss(styles[k])} />;
 }
