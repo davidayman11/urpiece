@@ -54,6 +54,7 @@ model Product {
   isActive    Boolean     @default(true)
   isFeatured  Boolean     @default(false)
   salePercent Float       @default(0)
+  saleType    String      @default("PERCENT")
   tags        String      @default("[]")
   views       Int         @default(0)
   orderItems  OrderItem[]

@@ -8,7 +8,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   const body = await req.json();
-  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent } = body;
+  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType } = body;
+  const type = saleType === "FIXED" ? "FIXED" : "PERCENT";
+  const saleValue = type === "PERCENT" ? Math.min(100, Math.max(0, Number(salePercent) || 0)) : Math.max(0, Number(salePercent) || 0);
 
   // Update product
   const product = await prisma.product.update({
@@ -20,7 +22,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       categoryId: categoryId || null,
       isActive,
       isFeatured,
-      salePercent: Math.min(100, Math.max(0, Number(salePercent) || 0)),
+      salePercent: saleValue,
+      saleType: type,
       images: JSON.stringify(images || []),
     },
   });

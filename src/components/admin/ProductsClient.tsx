@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatPrice, parseJson, slugify } from "@/lib/utils";
-import { salePrice } from "@/lib/pricing";
+import { salePrice, saleLabel } from "@/lib/pricing";
 import type { Product, Variant, Category } from "@prisma/client";
 
 type ProductWithVariants = Product & { variants: Variant[]; category: Category | null };
@@ -32,6 +32,7 @@ interface ProductForm {
   isActive: boolean;
   isFeatured: boolean;
   salePercent: string;
+  saleType: "PERCENT" | "FIXED";
   images: string[];
   variants: VariantForm[];
 }
@@ -41,7 +42,7 @@ const emptyVariant = (): VariantForm => ({
 });
 
 const emptyForm = (): ProductForm => ({
-  name: "", slug: "", description: "", categoryId: "", isActive: true, isFeatured: false, salePercent: "",
+  name: "", slug: "", description: "", categoryId: "", isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT",
   images: [], variants: [emptyVariant()],
 });
 
@@ -62,6 +63,7 @@ export default function ProductsClient({ products: initial, categories }: Props)
       name: p.name, slug: p.slug, description: p.description || "",
       categoryId: p.categoryId || "", isActive: p.isActive, isFeatured: p.isFeatured,
       salePercent: p.salePercent ? String(p.salePercent) : "",
+      saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
       images: parseJson<string[]>(p.images, []),
       variants: p.variants.map((v) => ({
         id: v.id, name: v.name, price: String(v.price), costPrice: String(v.costPrice),
@@ -92,6 +94,7 @@ export default function ProductsClient({ products: initial, categories }: Props)
       ...form,
       slug: form.slug || slugify(form.name),
       salePercent: parseFloat(form.salePercent) || 0,
+      saleType: form.saleType,
       variants: form.variants.map((v) => ({
         ...v,
         price: parseFloat(v.price) || 0,
@@ -182,8 +185,8 @@ export default function ProductsClient({ products: initial, categories }: Props)
                       {p.salePercent > 0 ? (
                         <>
                           <span className="line-through text-gray-400 mr-1">{formatPrice(minPrice)}</span>
-                          {formatPrice(salePrice(minPrice, p.salePercent))}
-                          <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">-{p.salePercent}%</span>
+                          {formatPrice(salePrice(minPrice, p.salePercent, p.saleType))}
+                          <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">{saleLabel(p.salePercent, p.saleType)}</span>
                         </>
                       ) : formatPrice(minPrice)}
                     </td>
@@ -275,20 +278,32 @@ export default function ProductsClient({ products: initial, categories }: Props)
 
               {/* Sale */}
               <div className="border border-gray-100 rounded p-3 space-y-1">
-                <label className="text-xs text-gray-500 block">Sale discount (%) — leave empty for no sale</label>
-                <div className="flex items-center gap-3">
+                <label className="text-xs text-gray-500 block">Sale discount — leave empty for no sale</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="inline-flex rounded border border-gray-200 overflow-hidden text-sm">
+                    {(["PERCENT", "FIXED"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, saleType: t }))}
+                        className={`px-3 py-2 ${form.saleType === t ? "bg-[#A8975E] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                      >
+                        {t === "PERCENT" ? "% Percent" : "EGP Amount"}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="number"
                     min="0"
-                    max="100"
+                    max={form.saleType === "PERCENT" ? 100 : undefined}
                     value={form.salePercent}
                     onChange={(e) => setForm((f) => ({ ...f, salePercent: e.target.value }))}
-                    placeholder="e.g. 20"
+                    placeholder={form.saleType === "PERCENT" ? "e.g. 20" : "e.g. 50"}
                     className="w-32 border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]"
                   />
                   {parseFloat(form.salePercent) > 0 && form.variants[0]?.price && (
                     <span className="text-xs text-emerald-600">
-                      {formatPrice(parseFloat(form.variants[0].price))} → {formatPrice(salePrice(parseFloat(form.variants[0].price), parseFloat(form.salePercent)))}
+                      {formatPrice(parseFloat(form.variants[0].price))} → {formatPrice(salePrice(parseFloat(form.variants[0].price), parseFloat(form.salePercent), form.saleType))}
                     </span>
                   )}
                 </div>

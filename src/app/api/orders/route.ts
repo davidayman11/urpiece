@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
       items.map(async (item) => {
         const variant = await prisma.variant.findUnique({
           where: { id: item.variantId },
-          include: { product: { select: { salePercent: true } } },
+          include: { product: { select: { salePercent: true, saleType: true } } },
         });
         if (!variant) throw new Error(`Variant ${item.variantId} not found`);
         if (variant.inventory < item.quantity) throw new Error(`Insufficient stock for ${item.productName}`);
-        return { ...item, price: salePrice(variant.price, variant.product.salePercent), costPrice: variant.costPrice };
+        return { ...item, price: salePrice(variant.price, variant.product.salePercent, variant.product.saleType), costPrice: variant.costPrice };
       })
     );
 

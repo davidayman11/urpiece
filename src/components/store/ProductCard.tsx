@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
-import { salePrice } from "@/lib/pricing";
+import { salePrice, saleLabel } from "@/lib/pricing";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
@@ -86,7 +86,7 @@ export default function ProductCard({ product }: Props) {
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           {sale > 0 && (
             <span className="bg-[#B23A3A] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">
-              -{sale}%
+              {saleLabel(sale, product.saleType)}
             </span>
           )}
           {!inStock && (
@@ -124,8 +124,8 @@ export default function ProductCard({ product }: Props) {
             </span>
           )}
           {(() => {
-            const lo = salePrice(minPrice, sale);
-            const hi = salePrice(maxPrice, sale);
+            const lo = salePrice(minPrice, sale, product.saleType);
+            const hi = salePrice(maxPrice, sale, product.saleType);
             return lo === hi ? formatPrice(lo) : `${formatPrice(lo)} – ${formatPrice(hi)}`;
           })()}
         </p>

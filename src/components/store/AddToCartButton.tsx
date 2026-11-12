@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice, parseJson } from "@/lib/utils";
-import { salePrice } from "@/lib/pricing";
+import { salePrice, saleLabel } from "@/lib/pricing";
 import type { Product, Variant } from "@prisma/client";
 
 interface Props {
@@ -41,7 +41,7 @@ export default function AddToCartButton({ product }: Props) {
       variantId: selectedVariant.id,
       productName: product.name,
       variantName: selectedVariant.name,
-      price: salePrice(selectedVariant.price, sale),
+      price: salePrice(selectedVariant.price, sale, product.saleType),
       image: images[0] || "",
       quantity: qty,
     });
@@ -56,9 +56,9 @@ export default function AddToCartButton({ product }: Props) {
         {selectedVariant ? (
           sale > 0 ? (
             <span className="flex items-baseline gap-3">
-              <span>{formatPrice(salePrice(selectedVariant.price, sale))}</span>
+              <span>{formatPrice(salePrice(selectedVariant.price, sale, product.saleType))}</span>
               <span className="text-base text-[#8A7E6E] line-through">{formatPrice(selectedVariant.price)}</span>
-              <span className="text-[10px] tracking-[0.2em] uppercase bg-[#B23A3A] text-[#F5EFE2] px-2 py-1">-{sale}%</span>
+              <span className="text-[10px] tracking-[0.2em] uppercase bg-[#B23A3A] text-[#F5EFE2] px-2 py-1">{saleLabel(sale, product.saleType)}</span>
             </span>
           ) : formatPrice(selectedVariant.price)
         ) : "—"}
