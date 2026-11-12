@@ -1,17 +1,31 @@
 export type FieldMode = "required" | "optional" | "hidden";
-export type BuiltinField = "name" | "email" | "phone" | "address" | "city";
+export type BuiltinField = "name" | "email" | "phone" | "governorate" | "city" | "building" | "address";
 export type FieldModes = Record<BuiltinField, FieldMode>;
 
 export const BUILTIN_FIELDS: { key: BuiltinField; label: string; canHide: boolean }[] = [
   { key: "name", label: "Full name", canHide: false },
   { key: "email", label: "Email", canHide: false },
   { key: "phone", label: "Phone number", canHide: true },
-  { key: "address", label: "Street address", canHide: true },
+  { key: "governorate", label: "Governorate", canHide: true },
   { key: "city", label: "City", canHide: true },
+  { key: "building", label: "Building", canHide: true },
+  { key: "address", label: "Street", canHide: true },
 ];
 
+export const EGYPT_GOVERNORATES = [
+  "Alexandria", "Aswan", "Asyut", "Beheira", "Beni Suef", "Cairo", "Dakahlia", "Damietta", "Faiyum",
+  "Gharbia", "Giza", "Ismailia", "Kafr El Sheikh", "Luxor", "Matruh", "Minya", "Monufia", "New Valley",
+  "North Sinai", "Port Said", "Qalyubia", "Qena", "Red Sea", "Sharqia", "Sohag", "South Sinai", "Suez",
+];
+
+/** One readable line from a stored shippingAddress object. */
+export function formatAddress(s: Record<string, string | undefined>): string {
+  return [s.building && `Building ${s.building}`, s.address, s.city, s.governorate].filter(Boolean).join(", ");
+}
+
 export const DEFAULT_MODES: FieldModes = {
-  name: "required", email: "required", phone: "required", address: "required", city: "required",
+  name: "required", email: "required", phone: "required", governorate: "required",
+  city: "required", building: "required", address: "required",
 };
 
 /** Parse stored JSON. Missing = required. Legacy booleans (true/false) are supported. */

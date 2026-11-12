@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatPrice, parseJson } from "@/lib/utils";
+import { formatAddress } from "@/lib/checkout-fields";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -233,7 +234,7 @@ export default function OrderDetailAdmin({ order: initial }: { order: Order }) {
             </div>
             <div className="mt-4 pt-4 border-t border-gray-50">
               <p className="text-xs text-gray-400 mb-1">Shipping Address</p>
-              <p className="text-sm text-gray-600">{shipping.address}{shipping.city ? `, ${shipping.city}` : ""}</p>
+              <p className="text-sm text-gray-600">{formatAddress(shipping)}</p>
             </div>
             {Object.entries(parseJson<Record<string, string>>(order.customData || "{}", {})).map(([k, v]) => (
               <div key={k} className="mt-3 pt-3 border-t border-gray-50">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, parseJson } from "@/lib/utils";
+import { formatAddress } from "@/lib/checkout-fields";
 import { statusInfo, TRACKER_STEPS, PAYMENT_STATUS } from "@/lib/order-status";
 import CopyButton from "@/components/store/CopyButton";
 
@@ -31,7 +32,7 @@ export default async function OrderDetailPage({ params }: Props) {
   const st = statusInfo(order.status);
   const shipping = parseJson<Record<string, string>>(order.shippingAddress, {});
   const custom = Object.entries(parseJson<Record<string, string>>(order.customData, {}));
-  const addressLine = [shipping.address, shipping.city].filter(Boolean).join(", ");
+  const addressLine = formatAddress(shipping);
   const isNew = order.status === "PENDING";
 
   return (

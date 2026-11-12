@@ -5,7 +5,7 @@ import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import type { Quote } from "@/lib/pricing-engine";
-import { DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
+import { formatAddress, EGYPT_GOVERNORATES, DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
 import Image from "next/image";
 
 interface PaymentSettings {
@@ -37,7 +37,7 @@ export default function CheckoutPage() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [zones, setZones] = useState<{ city: string; price: number }[]>([]);
   const [form, setForm] = useState({
-    name: "", email: "", phone: "", address: "", city: "",
+    name: "", email: "", phone: "", governorate: "", city: "", building: "", address: "",
   });
 
   useEffect(() => {
@@ -143,7 +143,8 @@ export default function CheckoutPage() {
     { field: "name", label: "Full Name", type: "text", placeholder: "Your full name", autoComplete: "name", inputMode: undefined, full: true },
     { field: "email", label: "Email", type: "email", placeholder: "you@example.com", autoComplete: "email", inputMode: "email" as const, full: false },
     { field: "phone", label: "Phone Number", type: "tel", placeholder: "01XXXXXXXXX", autoComplete: "tel", inputMode: "tel" as const, full: false },
-    { field: "address", label: "Street Address", type: "text", placeholder: "Street, building, apartment", autoComplete: "street-address", inputMode: undefined, full: true },
+    { field: "building", label: "Building", type: "text", placeholder: "Building number / name", autoComplete: "address-line2", inputMode: undefined, full: false },
+    { field: "address", label: "Street", type: "text", placeholder: "Street name", autoComplete: "address-line1", inputMode: undefined, full: false },
   ] as const).filter((f) => !isHidden(f.field));
 
   if (items.length === 0) return null;
@@ -194,6 +195,31 @@ export default function CheckoutPage() {
                       {fieldError(field) && <p className="text-[11px] text-red-600 mt-1">{fieldError(field)}</p>}
                     </div>
                   ))}
+
+                  {!isHidden("governorate") && (
+                    <div className="sm:col-span-2" style={{ order: orderOf("governorate") }}>
+                      <label htmlFor="governorate" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
+                        Governorate {mark(isRequired("governorate"))}
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="governorate"
+                          value={form.governorate}
+                          autoComplete="address-level1"
+                          onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value }))}
+                          onBlur={() => setTouched((t) => ({ ...t, governorate: true }))}
+                          className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("governorate") ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                        >
+                          <option value="">Select your governorate</option>
+                          {EGYPT_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                        <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                          <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                      {fieldError("governorate") && <p className="text-[11px] text-red-600 mt-1">{fieldError("governorate")}</p>}
+                    </div>
+                  )}
 
                   {!isHidden("city") && (
                   <div className="sm:col-span-2" style={{ order: orderOf("city") }}>
@@ -314,10 +340,10 @@ export default function CheckoutPage() {
 
                 <button
                   onClick={() => {
-                    const t: Record<string, boolean> = { name: true, email: true, phone: true, address: true, city: true };
+                    const t: Record<string, boolean> = { name: true, email: true, phone: true, governorate: true, city: true, building: true, address: true };
                     customFields.forEach((f) => { t["c_" + f.id] = true; });
                     setTouched(t);
-                    if (["name", "email", "phone", "address", "city"].some((f) => !isHidden(f) && fieldError(f))) return;
+                    if (["name", "email", "phone", "governorate", "city", "building", "address"].some((f) => !isHidden(f) && fieldError(f))) return;
                     if (customFields.some((f) => customError({ ...f }) || (f.required && !(customValues[f.id] || "").trim()))) return;
                     setStep("payment");
                   }}
@@ -422,8 +448,8 @@ export default function CheckoutPage() {
                   {form.name && <p><span className="text-[#8A7E6E]">Name:</span> {form.name}</p>}
                   {form.email && <p><span className="text-[#8A7E6E]">Email:</span> {form.email}</p>}
                   {form.phone && <p><span className="text-[#8A7E6E]">Phone:</span> {form.phone}</p>}
-                  {(form.address || form.city) && (
-                    <p><span className="text-[#8A7E6E]">Address:</span> {[form.address, form.city].filter(Boolean).join(", ")}</p>
+                  {(form.address || form.city || form.governorate || form.building) && (
+                    <p><span className="text-[#8A7E6E]">Address:</span> {formatAddress(form)}</p>
                   )}
                   {customFields.filter((f) => (customValues[f.id] || "").trim()).map((f) => (
                     <p key={f.id}><span className="text-[#8A7E6E]">{f.label}:</span> {customValues[f.id]}</p>

@@ -13,6 +13,8 @@ export async function POST(req: NextRequest) {
     const phone = fd.get("phone") as string | null;
     const address = fd.get("address") as string;
     const city = fd.get("city") as string | null;
+    const governorate = fd.get("governorate") as string | null;
+    const building = fd.get("building") as string | null;
     const itemsJson = fd.get("items") as string;
     const promoCode = fd.get("promoCode") as string | null;
     const screenshot = fd.get("screenshot") as File | null;
@@ -27,7 +29,9 @@ export async function POST(req: NextRequest) {
     if (modes.name === "required" && !name?.trim()) return bad("Name is required");
     if (modes.email === "required" && !email?.trim()) return bad("Email is required");
     if (modes.phone === "required" && !phone?.trim()) return bad("Phone number is required");
-    if (modes.address === "required" && !address?.trim()) return bad("Street address is required");
+    if (modes.address === "required" && !address?.trim()) return bad("Street is required");
+    if (modes.governorate === "required" && !governorate?.trim()) return bad("Governorate is required");
+    if (modes.building === "required" && !building?.trim()) return bad("Building is required");
     if ((modes.city === "required" || activeZones > 0) && !city?.trim()) return bad("City is required");
 
     // Admin-defined custom fields: store answers keyed by the label (snapshot)
@@ -79,7 +83,7 @@ export async function POST(req: NextRequest) {
       customer = await prisma.customer.findUnique({ where: { email: orderEmail } });
       if (!customer) {
         customer = await prisma.customer.create({
-          data: { email: orderEmail, name: orderName, phone: phone || undefined, address: address || undefined, city: city || undefined },
+          data: { email: orderEmail, name: orderName, phone: phone || undefined, address: [building, address].filter(Boolean).join(", ") || undefined, city: city || undefined },
         });
       }
     }
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
           customerName: orderName,
           customerEmail: orderEmail,
           customerPhone: phone || undefined,
-          shippingAddress: JSON.stringify({ address: address || "", city: city || "" }),
+          shippingAddress: JSON.stringify({ address: address || "", city: city || "", governorate: governorate || "", building: building || "" }),
           subtotal,
           discount,
           shippingFee,
