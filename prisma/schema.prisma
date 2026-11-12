@@ -301,6 +301,7 @@ model DiscountRule {
 model Governorate {
   id        String         @id @default(cuid())
   name      String         @unique
+  shippingPrice Float      @default(0)
   isActive  Boolean        @default(true)
   sortOrder Int            @default(0)
   zones     ShippingZone[]

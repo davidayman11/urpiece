@@ -62,14 +62,19 @@ export default function AccountClient({
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<AddrForm>(emptyAddr());
   const [addrError, setAddrError] = useState("");
+  const [cityOther, setCityOther] = useState(false);
+  const listedCities = shipping.adminDriven
+    ? shipping.governorates.find((g) => g.name === form.governorate)?.cities ?? []
+    : shipping.zones.map((z) => z.city);
+  const otherSelected = shipping.adminDriven && (cityOther || (!!form.city && !listedCities.includes(form.city)));
 
-  const openNew = () => { setForm(emptyAddr(customer.name, customer.phone)); setEditId(null); setAddrError(""); setModal(true); };
+  const openNew = () => { setForm(emptyAddr(customer.name, customer.phone)); setEditId(null); setAddrError(""); setCityOther(false); setModal(true); };
   const openEdit = (a: Address) => {
     setForm({
       label: a.label, fullName: a.fullName, phone: a.phone, governorate: a.governorate, city: a.city,
       building: a.building, street: a.street, notes: a.notes, isDefault: a.isDefault,
     });
-    setEditId(a.id); setAddrError(""); setModal(true);
+    setEditId(a.id); setAddrError(""); setCityOther(false); setModal(true);
   };
   const saveAddress = async () => {
     setBusy(true); setAddrError("");
@@ -207,7 +212,7 @@ export default function AccountClient({
               </div>
               <div>
                 <label className={lbl}>Governorate</label>
-                <select className={input} value={form.governorate} onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value, city: shipping.adminDriven ? "" : f.city }))}>
+                <select className={input} value={form.governorate} onChange={(e) => { setCityOther(false); setForm((f) => ({ ...f, governorate: e.target.value, city: shipping.adminDriven ? "" : f.city })); }}>
                   <option value="">Select…</option>
                   {govOptions.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
@@ -215,18 +220,24 @@ export default function AccountClient({
               <div>
                 <label className={lbl}>City</label>
                 {shipping.hasZones ? (
-                  <select
-                    className={input}
-                    value={form.city}
-                    disabled={shipping.adminDriven && !form.governorate}
-                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                  >
-                    <option value="">{shipping.adminDriven && !form.governorate ? "Choose a governorate first" : "Select…"}</option>
-                    {(shipping.adminDriven
-                      ? shipping.governorates.find((g) => g.name === form.governorate)?.cities ?? []
-                      : shipping.zones
-                    ).map((c) => <option key={c.city} value={c.city}>{c.city}</option>)}
-                  </select>
+                  <div className="space-y-2">
+                    <select
+                      className={input}
+                      value={otherSelected ? "__other__" : form.city}
+                      disabled={shipping.adminDriven && !form.governorate}
+                      onChange={(e) => {
+                        if (e.target.value === "__other__") { setCityOther(true); setForm((f) => ({ ...f, city: "" })); }
+                        else { setCityOther(false); setForm((f) => ({ ...f, city: e.target.value })); }
+                      }}
+                    >
+                      <option value="">{shipping.adminDriven && !form.governorate ? "Choose a governorate first" : "Select…"}</option>
+                      {listedCities.map((c) => <option key={c} value={c}>{c}</option>)}
+                      {shipping.adminDriven && <option value="__other__">Other (not listed)</option>}
+                    </select>
+                    {otherSelected && (
+                      <input className={input} placeholder="Type your city / area" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
+                    )}
+                  </div>
                 ) : (
                   <input className={input} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
                 )}

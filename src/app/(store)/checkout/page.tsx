@@ -45,18 +45,22 @@ export default function CheckoutPage() {
   const [selectedAddr, setSelectedAddr] = useState<string>("new");
   const [saveAddress, setSaveAddress] = useState(true);
   const [payOption, setPayOption] = useState<"deposit" | "full">("deposit");
+  const [cityOther, setCityOther] = useState(false);
   const [shipping, setShipping] = useState<ShippingConfig>({ adminDriven: false, governorates: [], zones: [], hasZones: false });
   const [form, setForm] = useState({
     name: "", email: "", phone: "", governorate: "", city: "", building: "", address: "",
   });
 
   // Cities available for a governorate (admin-managed), or the flat list (old setup)
-  const cityList = (cfg: ShippingConfig, gov: string) =>
-    cfg.adminDriven ? cfg.governorates.find((g) => g.name === gov)?.cities ?? [] : cfg.zones;
+  const cityNames = (cfg: ShippingConfig, gov: string): string[] =>
+    cfg.adminDriven ? cfg.governorates.find((g) => g.name === gov)?.cities ?? [] : cfg.zones.map((z) => z.city);
   const adminDriven = shipping.adminDriven;
   const hasZones = shipping.hasZones;
-  const cityOptions = cityList(shipping, form.governorate);
+  const cityOptions = cityNames(shipping, form.governorate);
   const govOptions = adminDriven ? shipping.governorates.map((g) => g.name) : EGYPT_GOVERNORATES;
+  const govPrice = (name: string) => shipping.governorates.find((g) => g.name === name)?.price ?? 0;
+  // With governorates, a customer whose city isn't listed picks "Other" and types it
+  const otherSelected = adminDriven && (cityOther || (!!form.city && !cityOptions.includes(form.city)));
 
   useEffect(() => {
     if (items.length === 0) router.push("/cart");
@@ -71,7 +75,8 @@ export default function CheckoutPage() {
           if (!cfg.hasZones) return f;
           const govOk = !cfg.adminDriven || cfg.governorates.some((g) => g.name === f.governorate);
           const gov = govOk ? f.governorate : "";
-          const city = !govOk || !cityList(cfg, gov).some((c) => c.city === f.city) ? "" : f.city;
+          // governorates accept any typed city; the older flat list only accepts listed cities
+          const city = !govOk ? "" : !cfg.adminDriven && !cityNames(cfg, gov).includes(f.city) ? "" : f.city;
           return gov === f.governorate && city === f.city ? f : { ...f, governorate: gov, city };
         });
       })
@@ -82,8 +87,11 @@ export default function CheckoutPage() {
     setSelectedAddr(a.id);
     setForm((f) => ({
       ...f, name: a.fullName || f.name, phone: a.phone || f.phone,
-      governorate: a.governorate,
-      city: hasZones && !cityList(shipping, a.governorate).some((c) => c.city === a.city) ? "" : a.city,
+      governorate: adminDriven && !shipping.governorates.some((g) => g.name === a.governorate) ? "" : a.governorate,
+      city:
+        adminDriven
+          ? shipping.governorates.some((g) => g.name === a.governorate) ? a.city : ""
+          : hasZones && !cityNames(shipping, a.governorate).includes(a.city) ? "" : a.city,
       building: a.building, address: a.street,
     }));
   };
@@ -144,7 +152,7 @@ export default function CheckoutPage() {
   const afterDiscount = Math.max(0, cartTotal - discount);
   const freeMin = paySettings.freeShippingMin || 0;
   const freeShippingApplied = !!quote?.freeShippingApplied;
-  const cityFee = cityOptions.find((c) => c.city === form.city)?.price ?? 0;
+  const cityFee = adminDriven ? govPrice(form.governorate) : shipping.zones.find((z) => z.city === form.city)?.price ?? 0;
   const shippingFee = quote?.shippingFee ?? 0;
   const finalTotal = quote?.total ?? cartTotal;
   // Deposit: pay part now, the rest on delivery (rules are set in the admin)
@@ -330,12 +338,16 @@ export default function CheckoutPage() {
                           id="governorate"
                           value={form.governorate}
                           autoComplete="address-level1"
-                          onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value, city: adminDriven ? "" : f.city }))}
+                          onChange={(e) => { setCityOther(false); setForm((f) => ({ ...f, governorate: e.target.value, city: adminDriven ? "" : f.city })); }}
                           onBlur={() => setTouched((t) => ({ ...t, governorate: true }))}
                           className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("governorate") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                         >
                           <option value="">Select your governorate</option>
-                          {govOptions.map((g) => <option key={g} value={g}>{g}</option>)}
+                          {govOptions.map((g) => (
+                            <option key={g} value={g}>
+                              {g}{adminDriven ? ` — ${govPrice(g) > 0 ? formatPrice(govPrice(g)) : "Free shipping"}` : ""}
+                            </option>
+                          ))}
                         </select>
                         <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
                           <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -351,26 +363,45 @@ export default function CheckoutPage() {
                       City {mark(isRequired("city"))}
                     </label>
                     {hasZones ? (
-                      <div className="relative">
-                        <select
-                          id="city"
-                          value={form.city}
-                          autoComplete="address-level2"
-                          onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                          onBlur={() => setTouched((t) => ({ ...t, city: true }))}
-                          disabled={adminDriven && !form.governorate}
-                          className={`${inputCls} appearance-none pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${fieldError("city") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
-                        >
-                          <option value="">{adminDriven && !form.governorate ? "Select a governorate first" : "Select your city"}</option>
-                          {cityOptions.map((z) => (
-                            <option key={z.city} value={z.city}>
-                              {z.city} — {z.price > 0 ? formatPrice(z.price) : "Free shipping"}
-                            </option>
-                          ))}
-                        </select>
-                        <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
-                          <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-                        </svg>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <select
+                            id="city"
+                            value={otherSelected ? "__other__" : form.city}
+                            autoComplete="address-level2"
+                            onChange={(e) => {
+                              if (e.target.value === "__other__") { setCityOther(true); setForm((f) => ({ ...f, city: "" })); }
+                              else { setCityOther(false); setForm((f) => ({ ...f, city: e.target.value })); }
+                            }}
+                            onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                            disabled={adminDriven && !form.governorate}
+                            className={`${inputCls} appearance-none pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${fieldError("city") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
+                          >
+                            <option value="">{adminDriven && !form.governorate ? "Select a governorate first" : "Select your city"}</option>
+                            {cityOptions.map((c) => (
+                              <option key={c} value={c}>
+                                {adminDriven ? c : `${c} — ${(shipping.zones.find((z) => z.city === c)?.price ?? 0) > 0 ? formatPrice(shipping.zones.find((z) => z.city === c)?.price ?? 0) : "Free shipping"}`}
+                              </option>
+                            ))}
+                            {adminDriven && <option value="__other__">Other (my city isn&apos;t listed)</option>}
+                          </select>
+                          <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                            <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                          </svg>
+                        </div>
+                        {otherSelected && (
+                          <input
+                            id="city-other"
+                            type="text"
+                            autoFocus
+                            autoComplete="address-level2"
+                            placeholder="Type your city / area"
+                            value={form.city}
+                            onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                            onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                            className={`${inputCls} ${fieldError("city") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
+                          />
+                        )}
                       </div>
                     ) : (
                       <input
@@ -384,9 +415,9 @@ export default function CheckoutPage() {
                       />
                     )}
                     {fieldError("city") && <p className="text-[11px] text-red-600 mt-1">{fieldError("city")}</p>}
-                    {form.city && hasZones && (
+                    {(adminDriven ? form.governorate : form.city) && hasZones && (
                       <p className="text-[11px] text-[#8A7E6E] mt-1.5">
-                        Delivery to {form.city}: {shippingFee > 0 ? formatPrice(shippingFee) : "free"}
+                        Delivery to {adminDriven ? form.governorate : form.city}: {shippingFee > 0 ? formatPrice(shippingFee) : "free"}
                         {freeShippingApplied && cityFee > 0 ? " (free shipping applied)" : ""}
                       </p>
                     )}
@@ -707,7 +738,7 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between text-[#5A5040]">
                 <span>Shipping</span>
-                <span>{freeShippingApplied ? "Free" : !form.city && hasZones ? "Select city" : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
+                <span>{freeShippingApplied ? "Free" : !(adminDriven ? form.governorate : form.city) && hasZones ? (adminDriven ? "Select governorate" : "Select city") : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
               </div>
               <div className="pt-3 border-t border-[#E0D8C4] flex justify-between font-medium">
                 <span>Total</span>

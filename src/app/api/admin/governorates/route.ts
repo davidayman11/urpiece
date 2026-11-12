@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
   const body = await req.json();
+  const price = Math.max(0, Number(body.shippingPrice) || 0);
   const names: string[] = (Array.isArray(body.names) ? body.names : [body.name])
     .map((n: unknown) => String(n || "").trim())
     .filter(Boolean);
@@ -27,6 +28,6 @@ export async function POST(req: NextRequest) {
   if (fresh.length === 0) return NextResponse.json({ error: "That governorate already exists" }, { status: 400 });
 
   const start = await prisma.governorate.count();
-  await prisma.governorate.createMany({ data: fresh.map((name, i) => ({ name, sortOrder: start + i })) });
+  await prisma.governorate.createMany({ data: fresh.map((name, i) => ({ name, shippingPrice: price, sortOrder: start + i })) });
   return NextResponse.json({ added: fresh.length }, { status: 201 });
 }
