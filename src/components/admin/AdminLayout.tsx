@@ -1,5 +1,6 @@
 "use client";
 
+import NotificationsButton from "@/components/admin/NotificationsButton";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -111,6 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </svg>
           </button>
           <div className="flex-1" />
+          <NotificationsButton />
           <span className="text-sm text-gray-500">Admin</span>
         </header>
 

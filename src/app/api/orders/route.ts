@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { getCustomer } from "@/lib/customer-auth";
 import { loadShipping } from "@/lib/shipping";
 import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
+import { pushToAdmins } from "@/lib/push";
 
 export async function POST(req: NextRequest) {
   const t = await getT();
@@ -215,6 +216,14 @@ export async function POST(req: NextRequest) {
         console.error("Could not save address:", e);
       }
     }
+
+    after(() =>
+      pushToAdmins({
+        title: "New order " + order.orderNumber,
+        body: `${orderName} · EGP ${Math.round(total)}`,
+        url: `/admin/orders/${order.id}`,
+      })
+    );
 
     return NextResponse.json({ orderNumber: order.orderNumber, accessToken }, { status: 201 });
   } catch (error) {
