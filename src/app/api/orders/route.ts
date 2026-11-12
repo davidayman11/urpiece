@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/utils";
 import { put } from "@vercel/blob";
+import { salePrice } from "@/lib/pricing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,9 +13,7 @@ export async function POST(req: NextRequest) {
     const address = fd.get("address") as string;
     const city = fd.get("city") as string | null;
     const itemsJson = fd.get("items") as string;
-    const subtotal = parseFloat(fd.get("subtotal") as string);
-    const discount = parseFloat((fd.get("discount") as string) || "0");
-    const total = parseFloat(fd.get("total") as string);
+    const discount = Math.max(0, parseFloat((fd.get("discount") as string) || "0") || 0);
     const promoCode = fd.get("promoCode") as string | null;
     const screenshot = fd.get("screenshot") as File | null;
 
@@ -30,12 +29,26 @@ export async function POST(req: NextRequest) {
       items.map(async (item) => {
         const variant = await prisma.variant.findUnique({
           where: { id: item.variantId },
+          include: { product: { select: { salePercent: true } } },
         });
         if (!variant) throw new Error(`Variant ${item.variantId} not found`);
         if (variant.inventory < item.quantity) throw new Error(`Insufficient stock for ${item.productName}`);
-        return { ...item, costPrice: variant.costPrice };
+        return { ...item, price: salePrice(variant.price, variant.product.salePercent), costPrice: variant.costPrice };
       })
     );
+
+    // Prices and shipping are computed on the server
+    const subtotal = enrichedItems.reduce((s, i) => s + i.price * i.quantity, 0);
+    let shippingFee = 0;
+    const zoneCount = await prisma.shippingZone.count({ where: { isActive: true } });
+    if (zoneCount > 0) {
+      const zone = city ? await prisma.shippingZone.findFirst({ where: { city, isActive: true } }) : null;
+      if (!zone) {
+        return NextResponse.json({ error: "Please select a valid city" }, { status: 400 });
+      }
+      shippingFee = zone.price;
+    }
+    const total = Math.max(0, subtotal - discount) + shippingFee;
 
     // Handle screenshot upload
     let screenshotPath: string | null = null;
@@ -74,6 +87,7 @@ export async function POST(req: NextRequest) {
           shippingAddress: JSON.stringify({ address, city }),
           subtotal,
           discount,
+          shippingFee,
           total,
           promoCodeId: promoCodeRecord?.id,
           promoCodeUsed: promoCode || undefined,

@@ -3,12 +3,20 @@
 import { useState } from "react";
 import type { PaymentSettings } from "@prisma/client";
 
+type ExtraField = { id: string; label: string; value: string; type: "text" | "link" | "qr" };
+
+function parseExtra(raw?: string | null): ExtraField[] {
+  try { const v = JSON.parse(raw || "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+
 export default function SettingsClient({ settings }: { settings: PaymentSettings | null }) {
   const [form, setForm] = useState({
     instapayId: settings?.instapayId || "",
     instapayPhone: settings?.instapayPhone || "",
     instructions: settings?.instructions || "Transfer the total amount via InstaPay. Upload your receipt screenshot after the transfer.",
   });
+  const [extra, setExtra] = useState<ExtraField[]>(parseExtra(settings?.extraFields));
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -17,11 +25,26 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
     const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, extraFields: extra }),
     });
     setSaving(false);
     if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
     else alert("Failed to save");
+  };
+
+  const updateExtra = (id: string, patch: Partial<ExtraField>) =>
+    setExtra((list) => list.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+
+  const uploadQr = async (id: string, file: File) => {
+    setUploadingId(id);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", "payment");
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setUploadingId(null);
+    if (data.url) updateExtra(id, { value: data.url });
+    else alert(data.error || "Upload failed");
   };
 
   return (
@@ -55,6 +78,74 @@ export default function SettingsClient({ settings }: { settings: PaymentSettings
             className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
           />
         </div>
+
+        {/* Custom fields */}
+        <div className="pt-2 border-t border-gray-100 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">Extra payment info</h3>
+            <button
+              onClick={() =>
+                setExtra((l) => [...l, { id: Math.random().toString(36).slice(2), label: "", value: "", type: "text" }])
+              }
+              className="text-xs text-[#A8975E] hover:underline"
+            >
+              + Add field
+            </button>
+          </div>
+          <p className="text-xs text-gray-400">
+            Add anything else customers need to pay: another wallet, a payment link, or a QR code. Shown on the checkout payment step.
+          </p>
+          {extra.map((f) => (
+            <div key={f.id} className="border border-gray-100 rounded p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={f.label}
+                  onChange={(e) => updateExtra(f.id, { label: e.target.value })}
+                  placeholder="Label (e.g. Vodafone Cash)"
+                  className="border border-gray-200 rounded px-3 py-2 text-sm"
+                />
+                <select
+                  value={f.type}
+                  onChange={(e) => updateExtra(f.id, { type: e.target.value as ExtraField["type"], value: "" })}
+                  className="border border-gray-200 rounded px-3 py-2 text-sm"
+                >
+                  <option value="text">Text</option>
+                  <option value="link">Link</option>
+                  <option value="qr">QR code (image)</option>
+                </select>
+              </div>
+              {f.type === "qr" ? (
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && uploadQr(f.id, e.target.files[0])}
+                    className="text-sm text-gray-500"
+                  />
+                  {uploadingId === f.id && <p className="text-xs text-[#A8975E]">Uploading...</p>}
+                  {f.value && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.value} alt="QR" className="w-28 h-28 object-contain border border-gray-100 rounded" />
+                  )}
+                </div>
+              ) : (
+                <input
+                  value={f.value}
+                  onChange={(e) => updateExtra(f.id, { value: e.target.value })}
+                  placeholder={f.type === "link" ? "https://..." : "Value"}
+                  className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                />
+              )}
+              <button
+                onClick={() => setExtra((l) => l.filter((x) => x.id !== f.id))}
+                className="text-xs text-red-500 hover:underline"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+
         <button
           onClick={save}
           disabled={saving}

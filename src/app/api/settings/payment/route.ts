@@ -8,5 +8,6 @@ export async function GET() {
     instapayId: settings.instapayId,
     instapayPhone: settings.instapayPhone,
     instructions: settings.instructions,
+    extraFields: (() => { try { return JSON.parse(settings.extraFields || "[]"); } catch { return []; } })(),
   });
 }

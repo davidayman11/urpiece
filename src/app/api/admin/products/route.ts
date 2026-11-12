@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { name, slug, description, categoryId, isActive, isFeatured, images, variants } = body;
+  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent } = body;
 
   if (!name || !variants?.length) {
     return NextResponse.json({ error: "Name and at least one variant are required" }, { status: 400 });
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       categoryId: categoryId || null,
       isActive: isActive ?? true,
       isFeatured: isFeatured ?? false,
+      salePercent: Math.min(100, Math.max(0, Number(salePercent) || 0)),
       images: JSON.stringify(images || []),
       variants: {
         create: variants.map((v: { name: string; price: number; costPrice: number; inventory: number; sku?: string; options?: string }) => ({

@@ -10,6 +10,7 @@ interface PaymentSettings {
   instapayId?: string;
   instapayPhone?: string;
   instructions?: string;
+  extraFields?: { id: string; label: string; value: string; type: "text" | "link" | "qr" }[];
 }
 
 type CheckoutStep = "details" | "payment" | "confirm";
@@ -25,6 +26,7 @@ export default function CheckoutPage() {
   const [promoData, setPromoData] = useState<{ discount: number; code: string } | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [zones, setZones] = useState<{ city: string; price: number }[]>([]);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", address: "", city: "",
   });
@@ -32,11 +34,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (items.length === 0) router.push("/cart");
     fetch("/api/settings/payment").then((r) => r.json()).then(setPaySettings).catch(() => {});
+    fetch("/api/shipping").then((r) => r.json()).then((z) => Array.isArray(z) && setZones(z)).catch(() => {});
   }, [items, router]);
 
   const cartTotal = total();
   const discount = promoData?.discount || 0;
-  const finalTotal = Math.max(0, cartTotal - discount);
+  const shippingFee = zones.find((z) => z.city === form.city)?.price ?? 0;
+  const finalTotal = Math.max(0, cartTotal - discount) + shippingFee;
 
   const applyPromo = async () => {
     setPromoError("");
@@ -62,9 +66,7 @@ export default function CheckoutPage() {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       fd.append("screenshot", screenshotFile);
       fd.append("items", JSON.stringify(items));
-      fd.append("subtotal", String(cartTotal));
       fd.append("discount", String(discount));
-      fd.append("total", String(finalTotal));
       if (promoData) fd.append("promoCode", promoData.code);
 
       const res = await fetch("/api/orders", { method: "POST", body: fd });
@@ -111,12 +113,27 @@ export default function CheckoutPage() {
                 ].map(({ field, label, type }) => (
                   <div key={field}>
                     <label className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">{label}</label>
+                    {field === "city" && zones.length > 0 ? (
+                      <select
+                        value={form.city}
+                        onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                        className="w-full border border-[#EDE6D4] bg-transparent px-4 py-3 text-sm text-[#1C1711] focus:border-[#A8975E] outline-none"
+                      >
+                        <option value="">Select your city</option>
+                        {zones.map((z) => (
+                          <option key={z.city} value={z.city}>
+                            {z.city} — {z.price > 0 ? formatPrice(z.price) : "Free shipping"}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
                     <input
                       type={type}
                       value={form[field as keyof typeof form]}
                       onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
                       className="w-full border border-[#EDE6D4] bg-transparent px-4 py-3 text-sm text-[#1C1711] focus:border-[#A8975E] outline-none"
                     />
+                    )}
                   </div>
                 ))}
 
@@ -146,6 +163,7 @@ export default function CheckoutPage() {
                 <button
                   onClick={() => {
                     if (!form.name || !form.email || !form.address) return alert("Please fill all required fields");
+                    if (zones.length > 0 && !form.city) return alert("Please select your city");
                     setStep("payment");
                   }}
                   className="w-full bg-[#A8975E] text-[#F5EFE2] py-3.5 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors"
@@ -177,6 +195,21 @@ export default function CheckoutPage() {
                       <p className="text-lg font-medium text-[#1C1711]">{paySettings.instapayPhone}</p>
                     </div>
                   )}
+                  {(paySettings.extraFields || []).map((f) => (
+                    <div key={f.id} className="p-4 bg-[#F5EFE2] text-center">
+                      {f.label && <p className="text-xs text-[#8A7E6E] mb-1">{f.label}</p>}
+                      {f.type === "qr" && f.value ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={f.value} alt={f.label || "QR code"} className="mx-auto w-44 h-44 object-contain" />
+                      ) : f.type === "link" && f.value ? (
+                        <a href={f.value} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#A8975E] underline break-all">
+                          {f.value}
+                        </a>
+                      ) : (
+                        <p className="text-lg font-medium text-[#1C1711] break-words">{f.value}</p>
+                      )}
+                    </div>
+                  ))}
                   <div className="mt-4 p-4 bg-[#A8975E] text-center">
                     <p className="text-xs text-[#F5EFE2]/70 mb-1">Amount to Transfer</p>
                     <p className="text-2xl font-serif text-[#F5EFE2]">{formatPrice(finalTotal)}</p>
@@ -243,6 +276,12 @@ export default function CheckoutPage() {
                       <span>{formatPrice(i.price * i.quantity)}</span>
                     </div>
                   ))}
+                  {shippingFee > 0 && (
+                    <div className="flex justify-between text-sm text-[#5A5040]">
+                      <span>Shipping ({form.city})</span>
+                      <span>{formatPrice(shippingFee)}</span>
+                    </div>
+                  )}
                   {promoData && (
                     <div className="flex justify-between text-sm text-green-700">
                       <span>Discount ({promoData.code})</span>
@@ -289,6 +328,10 @@ export default function CheckoutPage() {
                   <span>−{formatPrice(discount)}</span>
                 </div>
               )}
+              <div className="flex justify-between text-[#5A5040]">
+                <span>Shipping</span>
+                <span>{!form.city && zones.length > 0 ? "Select city" : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
+              </div>
               <div className="pt-3 border-t border-[#E0D8C4] flex justify-between font-medium">
                 <span>Total</span>
                 <span className="text-[#A8975E]">{formatPrice(finalTotal)}</span>

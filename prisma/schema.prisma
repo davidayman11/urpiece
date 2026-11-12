@@ -53,6 +53,7 @@ model Product {
   variants    Variant[]
   isActive    Boolean     @default(true)
   isFeatured  Boolean     @default(false)
+  salePercent Float       @default(0)
   tags        String      @default("[]")
   views       Int         @default(0)
   orderItems  OrderItem[]
@@ -212,10 +213,21 @@ model MonthlyReport {
   @@unique([year, month])
 }
 
+model ShippingZone {
+  id        String   @id @default(cuid())
+  city      String   @unique
+  price     Float    @default(0)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model PaymentSettings {
   id          String   @id @default(cuid())
   instapayId  String?
   instapayPhone String?
   instructions String?
+  extraFields String   @default("[]")
   updatedAt   DateTime @updatedAt
 }

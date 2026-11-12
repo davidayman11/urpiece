@@ -8,7 +8,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   const body = await req.json();
-  const { name, slug, description, categoryId, isActive, isFeatured, images, variants } = body;
+  const { name, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent } = body;
 
   // Update product
   const product = await prisma.product.update({
@@ -20,6 +20,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       categoryId: categoryId || null,
       isActive,
       isFeatured,
+      salePercent: Math.min(100, Math.max(0, Number(salePercent) || 0)),
       images: JSON.stringify(images || []),
     },
   });

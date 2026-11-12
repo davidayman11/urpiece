@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
+import { salePrice } from "@/lib/pricing";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
@@ -19,6 +20,7 @@ export default function ProductCard({ product }: Props) {
   const maxPrice = product.variants.length > 0
     ? Math.max(...product.variants.map((v) => v.price))
     : 0;
+  const sale = product.salePercent > 0 ? product.salePercent : 0;
   const totalInventory = product.variants.reduce((s, v) => s + v.inventory, 0);
   const inStock = totalInventory > 0;
   const isLowStock = inStock && totalInventory <= 5;
@@ -82,6 +84,11 @@ export default function ProductCard({ product }: Props) {
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          {sale > 0 && (
+            <span className="bg-[#B23A3A] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">
+              -{sale}%
+            </span>
+          )}
           {!inStock && (
             <span className="bg-[#1C1711] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">
               Out of Stock
@@ -111,9 +118,16 @@ export default function ProductCard({ product }: Props) {
           {product.name}
         </h3>
         <p className="mt-1.5 text-sm text-[#5A5040] tabular-nums">
-          {minPrice === maxPrice
-            ? formatPrice(minPrice)
-            : `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`}
+          {sale > 0 && (
+            <span className="line-through text-[#8A7E6E] mr-2">
+              {minPrice === maxPrice ? formatPrice(minPrice) : `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`}
+            </span>
+          )}
+          {(() => {
+            const lo = salePrice(minPrice, sale);
+            const hi = salePrice(maxPrice, sale);
+            return lo === hi ? formatPrice(lo) : `${formatPrice(lo)} – ${formatPrice(hi)}`;
+          })()}
         </p>
       </div>
     </Link>
