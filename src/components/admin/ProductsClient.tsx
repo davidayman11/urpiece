@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatPrice, parseJson, slugify } from "@/lib/utils";
 import { salePrice, saleLabel, saleStatus, activeSaleValue } from "@/lib/pricing";
-import { parseImgs, coverImage } from "@/lib/product-images";
+import { parseImgs, coverImage, mergePhotos, type PhotoForm } from "@/lib/product-images";
 
 // ISO <-> <input type="datetime-local"> (local time)
 const toLocalInput = (d?: Date | string | null) => {
@@ -53,8 +53,7 @@ interface ProductForm {
   variants: VariantForm[];
 }
 
-/** variantKey "" = shown for every variant */
-interface PhotoForm { url: string; variantKey: string }
+
 
 const emptyVariant = (): VariantForm => ({
   key: `new-${Math.random().toString(36).slice(2)}`,
@@ -74,7 +73,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadFor, setUploadFor] = useState(""); // which variant new photos belong to ("" = all)
+  const [pickerFor, setPickerFor] = useState<string | null>(null); // variant whose "choose from product photos" panel is open
   const [search, setSearch] = useState("");
   const [onlyLow, setOnlyLow] = useState(initialLow);
   const [threshold, setThreshold] = useState(String(lowStockThreshold));
@@ -99,10 +98,10 @@ export default function ProductsClient({ products: initial, categories, lowStock
       saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
       saleStartsAt: toLocalInput(p.saleStartsAt),
       saleEndsAt: toLocalInput(p.saleEndsAt),
-      images: [
-        ...parseImgs(p.images).map((url) => ({ url, variantKey: "" })),
-        ...p.variants.flatMap((v) => parseImgs(v.images).map((url) => ({ url, variantKey: v.id }))),
-      ],
+      images: mergePhotos(
+        parseImgs(p.images).map((url) => ({ url, variantKeys: [] as string[] })),
+        p.variants.flatMap((v) => parseImgs(v.images).map((url) => ({ url, variantKeys: [v.id] }))),
+      ),
       variants: p.variants.map((v) => ({
         id: v.id, key: v.id, name: v.name, price: String(v.price), costPrice: String(v.costPrice),
         inventory: String(v.inventory), options: v.options, sku: v.sku || "",
@@ -111,10 +110,10 @@ export default function ProductsClient({ products: initial, categories, lowStock
     setModal("edit");
   };
 
-  const uploadImages = async (files: FileList) => {
+  /** Upload photos. `forKey` = a variant key to attach them to, or "" for general (all variants) photos. */
+  const uploadImages = async (files: FileList, forKey = "") => {
     setUploading(true);
     const urls: string[] = [];
-    const target = uploadFor;
     for (const file of Array.from(files)) {
       const fd = new FormData();
       fd.append("file", file);
@@ -123,9 +122,18 @@ export default function ProductsClient({ products: initial, categories, lowStock
       const data = await res.json();
       if (data.url) urls.push(data.url);
     }
-    setForm((f) => ({ ...f, images: [...f.images, ...urls.map((url) => ({ url, variantKey: target }))] }));
+    setForm((f) => ({ ...f, images: [...f.images, ...urls.map((url) => ({ url, variantKeys: forKey ? [forKey] : [] }))] }));
     setUploading(false);
   };
+
+  /** Tick / untick a product photo for one variant. Unticking the last variant returns it to "all variants". */
+  const togglePhotoForVariant = (url: string, key: string) =>
+    setForm((f) => ({
+      ...f,
+      images: f.images.map((p) =>
+        p.url !== url ? p : { ...p, variantKeys: p.variantKeys.includes(key) ? p.variantKeys.filter((k) => k !== key) : [...p.variantKeys, key] }
+      ),
+    }));
 
   const save = async () => {
     setSaving(true);
@@ -405,16 +413,6 @@ export default function ProductsClient({ products: initial, categories, lowStock
                   onChange={(e) => e.target.files && uploadImages(e.target.files)}
                   className="text-sm text-gray-500"
                 />
-                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                  New photos are for
-                  <select value={uploadFor} onChange={(e) => setUploadFor(e.target.value)} className="border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-                    <option value="">All variants</option>
-                    {form.variants.map((v, vi) => (
-                      <option key={v.key} value={v.key}>{v.name || `Variant ${vi + 1}`} only</option>
-                    ))}
-                  </select>
-                  <span className="text-gray-400">(choose before you upload; you can change each photo afterwards)</span>
-                </div>
                 {uploading && <p className="text-xs text-[#A8975E] mt-1">Uploading...</p>}
                 {form.images.length > 0 && (
                   <div className="flex gap-3 mt-3 flex-wrap">
@@ -428,23 +426,17 @@ export default function ProductsClient({ products: initial, categories, lowStock
                             aria-label="Remove photo"
                           >×</button>
                         </div>
-                        <select
-                          value={img.variantKey}
-                          onChange={(e) => setForm((f) => ({ ...f, images: f.images.map((x, j) => (j === i ? { ...x, variantKey: e.target.value } : x)) }))}
-                          className="mt-1 w-full border border-gray-200 rounded px-1 py-1 text-[11px] bg-white"
-                          title="Which variant this photo is for"
-                        >
-                          <option value="">All variants</option>
-                          {form.variants.map((v, vi) => (
-                            <option key={v.key} value={v.key}>{v.name || `Variant ${vi + 1}`} only</option>
-                          ))}
-                        </select>
+                        <p className="mt-1 text-[10px] leading-tight text-gray-500">
+                          {img.variantKeys.length === 0
+                            ? "Shown for all variants"
+                            : img.variantKeys.map((k) => form.variants.find((v) => v.key === k)?.name || "Variant").join(", ")}
+                        </p>
                       </div>
                     ))}
                   </div>
                 )}
                 <p className="text-[11px] text-gray-400 mt-2">
-                  Tip: choose &quot;Gold only&quot; under a photo and customers will see it when they pick Gold. Photos marked &quot;All variants&quot; always show.
+                  Photos here show for every variant. To show a photo only for one variant (e.g. Gold), pick it inside that variant below.
                 </p>
               </div>
 
@@ -515,9 +507,79 @@ export default function ProductsClient({ products: initial, categories, lowStock
                           Profit: {formatPrice(parseFloat(v.price) - parseFloat(v.costPrice))} / unit
                         </p>
                       )}
+                      {/* Photos for this variant */}
+                      <div className="pt-2 border-t border-gray-50">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <label className="text-[10px] text-gray-400">Photos for this variant</label>
+                          <div className="flex items-center gap-3 text-xs">
+                            {form.images.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setPickerFor(pickerFor === v.key ? null : v.key)}
+                                className="text-[#A8975E] hover:underline"
+                              >
+                                {pickerFor === v.key ? "Done" : "Choose from product photos"}
+                              </button>
+                            )}
+                            <label className="text-[#A8975E] hover:underline cursor-pointer">
+                              + Upload new
+                              <input
+                                type="file" accept="image/*" multiple className="hidden"
+                                onChange={(e) => { if (e.target.files) uploadImages(e.target.files, v.key); e.target.value = ""; }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* this variant's photos */}
+                        {form.images.some((p) => p.variantKeys.includes(v.key)) ? (
+                          <div className="flex gap-2 flex-wrap">
+                            {form.images.filter((p) => p.variantKeys.includes(v.key)).map((p) => (
+                              <div key={p.url} className="relative w-14 h-14">
+                                <Image src={p.url} alt="" fill className="object-cover rounded" />
+                                <button
+                                  type="button"
+                                  onClick={() => togglePhotoForVariant(p.url, v.key)}
+                                  className="absolute -top-1 -right-1 w-4 h-4 bg-gray-700 text-white rounded-full text-[10px] flex items-center justify-center"
+                                  aria-label="Remove photo from this variant"
+                                >×</button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-gray-400">No special photos — customers see the product&apos;s general photos.</p>
+                        )}
+                        {uploading && <p className="text-xs text-[#A8975E] mt-1">Uploading...</p>}
+
+                        {/* picker: pick from the photos already uploaded for this product */}
+                        {pickerFor === v.key && (
+                          <div className="mt-3 p-2 bg-gray-50 rounded">
+                            <p className="text-[11px] text-gray-500 mb-2">Tap photos to use them for {v.name || "this variant"}. A photo can be used by more than one variant.</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {form.images.map((p) => {
+                                const on = p.variantKeys.includes(v.key);
+                                return (
+                                  <button
+                                    type="button"
+                                    key={p.url}
+                                    onClick={() => togglePhotoForVariant(p.url, v.key)}
+                                    className={`relative w-16 h-16 rounded overflow-hidden border-2 ${on ? "border-[#A8975E]" : "border-transparent opacity-70 hover:opacity-100"}`}
+                                    aria-pressed={on}
+                                  >
+                                    <Image src={p.url} alt="" fill className="object-cover" />
+                                    {on && (
+                                      <span className="absolute inset-0 bg-[#A8975E]/30 flex items-center justify-center text-white text-lg">✓</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       {form.variants.length > 1 && (
                         <button
-                          onClick={() => setForm((f) => ({ ...f, variants: f.variants.filter((_, j) => j !== i), images: f.images.map((x) => (x.variantKey === v.key ? { ...x, variantKey: "" } : x)) }))}
+                          onClick={() => setForm((f) => ({ ...f, variants: f.variants.filter((_, j) => j !== i), images: f.images.map((x) => ({ ...x, variantKeys: x.variantKeys.filter((k) => k !== v.key) })) }))}
                           className="text-xs text-red-500 hover:underline"
                         >
                           Remove variant

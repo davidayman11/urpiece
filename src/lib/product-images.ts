@@ -29,16 +29,33 @@ export function coverImage(productImages: string, variants: { images?: string }[
 }
 
 /**
- * The admin form sends photos as { url, variantKey }. variantKey "" = shown for every variant,
- * otherwise it names the variant (existing variant id, or a temporary key for a new one).
- * Plain strings (older clients) count as general photos.
+ * The admin form sends photos as { url, variantKeys: string[] }. An empty list = shown for every variant,
+ * otherwise the photo belongs to the named variants (existing variant id, or a temporary key for a new one).
+ * Older shapes ({ url, variantKey } or plain strings) are still understood.
  */
 export function splitPhotos(raw: unknown): { general: string[]; forVariant: (key: string) => string[] } {
   const list = (Array.isArray(raw) ? raw : [])
-    .map((i) => (typeof i === "string" ? { url: i, variantKey: "" } : { url: String(i?.url || ""), variantKey: String(i?.variantKey || "") }))
+    .map((i) => {
+      if (typeof i === "string") return { url: i, keys: [] as string[] };
+      const keys = Array.isArray(i?.variantKeys) ? i.variantKeys : i?.variantKey ? [i.variantKey] : [];
+      return { url: String(i?.url || ""), keys: keys.map(String).filter(Boolean) };
+    })
     .filter((i) => i.url);
   return {
-    general: list.filter((i) => !i.variantKey).map((i) => i.url),
-    forVariant: (key) => list.filter((i) => i.variantKey === key).map((i) => i.url),
+    general: list.filter((i) => i.keys.length === 0).map((i) => i.url),
+    forVariant: (key) => list.filter((i) => i.keys.includes(key)).map((i) => i.url),
   };
+}
+
+export interface PhotoForm { url: string; variantKeys: string[] }
+
+/** Same photo used by several variants becomes one photo with several keys; general photos stay general. */
+export function mergePhotos(general: PhotoForm[], perVariant: PhotoForm[]): PhotoForm[] {
+  const out = general.map((g) => ({ ...g, variantKeys: [...g.variantKeys] }));
+  for (const p of perVariant) {
+    const hit = out.find((o) => o.url === p.url);
+    if (hit && hit.variantKeys.length > 0) hit.variantKeys = [...new Set([...hit.variantKeys, ...p.variantKeys])];
+    else if (!hit) out.push({ url: p.url, variantKeys: [...p.variantKeys] });
+  }
+  return out;
 }
