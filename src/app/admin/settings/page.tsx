@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import AdminLayout from "@/components/admin/AdminLayout";
 import SettingsClient from "@/components/admin/SettingsClient";
 import DepositClient from "@/components/admin/DepositClient";
+import ResetDataClient from "@/components/admin/ResetDataClient";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
           rules={depositRules}
         />
         <SettingsClient settings={settings} />
+        <ResetDataClient />
       </div>
     </AdminLayout>
   );
