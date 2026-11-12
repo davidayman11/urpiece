@@ -28,31 +28,31 @@ const PAGE_SLUGS = [
 const SECTION_TYPES = [
   {
     type: "hero", label: "Hero Section", page: "home",
-    fields: ["tagline", "heading", "subheading", "buttonText", "buttonUrl", "secondaryText", "secondaryUrl", "image"],
+    fields: ["tagline", "taglineColor", "heading", "headingColor", "subheading", "buttonText", "buttonUrl", "secondaryText", "secondaryUrl", "image"],
   },
   {
     type: "banner", label: "Banner", page: "home",
-    fields: ["eyebrow", "heading", "body", "buttonText", "buttonUrl", "image"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "body", "buttonText", "buttonUrl", "image"],
   },
   {
     type: "editorial", label: "Editorial / Split", page: "home",
-    fields: ["eyebrow", "heading", "body", "buttonText", "buttonUrl", "image"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "body", "buttonText", "buttonUrl", "image"],
   },
   {
     type: "categories", label: "Shop by Category Section", page: "home",
-    fields: ["eyebrow", "heading", "linkText"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText"],
   },
   {
     type: "featured", label: "Featured Products Section", page: "home",
-    fields: ["eyebrow", "heading", "linkText"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText"],
   },
   {
     type: "about", label: "About Page Content", page: "about",
-    fields: ["eyebrow", "heading", "body", "quote"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "body", "quote"],
   },
   {
     type: "contact", label: "Contact Page Content", page: "contact",
-    fields: ["eyebrow", "heading", "supportEmail", "paymentNote", "shippingNote"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "supportEmail", "paymentNote", "shippingNote"],
   },
   {
     type: "settings", label: "Site Settings (Footer / Nav)", page: "site",
@@ -79,6 +79,16 @@ const FIELD_LABELS: Record<string, string> = {
   shippingNote: "Shipping Info",
   copyright: "Copyright Line",
   linkText: "Link Text (e.g. All Pieces / View All)",
+  taglineColor: "Tagline Color",
+  eyebrowColor: "Eyebrow Text Color",
+  headingColor: "Heading Color",
+};
+
+const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor"]);
+const COLOR_DEFAULTS: Record<string, string> = {
+  taglineColor: "#A8975E",
+  eyebrowColor: "#A8975E",
+  headingColor: "#1C1711",
 };
 
 const TEXTAREA_FIELDS = new Set(["body", "subheading", "brandDescription", "paymentNote", "shippingNote", "copyright", "quote"]);
@@ -309,6 +319,30 @@ export default function PagesClient({ sections: initial }: { sections: SiteSecti
                         <div className="relative h-24 rounded overflow-hidden border border-gray-100">
                           <Image src={content[field]} alt="" fill className="object-cover" />
                         </div>
+                      )}
+                    </div>
+                  ) : COLOR_FIELDS.has(field) ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={/^#[0-9a-fA-F]{6}$/.test(content[field] || "") ? content[field] : COLOR_DEFAULTS[field]}
+                        onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
+                        className="w-10 h-9 border border-gray-200 rounded cursor-pointer bg-white p-0.5"
+                      />
+                      <input
+                        value={content[field] || ""}
+                        onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
+                        placeholder="Default (e.g. #A8975E)"
+                        className="w-40 border border-gray-200 rounded px-3 py-2 text-sm"
+                      />
+                      {content[field] && (
+                        <button
+                          type="button"
+                          onClick={() => setContent((c) => { const n = { ...c }; delete n[field]; return n; })}
+                          className="text-xs text-gray-500 hover:underline"
+                        >
+                          Reset to default
+                        </button>
                       )}
                     </div>
                   ) : URL_FIELDS.has(field) ? (

@@ -20,12 +20,12 @@ export default function CategoryGrid({ categories, content = {} }: Props) {
         <div className="flex items-end justify-between mb-10">
           <div>
             {eyebrow && (
-              <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2 flex items-center gap-3">
-                <span className="w-6 h-px bg-[#A8975E]" /> {eyebrow}
+              <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2 flex items-center gap-3" style={{ color: content.eyebrowColor || undefined }}>
+                <span className="w-6 h-px bg-[#A8975E]" style={{ backgroundColor: content.eyebrowColor || undefined }} /> {eyebrow}
               </p>
             )}
             {heading && (
-              <h2 className="font-serif text-4xl md:text-5xl font-light text-[#1C1711]">
+              <h2 className="font-serif text-4xl md:text-5xl font-light text-[#1C1711]" style={{ color: content.headingColor || undefined }}>
                 {heading}
               </h2>
             )}

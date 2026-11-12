@@ -19,10 +19,10 @@ export default async function AboutPage() {
     <div className="pt-28 pb-24 min-h-screen">
       <div className="max-w-2xl mx-auto px-6">
         {eyebrow && (
-          <p className="text-xs tracking-[0.3em] uppercase text-[#A8975E] mb-3">{eyebrow}</p>
+          <p className="text-xs tracking-[0.3em] uppercase text-[#A8975E] mb-3" style={{ color: c.eyebrowColor || undefined }}>{eyebrow}</p>
         )}
         {heading && (
-          <h1 className="font-serif text-5xl font-light text-[#1C1711] mb-8">{heading}</h1>
+          <h1 className="font-serif text-5xl font-light text-[#1C1711] mb-8" style={{ color: c.headingColor || undefined }}>{heading}</h1>
         )}
         <div className="space-y-6 text-sm text-[#5A5040] leading-relaxed">
           {paragraphs.map((p, i) => (

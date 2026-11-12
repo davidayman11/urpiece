@@ -31,11 +31,11 @@ export default function EditorialSection({ content }: Props) {
           style={imageRight ? {} : { direction: "ltr" }}
         >
           {content.eyebrow && (
-            <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-5">
+            <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-5" style={{ color: content.eyebrowColor || undefined }}>
               {content.eyebrow}
             </p>
           )}
-          <h2 className="font-serif text-3xl md:text-5xl font-light text-[#F5EFE2] leading-tight mb-6">
+          <h2 className="font-serif text-3xl md:text-5xl font-light text-[#F5EFE2] leading-tight mb-6" style={{ color: content.headingColor || undefined }}>
             {(content.heading || "").split("\n").map((line, i) => (
               <span key={i} className="block">{line}</span>
             ))}

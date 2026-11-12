@@ -66,14 +66,14 @@ export default function HeroSection({ content }: Props) {
       <div ref={textRef} className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-28 pb-24">
         <div className="max-w-xl">
           {tagline && (
-            <p className="text-[10px] tracking-[0.4em] uppercase text-[#A8975E] mb-7 flex items-center gap-3">
-              <span className="w-8 h-px bg-[#A8975E]" />
+            <p className="text-[10px] tracking-[0.4em] uppercase text-[#A8975E] mb-7 flex items-center gap-3" style={{ color: content.taglineColor || undefined }}>
+              <span className="w-8 h-px bg-[#A8975E]" style={{ backgroundColor: content.taglineColor || undefined }} />
               {tagline}
             </p>
           )}
           {heading && (
             <h1 className="font-serif leading-[1.03] text-[#F5EFE2]"
-              style={{ fontSize: "clamp(3rem, 7vw, 6rem)", fontWeight: 300 }}>
+              style={{ fontSize: "clamp(3rem, 7vw, 6rem)", fontWeight: 300, color: content.headingColor || undefined }}>
               {lines.map((line, i) => (
                 <span key={i} className="block">{line}</span>
               ))}
