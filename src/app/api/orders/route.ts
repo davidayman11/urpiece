@@ -5,6 +5,7 @@ import { put } from "@vercel/blob";
 import { quoteOrder, QuoteError } from "@/lib/pricing-engine";
 import { parseFieldModes, parseCustomFields } from "@/lib/checkout-fields";
 import { getCustomer } from "@/lib/customer-auth";
+import { loadShipping } from "@/lib/shipping";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     const settings = await prisma.paymentSettings.findFirst();
     const modes = parseFieldModes(settings?.requiredFields);
     const customDefs = parseCustomFields(settings?.customFields);
-    const activeZones = await prisma.shippingZone.count({ where: { isActive: true } });
+    const shipping = await loadShipping();
     const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
 
     if (!itemsJson) return bad("Missing required fields");
@@ -37,9 +38,9 @@ export async function POST(req: NextRequest) {
     if (modes.email === "required" && !email?.trim()) return bad("Email is required");
     if (modes.phone === "required" && !phone?.trim()) return bad("Phone number is required");
     if (modes.address === "required" && !address?.trim()) return bad("Street is required");
-    if (modes.governorate === "required" && !governorate?.trim()) return bad("Governorate is required");
+    if ((modes.governorate === "required" || shipping.adminDriven) && !governorate?.trim()) return bad("Governorate is required");
     if (modes.building === "required" && !building?.trim()) return bad("Building is required");
-    if ((modes.city === "required" || activeZones > 0) && !city?.trim()) return bad("City is required");
+    if ((modes.city === "required" || shipping.hasZones) && !city?.trim()) return bad("City is required");
 
     // Admin-defined custom fields: store answers keyed by the label (snapshot)
     let customAnswers: Record<string, string> = {};
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     // Every price, discount and the shipping fee are computed on the server
     let rawItems: { variantId: string; quantity: number }[] = [];
     try { rawItems = JSON.parse(itemsJson); } catch { return bad("Invalid cart"); }
-    const quote = await quoteOrder({ items: rawItems, promoCode, city, strict: true });
+    const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true });
     for (const l of quote.lines) {
       if (l.inventory < l.quantity) return bad(`Insufficient stock for ${l.productName}`);
     }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { productSalePrice } from "@/lib/pricing";
+import { loadShipping, findFee } from "@/lib/shipping";
 import type { PromoCode } from "@prisma/client";
 
 export class QuoteError extends Error {}
@@ -8,6 +9,7 @@ export interface QuoteInput {
   items: { variantId: string; quantity: number }[];
   promoCode?: string | null;
   city?: string | null;
+  governorate?: string | null;
   /** Orders: throw on a bad promo code / unknown city instead of returning a message */
   strict?: boolean;
 }
@@ -51,10 +53,10 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   const now = new Date();
-  const [settings, rules, zones] = await Promise.all([
+  const [settings, rules, shipping] = await Promise.all([
     prisma.paymentSettings.findFirst(),
     prisma.discountRule.findMany({ where: { isActive: true } }),
-    prisma.shippingZone.findMany({ where: { isActive: true } }),
+    loadShipping(),
   ]);
   const mode: "STACK" | "ONE" = settings?.discountMode === "ONE" ? "ONE" : "STACK";
   const salesEnabled = settings?.salesEnabled !== false;
@@ -77,12 +79,12 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   // ---- shipping city
   let cityFee = 0;
   let shippingPending = false;
-  if (zones.length > 0) {
-    const z = zones.find((x) => x.city === input.city);
-    if (z) cityFee = z.price;
+  if (shipping.hasZones) {
+    const fee = findFee(shipping, input.governorate, input.city);
+    if (fee !== null) cityFee = fee;
     else {
       shippingPending = true;
-      if (input.strict) throw new QuoteError("Please select a valid city");
+      if (input.strict) throw new QuoteError(shipping.adminDriven ? "Please select a valid governorate and city" : "Please select a valid city");
     }
   }
 

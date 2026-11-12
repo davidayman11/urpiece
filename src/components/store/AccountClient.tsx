@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EGYPT_GOVERNORATES } from "@/lib/checkout-fields";
 import type { Address } from "@prisma/client";
+import type { ShippingConfig } from "@/lib/shipping";
 
 const input =
   "w-full border border-[#EDE6D4] bg-[#FBF8F0] px-4 py-2.5 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none focus:border-[#A8975E] transition-colors";
@@ -21,8 +22,9 @@ const emptyAddr = (name = "", phone = ""): AddrForm => ({
 });
 
 export default function AccountClient({
-  customer, addresses, cities,
-}: { customer: { name: string; email: string; phone: string }; addresses: Address[]; cities: string[] }) {
+  customer, addresses, shipping,
+}: { customer: { name: string; email: string; phone: string }; addresses: Address[]; shipping: ShippingConfig }) {
+  const govOptions = shipping.adminDriven ? shipping.governorates.map((g) => g.name) : EGYPT_GOVERNORATES;
   const router = useRouter();
 
   // Profile
@@ -205,17 +207,25 @@ export default function AccountClient({
               </div>
               <div>
                 <label className={lbl}>Governorate</label>
-                <select className={input} value={form.governorate} onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value }))}>
+                <select className={input} value={form.governorate} onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value, city: shipping.adminDriven ? "" : f.city }))}>
                   <option value="">Select…</option>
-                  {EGYPT_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+                  {govOptions.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div>
                 <label className={lbl}>City</label>
-                {cities.length > 0 ? (
-                  <select className={input} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}>
-                    <option value="">Select…</option>
-                    {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                {shipping.hasZones ? (
+                  <select
+                    className={input}
+                    value={form.city}
+                    disabled={shipping.adminDriven && !form.governorate}
+                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                  >
+                    <option value="">{shipping.adminDriven && !form.governorate ? "Choose a governorate first" : "Select…"}</option>
+                    {(shipping.adminDriven
+                      ? shipping.governorates.find((g) => g.name === form.governorate)?.cities ?? []
+                      : shipping.zones
+                    ).map((c) => <option key={c.city} value={c.city}>{c.city}</option>)}
                   </select>
                 ) : (
                   <input className={input} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />

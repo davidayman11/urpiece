@@ -5,6 +5,7 @@ import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import type { Quote } from "@/lib/pricing-engine";
+import type { ShippingConfig } from "@/lib/shipping";
 import { formatAddress, EGYPT_GOVERNORATES, DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
 import Image from "next/image";
 
@@ -43,21 +44,35 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddr, setSelectedAddr] = useState<string>("new");
   const [saveAddress, setSaveAddress] = useState(true);
-  const [zones, setZones] = useState<{ city: string; price: number }[]>([]);
+  const [shipping, setShipping] = useState<ShippingConfig>({ adminDriven: false, governorates: [], zones: [], hasZones: false });
   const [form, setForm] = useState({
     name: "", email: "", phone: "", governorate: "", city: "", building: "", address: "",
   });
+
+  // Cities available for a governorate (admin-managed), or the flat list (old setup)
+  const cityList = (cfg: ShippingConfig, gov: string) =>
+    cfg.adminDriven ? cfg.governorates.find((g) => g.name === gov)?.cities ?? [] : cfg.zones;
+  const adminDriven = shipping.adminDriven;
+  const hasZones = shipping.hasZones;
+  const cityOptions = cityList(shipping, form.governorate);
+  const govOptions = adminDriven ? shipping.governorates.map((g) => g.name) : EGYPT_GOVERNORATES;
 
   useEffect(() => {
     if (items.length === 0) router.push("/cart");
     fetch("/api/settings/payment").then((r) => r.json()).then(setPaySettings).catch(() => {});
     fetch("/api/shipping")
       .then((r) => r.json())
-      .then((z) => {
-        if (!Array.isArray(z)) return;
-        setZones(z);
-        // a saved address may use a city that is no longer in the shipping list
-        setForm((f) => (z.length > 0 && f.city && !z.some((x: { city: string }) => x.city === f.city) ? { ...f, city: "" } : f));
+      .then((cfg: ShippingConfig) => {
+        if (!cfg || typeof cfg.hasZones !== "boolean") return;
+        setShipping(cfg);
+        // a saved address may use a place that is no longer in the shipping list
+        setForm((f) => {
+          if (!cfg.hasZones) return f;
+          const govOk = !cfg.adminDriven || cfg.governorates.some((g) => g.name === f.governorate);
+          const gov = govOk ? f.governorate : "";
+          const city = !govOk || !cityList(cfg, gov).some((c) => c.city === f.city) ? "" : f.city;
+          return gov === f.governorate && city === f.city ? f : { ...f, governorate: gov, city };
+        });
       })
       .catch(() => {});
   }, [items, router]);
@@ -67,7 +82,7 @@ export default function CheckoutPage() {
     setForm((f) => ({
       ...f, name: a.fullName || f.name, phone: a.phone || f.phone,
       governorate: a.governorate,
-      city: zones.length > 0 && !zones.some((z) => z.city === a.city) ? "" : a.city,
+      city: hasZones && !cityList(shipping, a.governorate).some((c) => c.city === a.city) ? "" : a.city,
       building: a.building, address: a.street,
     }));
   };
@@ -106,6 +121,7 @@ export default function CheckoutPage() {
             items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
             promoCode: appliedCode,
             city: form.city,
+            governorate: form.governorate,
           }),
         });
         const data = await res.json();
@@ -115,7 +131,7 @@ export default function CheckoutPage() {
       } catch { /* keep the last quote */ }
     }, 200);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [items, appliedCode, form.city]);
+  }, [items, appliedCode, form.city, form.governorate]);
 
   const cartTotal = quote?.subtotal ?? total();
   const discount = quote?.discount ?? 0;
@@ -123,7 +139,7 @@ export default function CheckoutPage() {
   const afterDiscount = Math.max(0, cartTotal - discount);
   const freeMin = paySettings.freeShippingMin || 0;
   const freeShippingApplied = !!quote?.freeShippingApplied;
-  const cityFee = zones.find((z) => z.city === form.city)?.price ?? 0;
+  const cityFee = cityOptions.find((c) => c.city === form.city)?.price ?? 0;
   const shippingFee = quote?.shippingFee ?? 0;
   const finalTotal = quote?.total ?? cartTotal;
   const unit = (i: { variantId: string; price: number }) =>
@@ -153,7 +169,7 @@ export default function CheckoutPage() {
       if (res.status === 401) { router.push("/account/login?next=/checkout"); return; }
       if (!res.ok) throw new Error(data.error);
       clearCart();
-      router.push(`/orders/${data.orderNumber}`);
+      router.push(`/orders?placed=${encodeURIComponent(data.orderNumber)}`);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Order failed");
     } finally {
@@ -164,9 +180,9 @@ export default function CheckoutPage() {
   const modes = { ...DEFAULT_MODES, ...(paySettings.fieldModes || {}) };
   const customFields = paySettings.customFields || [];
   const isHidden = (field: string) =>
-    modes[field as keyof FieldModes] === "hidden" && !(field === "city" && zones.length > 0);
+    modes[field as keyof FieldModes] === "hidden" && !((field === "city" && hasZones) || (field === "governorate" && adminDriven));
   const isRequired = (field: string) =>
-    (field === "city" && zones.length > 0) || modes[field as keyof FieldModes] === "required";
+    (field === "city" && hasZones) || (field === "governorate" && adminDriven) || modes[field as keyof FieldModes] === "required";
   const mark = (required: boolean) =>
     required ? <span className="text-[#A8975E]">*</span> : <span className="normal-case tracking-normal text-[#C4B8A0]">(optional)</span>;
   const orderOf = (key: string) => {
@@ -292,12 +308,12 @@ export default function CheckoutPage() {
                           id="governorate"
                           value={form.governorate}
                           autoComplete="address-level1"
-                          onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value }))}
+                          onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value, city: adminDriven ? "" : f.city }))}
                           onBlur={() => setTouched((t) => ({ ...t, governorate: true }))}
                           className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("governorate") ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
                         >
                           <option value="">Select your governorate</option>
-                          {EGYPT_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+                          {govOptions.map((g) => <option key={g} value={g}>{g}</option>)}
                         </select>
                         <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
                           <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -312,7 +328,7 @@ export default function CheckoutPage() {
                     <label htmlFor="city" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
                       City {mark(isRequired("city"))}
                     </label>
-                    {zones.length > 0 ? (
+                    {hasZones ? (
                       <div className="relative">
                         <select
                           id="city"
@@ -320,10 +336,11 @@ export default function CheckoutPage() {
                           autoComplete="address-level2"
                           onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
                           onBlur={() => setTouched((t) => ({ ...t, city: true }))}
-                          className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("city") ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                          disabled={adminDriven && !form.governorate}
+                          className={`${inputCls} appearance-none pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${fieldError("city") ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
                         >
-                          <option value="">Select your city</option>
-                          {zones.map((z) => (
+                          <option value="">{adminDriven && !form.governorate ? "Select a governorate first" : "Select your city"}</option>
+                          {cityOptions.map((z) => (
                             <option key={z.city} value={z.city}>
                               {z.city} — {z.price > 0 ? formatPrice(z.price) : "Free shipping"}
                             </option>
@@ -345,7 +362,7 @@ export default function CheckoutPage() {
                       />
                     )}
                     {fieldError("city") && <p className="text-[11px] text-red-600 mt-1">{fieldError("city")}</p>}
-                    {form.city && zones.length > 0 && (
+                    {form.city && hasZones && (
                       <p className="text-[11px] text-[#8A7E6E] mt-1.5">
                         Delivery to {form.city}: {shippingFee > 0 ? formatPrice(shippingFee) : "free"}
                         {freeShippingApplied && cityFee > 0 ? " (free shipping applied)" : ""}
@@ -634,7 +651,7 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between text-[#5A5040]">
                 <span>Shipping</span>
-                <span>{freeShippingApplied ? "Free" : !form.city && zones.length > 0 ? "Select city" : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
+                <span>{freeShippingApplied ? "Free" : !form.city && hasZones ? "Select city" : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
               </div>
               <div className="pt-3 border-t border-[#E0D8C4] flex justify-between font-medium">
                 <span>Total</span>

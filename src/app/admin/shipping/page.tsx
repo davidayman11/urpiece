@@ -12,11 +12,21 @@ export const metadata = { title: "Shipping" };
 export default async function ShippingPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
-  const zones = await prisma.shippingZone.findMany({ orderBy: [{ sortOrder: "asc" }, { city: "asc" }] });
-  const settings = await prisma.paymentSettings.findFirst();
+  const [governorates, unassigned, settings] = await Promise.all([
+    prisma.governorate.findMany({
+      include: { zones: { orderBy: [{ sortOrder: "asc" }, { city: "asc" }] } },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+    prisma.shippingZone.findMany({ where: { governorateId: null }, orderBy: [{ sortOrder: "asc" }, { city: "asc" }] }),
+    prisma.paymentSettings.findFirst(),
+  ]);
   return (
     <AdminLayout>
-      <ShippingClient zones={zones} freeShippingMin={settings?.freeShippingMin ?? null} />
+      <ShippingClient
+        governorates={governorates}
+        unassigned={unassigned}
+        freeShippingMin={settings?.freeShippingMin ?? null}
+      />
     </AdminLayout>
   );
 }

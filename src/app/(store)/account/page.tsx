@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
 import AccountClient from "@/components/store/AccountClient";
+import { loadShipping } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My account" };
@@ -11,9 +12,9 @@ export default async function AccountPage() {
   const customer = await getCustomer();
   if (!customer) redirect("/account/login?next=/account");
 
-  const [addresses, zones, orderCount] = await Promise.all([
+  const [addresses, shipping, orderCount] = await Promise.all([
     prisma.address.findMany({ where: { customerId: customer.id }, orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] }),
-    prisma.shippingZone.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { city: "asc" }], select: { city: true } }),
+    loadShipping(),
     prisma.order.count({
       where: { customerId: customer.id, ...(customer.registeredAt ? { createdAt: { gte: customer.registeredAt } } : {}) },
     }),
@@ -37,7 +38,7 @@ export default async function AccountPage() {
         <AccountClient
           customer={{ name: customer.name, email: customer.email, phone: customer.phone || "" }}
           addresses={addresses}
-          cities={zones.map((z) => z.city)}
+          shipping={shipping}
         />
       </div>
     </div>

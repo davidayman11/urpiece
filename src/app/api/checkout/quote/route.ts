@@ -3,11 +3,12 @@ import { quoteOrder, QuoteError } from "@/lib/pricing-engine";
 
 export async function POST(req: NextRequest) {
   try {
-    const { items, promoCode, city } = await req.json();
+    const { items, promoCode, city, governorate } = await req.json();
     const quote = await quoteOrder({
       items: Array.isArray(items) ? items : [],
       promoCode,
       city,
+      governorate,
     });
     return NextResponse.json(quote);
   } catch (e) {
