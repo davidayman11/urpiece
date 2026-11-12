@@ -208,8 +208,9 @@ export default function CheckoutPage() {
     return "";
   };
 
-  const inputCls =
-    "w-full border bg-transparent px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none transition-colors";
+  const inputBase =
+    "w-full border px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#A59C88] outline-none transition-all";
+  const inputCls = `${inputBase} bg-white`;
 
   const textFields = ([
     { field: "name", label: "Full Name", type: "text", placeholder: "Your full name", autoComplete: "name", inputMode: undefined, full: true },
@@ -231,7 +232,17 @@ export default function CheckoutPage() {
           {(["details", "payment", "confirm"] as CheckoutStep[]).map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               {i > 0 && <div className="w-8 h-px bg-[#EDE6D4]" />}
-              <span className={step === s ? "text-[#A8975E]" : "text-[#C4B07A]"}>{s}</span>
+              <span
+                className={
+                  step === s
+                    ? "text-[#1C1711] border-b border-[#A8975E] pb-1"
+                    : (["details", "payment", "confirm"] as CheckoutStep[]).indexOf(s) < (["details", "payment", "confirm"] as CheckoutStep[]).indexOf(step)
+                    ? "text-[#A8975E]"
+                    : "text-[#A59C88]"
+                }
+              >
+                {s}
+              </span>
             </div>
           ))}
         </div>
@@ -256,7 +267,7 @@ export default function CheckoutPage() {
                           key={a.id}
                           onClick={() => applyAddress(a)}
                           className={`text-left p-4 border text-sm transition-colors ${
-                            selectedAddr === a.id ? "border-[#A8975E] bg-[#A8975E]/5" : "border-[#EDE6D4] hover:border-[#C4B07A]"
+                            selectedAddr === a.id ? "border-[#A8975E] bg-[#A8975E]/5" : "border-[#D8CEB3] bg-white/60 hover:border-[#C4B07A]"
                           }`}
                         >
                           <span className="flex items-center justify-between gap-2">
@@ -273,7 +284,7 @@ export default function CheckoutPage() {
                         type="button"
                         onClick={useNewAddress}
                         className={`p-4 border text-sm text-left transition-colors ${
-                          selectedAddr === "new" ? "border-[#A8975E] bg-[#A8975E]/5" : "border-dashed border-[#EDE6D4] hover:border-[#C4B07A]"
+                          selectedAddr === "new" ? "border-[#A8975E] bg-[#A8975E]/5" : "border-dashed border-[#C9BE9F] hover:border-[#A8975E]"
                         }`}
                       >
                         <span className="text-[#A8975E]">+ Use a new address</span>
@@ -299,7 +310,7 @@ export default function CheckoutPage() {
                         onBlur={() => setTouched((t) => ({ ...t, [field]: true }))}
                         readOnly={field === "email"}
                         aria-invalid={!!fieldError(field)}
-                        className={`${inputCls} ${field === "email" ? "opacity-60" : ""} ${fieldError(field) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                        className={`${field === "email" ? `${inputBase} bg-[#EFE8D6] text-[#7A705E] cursor-not-allowed` : inputCls} ${fieldError(field) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                       />
                       {fieldError(field) && <p className="text-[11px] text-red-600 mt-1">{fieldError(field)}</p>}
                     </div>
@@ -317,7 +328,7 @@ export default function CheckoutPage() {
                           autoComplete="address-level1"
                           onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value, city: adminDriven ? "" : f.city }))}
                           onBlur={() => setTouched((t) => ({ ...t, governorate: true }))}
-                          className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("governorate") ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                          className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("governorate") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                         >
                           <option value="">Select your governorate</option>
                           {govOptions.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -344,7 +355,7 @@ export default function CheckoutPage() {
                           onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
                           onBlur={() => setTouched((t) => ({ ...t, city: true }))}
                           disabled={adminDriven && !form.governorate}
-                          className={`${inputCls} appearance-none pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${fieldError("city") ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                          className={`${inputCls} appearance-none pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${fieldError("city") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                         >
                           <option value="">{adminDriven && !form.governorate ? "Select a governorate first" : "Select your city"}</option>
                           {cityOptions.map((z) => (
@@ -365,7 +376,7 @@ export default function CheckoutPage() {
                         placeholder="Your city"
                         value={form.city}
                         onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                        className={`${inputCls} border-[#EDE6D4] focus:border-[#A8975E]`}
+                        className={`${inputCls} border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20`}
                       />
                     )}
                     {fieldError("city") && <p className="text-[11px] text-red-600 mt-1">{fieldError("city")}</p>}
@@ -391,7 +402,7 @@ export default function CheckoutPage() {
                           value={customValues[f.id] || ""}
                           onChange={(e) => setCustomValues((v) => ({ ...v, [f.id]: e.target.value }))}
                           onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
-                          className={`${inputCls} ${customError(f) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                          className={`${inputCls} ${customError(f) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                         />
                       ) : f.type === "select" ? (
                         <div className="relative">
@@ -400,7 +411,7 @@ export default function CheckoutPage() {
                             value={customValues[f.id] || ""}
                             onChange={(e) => setCustomValues((v) => ({ ...v, [f.id]: e.target.value }))}
                             onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
-                            className={`${inputCls} appearance-none pr-10 cursor-pointer ${customError(f) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                            className={`${inputCls} appearance-none pr-10 cursor-pointer ${customError(f) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                           >
                             <option value="">Select…</option>
                             {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
@@ -417,7 +428,7 @@ export default function CheckoutPage() {
                           value={customValues[f.id] || ""}
                           onChange={(e) => setCustomValues((v) => ({ ...v, [f.id]: e.target.value }))}
                           onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
-                          className={`${inputCls} ${customError(f) ? "border-red-400" : "border-[#EDE6D4] focus:border-[#A8975E]"}`}
+                          className={`${inputCls} ${customError(f) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                         />
                       )}
                       {customError(f) && <p className="text-[11px] text-red-600 mt-1">{customError(f)}</p>}
@@ -439,7 +450,7 @@ export default function CheckoutPage() {
                     placeholder="Promo code"
                     value={promoInput}
                     onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                    className="flex-1 border border-[#EDE6D4] bg-transparent px-4 py-3 text-sm"
+                    className="flex-1 border border-[#CFC4A6] bg-white px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#A59C88] outline-none hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20 transition-all"
                   />
                   <button
                     onClick={applyPromo}
@@ -550,7 +561,7 @@ export default function CheckoutPage() {
                       setScreenshotFile(f);
                       setScreenshotPreview(URL.createObjectURL(f));
                     }}
-                    className="w-full border border-dashed border-[#A8975E] p-6 text-xs text-[#8A7E6E] text-center cursor-pointer hover:border-[#8A7A4A] transition-colors"
+                    className="w-full border border-dashed border-[#A8975E] bg-white/60 p-5 text-xs text-[#5A5040] cursor-pointer hover:border-[#8A7A4A] transition-colors file:mr-4 file:border-0 file:bg-[#1C1711] file:text-[#F5EFE2] file:px-4 file:py-2 file:text-[10px] file:tracking-[0.2em] file:uppercase file:cursor-pointer hover:file:bg-[#5A5040]"
                   />
                   {screenshotPreview && (
                     <div className="mt-3 relative w-full h-48">
@@ -562,7 +573,7 @@ export default function CheckoutPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setStep("details")}
-                    className="px-6 py-3 border border-[#EDE6D4] text-xs tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors"
+                    className="px-6 py-3 border border-[#CFC4A6] bg-white/50 text-xs tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors"
                   >
                     Back
                   </button>
@@ -639,7 +650,7 @@ export default function CheckoutPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setStep("payment")}
-                    className="px-6 py-3 border border-[#EDE6D4] text-xs tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors"
+                    className="px-6 py-3 border border-[#CFC4A6] bg-white/50 text-xs tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors"
                   >
                     Back
                   </button>

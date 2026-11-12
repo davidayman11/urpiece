@@ -7,7 +7,7 @@ import type { Address } from "@prisma/client";
 import type { ShippingConfig } from "@/lib/shipping";
 
 const input =
-  "w-full border border-[#EDE6D4] bg-[#FBF8F0] px-4 py-2.5 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none focus:border-[#A8975E] transition-colors";
+  "w-full border border-[#CFC4A6] bg-white px-4 py-2.5 text-sm text-[#1C1711] placeholder:text-[#A59C88] outline-none hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20 transition-all disabled:bg-[#EFE8D6] disabled:text-[#7A705E] disabled:cursor-not-allowed";
 const lbl = "text-[11px] tracking-widest uppercase text-[#5A5040] mb-1 block";
 const card = "bg-[#FBF8F0] border border-[#EDE6D4] p-6";
 const btn =
@@ -117,7 +117,7 @@ export default function AccountClient({
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {addresses.map((a) => (
-              <div key={a.id} className={`border p-4 text-sm ${a.isDefault ? "border-[#A8975E]" : "border-[#EDE6D4]"}`}>
+              <div key={a.id} className={`border p-4 text-sm ${a.isDefault ? "border-[#A8975E]" : "border-[#D8CEB3]"}`}>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <p className="text-[#1C1711] font-medium truncate">{a.label || a.fullName}</p>
                   {a.isDefault && <span className="text-[9px] tracking-[0.2em] uppercase bg-[#A8975E] text-[#F5EFE2] px-2 py-0.5 shrink-0">Default</span>}
@@ -150,7 +150,7 @@ export default function AccountClient({
           </div>
           <div className="sm:col-span-2">
             <label className={lbl}>Email</label>
-            <input className={`${input} opacity-60`} value={customer.email} readOnly />
+            <input className={`${input} !bg-[#EFE8D6] !text-[#7A705E] cursor-not-allowed`} value={customer.email} readOnly />
           </div>
         </div>
         <div className="mt-4 flex items-center gap-4">
@@ -250,7 +250,7 @@ export default function AccountClient({
             </div>
             {addrError && <p role="alert" className="text-xs text-red-600 mt-4">{addrError}</p>}
             <div className="mt-6 flex gap-3 justify-end">
-              <button onClick={() => setModal(false)} className="px-6 py-2.5 border border-[#EDE6D4] text-[11px] tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors">Cancel</button>
+              <button onClick={() => setModal(false)} className="px-6 py-2.5 border border-[#CFC4A6] bg-white/50 text-[11px] tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors">Cancel</button>
               <button onClick={saveAddress} disabled={busy} className={btn}>{busy ? "Saving…" : "Save address"}</button>
             </div>
           </div>

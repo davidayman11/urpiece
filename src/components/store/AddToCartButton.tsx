@@ -83,8 +83,8 @@ export default function AddToCartButton({ product }: Props) {
                     v.id === selectedVariantId
                       ? "border-[#A8975E] bg-[#A8975E] text-[#F5EFE2]"
                       : v.inventory === 0
-                      ? "border-[#EDE6D4] text-[#C4B07A] line-through cursor-not-allowed"
-                      : "border-[#EDE6D4] text-[#5A5040] hover:border-[#A8975E]"
+                      ? "border-[#E3DAC3] text-[#B5AA92] line-through cursor-not-allowed"
+                      : "border-[#CFC4A6] bg-white/60 text-[#5A5040] hover:border-[#A8975E]"
                   }`}
                 >
                   {label}
@@ -111,7 +111,7 @@ export default function AddToCartButton({ product }: Props) {
 
       {/* Quantity */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center border border-[#EDE6D4]">
+        <div className="flex items-center border border-[#CFC4A6] bg-white">
           <button
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             className="w-10 h-10 flex items-center justify-center text-[#5A5040] hover:text-[#1C1711] transition-colors"

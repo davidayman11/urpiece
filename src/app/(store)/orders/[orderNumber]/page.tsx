@@ -15,7 +15,7 @@ interface Props {
   params: Promise<{ orderNumber: string }>;
 }
 
-const card = "bg-[#FBF8F0] border border-[#EDE6D4] p-6";
+const card = "bg-[#FBF8F0] border border-[#E0D6BD] p-6";
 const heading = "text-[10px] tracking-[0.3em] uppercase text-[#A8975E] mb-4";
 
 export default async function OrderDetailPage({ params }: Props) {
@@ -213,7 +213,7 @@ export default async function OrderDetailPage({ params }: Props) {
               <Link href="/shop" className="block text-center bg-[#A8975E] text-[#F5EFE2] py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors">
                 Continue shopping
               </Link>
-              <Link href="/orders" className="block text-center border border-[#EDE6D4] text-[#5A5040] py-3 text-xs tracking-widest uppercase hover:border-[#A8975E] transition-colors">
+              <Link href="/orders" className="block text-center border border-[#CFC4A6] bg-white/50 text-[#5A5040] py-3 text-xs tracking-widest uppercase hover:border-[#A8975E] transition-colors">
                 All my orders
               </Link>
             </div>

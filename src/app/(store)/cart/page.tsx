@@ -67,7 +67,7 @@ export default function CartPage() {
                   <p className="text-sm text-[#A8975E] mt-1">{formatPrice(item.price)}</p>
 
                   <div className="mt-3 flex items-center gap-4">
-                    <div className="flex items-center border border-[#EDE6D4]">
+                    <div className="flex items-center border border-[#CFC4A6] bg-white">
                       <button
                         onClick={() => updateQty(item.id, item.quantity - 1)}
                         className="w-8 h-8 text-sm text-[#5A5040] hover:text-[#1C1711]"

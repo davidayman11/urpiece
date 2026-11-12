@@ -51,7 +51,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         </div>
 
         {orders.length === 0 ? (
-          <div className="text-center py-14 bg-[#FBF8F0] border border-[#EDE6D4]">
+          <div className="text-center py-14 bg-[#FBF8F0] border border-[#E0D6BD]">
             <p className="text-sm text-[#5A5040]">You haven&apos;t placed any orders yet.</p>
             <Link href="/shop" className="inline-block mt-5 bg-[#A8975E] text-[#F5EFE2] px-8 py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors">
               Start shopping
@@ -65,7 +65,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                 <Link
                   key={order.id}
                   href={`/orders/${order.orderNumber}`}
-                  className="block bg-[#FBF8F0] border border-[#EDE6D4] p-5 hover:border-[#A8975E] transition-colors"
+                  className="block bg-[#FBF8F0] border border-[#E0D6BD] p-5 hover:border-[#A8975E] transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">

@@ -127,8 +127,8 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
             onBlur={() => setTouched((t) => ({ ...t, [k]: true }))}
             aria-invalid={!!err}
             aria-describedby={err ? `${id}-err` : undefined}
-            className={`w-full bg-white/70 border pl-10 ${trailing ? "pr-11" : "pr-4"} py-3 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none transition-all
-              ${err ? "border-red-400 focus:ring-2 focus:ring-red-100" : "border-[#E3DBC8] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/15"}`}
+            className={`w-full bg-white border pl-10 ${trailing ? "pr-11" : "pr-4"} py-3 text-sm text-[#1C1711] placeholder:text-[#C4B8A0] outline-none transition-all
+              ${err ? "border-red-400 focus:ring-2 focus:ring-red-100" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
           />
           {trailing}
         </div>

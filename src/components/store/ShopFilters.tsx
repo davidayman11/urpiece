@@ -64,7 +64,7 @@ export default function ShopFilters({ categories, selected, sort }: Props) {
           <select
             value={sort || "newest"}
             onChange={(e) => navigate({ sort: e.target.value })}
-            className="appearance-none pl-3 pr-8 py-1.5 text-[11px] tracking-[0.15em] uppercase text-[#5A5040] bg-transparent border border-[#C4B07A]/50 hover:border-[#A8975E] transition-colors cursor-pointer focus:outline-none"
+            className="appearance-none pl-3 pr-8 py-1.5 text-[11px] tracking-[0.15em] uppercase text-[#5A5040] bg-white/60 border border-[#CFC4A6] hover:border-[#A8975E] transition-colors cursor-pointer focus:outline-none"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
