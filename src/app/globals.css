@@ -130,7 +130,8 @@ input:focus, textarea:focus, select:focus {
   animation: announce-scroll 30s linear infinite;
   will-change: transform;
 }
-.announce-bar:hover .announce-track {
+.announce-bar:hover .announce-track,
+.marquee-strip:hover .announce-track {
   animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {

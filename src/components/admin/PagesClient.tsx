@@ -47,6 +47,10 @@ const SECTION_TYPES = [
     fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText"],
   },
   {
+    type: "marquee", label: "Scrolling Strip (icon + moving text)", page: "home",
+    fields: ["messages", "icon", "bgColor", "textColor", "iconColor", "speed", "direction", "position"],
+  },
+  {
     type: "about", label: "About Page Content", page: "about",
     fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "body", "quote"],
   },
@@ -83,7 +87,11 @@ const FIELD_LABELS: Record<string, string> = {
   shippingNote: "Shipping Info",
   copyright: "Copyright Line",
   linkText: "Link Text (e.g. All Pieces / View All)",
-  messages: "Announcements (one per line — they scroll across the top)",
+  messages: "Messages (one per line — they scroll across)",
+  icon: "Icon between messages",
+  iconColor: "Icon Color",
+  direction: "Scroll direction",
+  position: "Where on the home page",
   bgColor: "Background Color",
   textColor: "Text Color",
   speed: "Scroll time in seconds for one loop (lower = faster, default 30)",
@@ -93,13 +101,26 @@ const FIELD_LABELS: Record<string, string> = {
   headingColor: "Heading Color",
 };
 
-const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor", "bgColor", "textColor"]);
+const COLOR_FIELDS = new Set(["taglineColor", "eyebrowColor", "headingColor", "bgColor", "textColor", "iconColor"]);
+const SELECT_FIELDS: Record<string, { value: string; label: string }[]> = {
+  icon: [
+    { value: "heart", label: "Heart" }, { value: "truck", label: "Delivery truck" }, { value: "star", label: "Star" },
+    { value: "sparkle", label: "Sparkle" }, { value: "gift", label: "Gift" }, { value: "shield", label: "Shield / guarantee" },
+    { value: "diamond", label: "Diamond" }, { value: "none", label: "No icon" },
+  ],
+  direction: [{ value: "left", label: "Right to left (default)" }, { value: "right", label: "Left to right" }],
+  position: [
+    { value: "hero", label: "Under the hero image" }, { value: "categories", label: "Under Shop by Category" },
+    { value: "featured", label: "Under Featured Products" }, { value: "bottom", label: "Bottom of the page" },
+  ],
+};
 const COLOR_DEFAULTS: Record<string, string> = {
   taglineColor: "#A8975E",
   eyebrowColor: "#A8975E",
   headingColor: "#1C1711",
   bgColor: "#1C1711",
   textColor: "#F5EFE2",
+  iconColor: "#C4B07A",
 };
 
 const TEXTAREA_FIELDS = new Set(["messages", "body", "subheading", "brandDescription", "paymentNote", "shippingNote", "copyright", "quote"]);
@@ -356,6 +377,14 @@ export default function PagesClient({ sections: initial }: { sections: SiteSecti
                         </button>
                       )}
                     </div>
+                  ) : SELECT_FIELDS[field] ? (
+                    <select
+                      value={content[field] || SELECT_FIELDS[field][0].value}
+                      onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    >
+                      {SELECT_FIELDS[field].map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
                   ) : URL_FIELDS.has(field) ? (
                     <select
                       value={content[field] || ""}
