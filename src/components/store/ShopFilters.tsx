@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useT } from "@/components/store/TextsProvider";
+import { useT, Txt } from "@/components/store/TextsProvider";
 import type { Category } from "@prisma/client";
 
 interface Props {
@@ -41,7 +41,7 @@ export default function ShopFilters({ categories, selected, sort }: Props) {
               : "bg-transparent text-[#5A5040] border-[#C4B07A]/50 hover:border-[#A8975E] hover:text-[#1C1711]"
           }`}
         >
-          {t("shop.filters.all")}
+          <Txt k="shop.filters.all" />
         </button>
         {categories.map((cat) => (
           <button

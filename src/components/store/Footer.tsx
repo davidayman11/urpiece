@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
 
+import { Txt } from "@/components/store/TextsProvider";
 async function getSiteSettings() {
   const section = await prisma.siteSection.findFirst({
     where: { pageSlug: "site", type: "settings", isVisible: true },
@@ -27,20 +28,20 @@ export default async function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {/* Brand */}
           <div>
-            <span className="font-serif text-2xl text-[#A8975E] tracking-[0.2em] uppercase">{t("footer.brand")}</span>
-            <p className="mt-3 text-sm text-[#8A7E6E] font-serif italic">{tagline}</p>
-            <p className="mt-4 text-xs text-[#8A7E6E] leading-relaxed">{brandDescription}</p>
+            <span className="font-serif text-2xl text-[#A8975E] tracking-[0.2em] uppercase"><Txt k="footer.brand" /></span>
+            <p className="mt-3 text-sm text-[#8A7E6E] font-serif italic">{s.tagline ? s.tagline : <Txt k="footer.tagline" />}</p>
+            <p className="mt-4 text-xs text-[#8A7E6E] leading-relaxed">{s.brandDescription ? s.brandDescription : <Txt k="footer.brandDescription" />}</p>
           </div>
 
           {/* Links */}
           <div>
-            <h4 className="text-xs tracking-widest uppercase text-[#A8975E] mb-4">{t("footer.navigate")}</h4>
+            <h4 className="text-xs tracking-widest uppercase text-[#A8975E] mb-4"><Txt k="footer.navigate" /></h4>
             <ul className="space-y-3">
               {[["footer.link.shop", "/shop"], ["footer.link.about", "/about"], ["footer.link.contact", "/contact"], ["footer.link.orders", "/orders"]].map(
                 ([label, href]) => (
                   <li key={href}>
                     <Link href={href} className="text-sm text-[#8A7E6E] hover:text-[#C4B07A] transition-colors">
-                      {t(label)}
+                      <Txt k={label} />
                     </Link>
                   </li>
                 )
@@ -50,10 +51,10 @@ export default async function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="text-xs tracking-widest uppercase text-[#A8975E] mb-4">{t("footer.contact")}</h4>
+            <h4 className="text-xs tracking-widest uppercase text-[#A8975E] mb-4"><Txt k="footer.contact" /></h4>
             <ul className="space-y-3 text-sm text-[#8A7E6E]">
-              {paymentNote && <li>{paymentNote}</li>}
-              {shippingNote && <li>{shippingNote}</li>}
+              {paymentNote && <li>{s.paymentNote ? s.paymentNote : <Txt k="footer.paymentNote" />}</li>}
+              {shippingNote && <li>{s.shippingNote ? s.shippingNote : <Txt k="footer.shippingNote" />}</li>}
               {contactEmail && (
                 <li className="pt-2">
                   <a href={`mailto:${contactEmail}`} className="hover:text-[#C4B07A] transition-colors">
@@ -66,10 +67,10 @@ export default async function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-[#2C2416] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#5A5040]">
-          <p>{copyright}</p>
+          <p>{s.copyright ? s.copyright : <Txt k="footer.copyright" vars={{ year: new Date().getFullYear() }} />}</p>
           <div className="flex gap-6">
-            <Link href="/about" className="hover:text-[#8A7E6E] transition-colors">{t("footer.link.about")}</Link>
-            <Link href="/contact" className="hover:text-[#8A7E6E] transition-colors">{t("footer.link.contact")}</Link>
+            <Link href="/about" className="hover:text-[#8A7E6E] transition-colors"><Txt k="footer.link.about" /></Link>
+            <Link href="/contact" className="hover:text-[#8A7E6E] transition-colors"><Txt k="footer.link.contact" /></Link>
           </div>
         </div>
       </div>

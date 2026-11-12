@@ -3,11 +3,16 @@ import type { TFunction } from "@/lib/texts/types";
 export interface StatusInfo {
   label: string;
   desc: string;
+  /** text names, so pages can show the label / description through <Txt> (font, bold, underline) */
+  labelKey?: string;
+  descKey?: string;
   /** Tailwind classes for a soft badge, kept close to the store palette */
   tone: string;
   /** Index on the 5-step tracker (null = not shown, e.g. cancelled) */
   step: number | null;
 }
+
+export const TRACKER_STEP_KEYS = ["orders.step.placed", "orders.step.paid", "orders.step.preparing", "orders.step.shipped", "orders.step.delivered"];
 
 export const trackerSteps = (t: TFunction): string[] => [
   t("orders.step.placed"),
@@ -35,8 +40,10 @@ const PAYMENT_KEYS = ["AWAITING_UPLOAD", "UPLOADED", "VERIFIED", "REJECTED"];
 export const paymentStatusLabel = (s: string, t: TFunction): string =>
   PAYMENT_KEYS.includes(s) ? t(`orders.pay.${s}`) : "";
 
+export const paymentStatusKey = (s: string): string | undefined => (PAYMENT_KEYS.includes(s) ? `orders.pay.${s}` : undefined);
+
 export const statusInfo = (s: string, t: TFunction): StatusInfo => {
   const m = STATUS_META[s];
-  if (m) return { label: t(`orders.status.${s}.label`), desc: t(`orders.status.${s}.desc`), ...m };
+  if (m) return { label: t(`orders.status.${s}.label`), desc: t(`orders.status.${s}.desc`), labelKey: `orders.status.${s}.label`, descKey: `orders.status.${s}.desc`, ...m };
   return { label: s, desc: "", tone: "bg-[#E8E4DC] text-[#5A5040]", step: null };
 };

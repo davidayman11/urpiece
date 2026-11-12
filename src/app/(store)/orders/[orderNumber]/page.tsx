@@ -7,11 +7,13 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { formatAddress } from "@/lib/checkout-fields";
-import { statusInfo, trackerSteps, paymentStatusLabel } from "@/lib/order-status";
+import { statusInfo, trackerSteps, paymentStatusLabel, paymentStatusKey, TRACKER_STEP_KEYS } from "@/lib/order-status";
+
 import { getT } from "@/lib/texts/server";
 import CopyButton from "@/components/store/CopyButton";
 import { coverImage } from "@/lib/product-images";
 
+import { Txt } from "@/components/store/TextsProvider";
 export const dynamic = "force-dynamic";
 
 interface Props {
@@ -71,11 +73,11 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
             </div>
           )}
           <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2">
-            {isNew ? t("orders.detail.thanks") : t("orders.detail.yourOrder")}
+            {isNew ? <Txt k="orders.detail.thanks" /> : <Txt k="orders.detail.yourOrder" />}
           </p>
           <h1 className="font-serif text-3xl md:text-4xl font-light text-[#1C1711] break-all">{order.orderNumber}</h1>
           <div className="mt-3 flex items-center justify-center gap-3">
-            <p className="text-xs text-[#8A7E6E]">{t("orders.detail.placed", { date: format(new Date(order.createdAt), "d MMMM yyyy, HH:mm") })}</p>
+            <p className="text-xs text-[#8A7E6E]"><Txt k="orders.detail.placed" vars={{ date: format(new Date(order.createdAt), "d MMMM yyyy, HH:mm") }} /></p>
             <CopyButton text={order.orderNumber} />
           </div>
         </div>
@@ -83,12 +85,12 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
         {/* Status + tracker */}
         <div className={`${card} mb-8`}>
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            <span className={`text-[11px] tracking-wider px-3 py-1 rounded-full ${st.tone}`}>{st.label}</span>
-            <span className="text-xs text-[#8A7E6E]">{paymentStatusLabel(order.paymentStatus, t)}</span>
+            <span className={`text-[11px] tracking-wider px-3 py-1 rounded-full ${st.tone}`}>{st.labelKey ? <Txt k={st.labelKey} /> : st.label}</span>
+            <span className="text-xs text-[#8A7E6E]">{paymentStatusKey(order.paymentStatus) ? <Txt k={paymentStatusKey(order.paymentStatus) as string} /> : paymentStatusLabel(order.paymentStatus, t)}</span>
           </div>
-          <p className="text-sm text-[#5A5040]">{st.desc}</p>
+          <p className="text-sm text-[#5A5040]">{st.descKey ? <Txt k={st.descKey} /> : st.desc}</p>
           {order.rejectionReason && (
-            <p className="mt-2 text-sm italic text-[#9A3328]">{t("orders.detail.reason", { reason: order.rejectionReason })}</p>
+            <p className="mt-2 text-sm italic text-[#9A3328]"><Txt k="orders.detail.reason" vars={{ reason: order.rejectionReason }} /></p>
           )}
 
           {st.step !== null && (
@@ -111,7 +113,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
                         </svg>
                       )}
                     </span>
-                    <span className={`mt-2 text-[10px] leading-tight ${done ? "text-[#1C1711]" : "text-[#A59C88]"}`}>{label}</span>
+                    <span className={`mt-2 text-[10px] leading-tight ${done ? "text-[#1C1711]" : "text-[#A59C88]"}`}>{TRACKER_STEP_KEYS[i] ? <Txt k={TRACKER_STEP_KEYS[i]} /> : label}</span>
                   </li>
                 );
               })}
@@ -123,7 +125,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
           {/* Items */}
           <div className="md:col-span-3 space-y-8">
             <div className={card}>
-              <h2 className={heading}>{t("orders.detail.items")}</h2>
+              <h2 className={heading}><Txt k="orders.detail.items" /></h2>
               <div className="divide-y divide-[#EDE6D4]">
                 {order.items.map((item) => {
                   const img = coverImage(item.product?.images || "[]", item.product?.variants || []);
@@ -137,7 +139,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
                           {item.productName}
                         </Link>
                         {item.variantName && <p className="text-xs text-[#8A7E6E] mt-0.5">{item.variantName}</p>}
-                        {item.bundleName && <p className="text-[10px] tracking-[0.15em] uppercase text-[#A8975E] mt-0.5">{t("orders.detail.bundle", { name: item.bundleName })}</p>}
+                        {item.bundleName && <p className="text-[10px] tracking-[0.15em] uppercase text-[#A8975E] mt-0.5"><Txt k="orders.detail.bundle" vars={{ name: item.bundleName }} /></p>}
                         <p className="text-xs text-[#8A7E6E] mt-1">
                           {formatPrice(item.price)} × {item.quantity}
                         </p>
@@ -151,7 +153,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
 
             {order.statusHistory.length > 0 && (
               <div className={card}>
-                <h2 className={heading}>{t("orders.detail.history")}</h2>
+                <h2 className={heading}><Txt k="orders.detail.history" /></h2>
                 <ul className="space-y-5">
                   {order.statusHistory.map((h, i) => (
                     <li key={h.id} className="flex gap-4">
@@ -160,7 +162,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
                         {i < order.statusHistory.length - 1 && <span className="flex-1 w-px bg-[#E0D8C4] mt-1" />}
                       </span>
                       <div className="pb-1">
-                        <p className="text-sm text-[#1C1711]">{statusInfo(h.status, t).label}</p>
+                        <p className="text-sm text-[#1C1711]">{statusInfo(h.status, t).labelKey ? <Txt k={statusInfo(h.status, t).labelKey as string} /> : statusInfo(h.status, t).label}</p>
                         {h.note && <p className="text-xs text-[#8A7E6E] mt-0.5">{h.note}</p>}
                         <p className="text-[11px] text-[#A59C88] mt-0.5">{format(new Date(h.createdAt), "d MMM yyyy, HH:mm")}</p>
                       </div>
@@ -174,34 +176,34 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
           {/* Summary + shipping */}
           <div className="md:col-span-2 space-y-8">
             <div className={card}>
-              <h2 className={heading}>{t("orders.detail.summary")}</h2>
+              <h2 className={heading}><Txt k="orders.detail.summary" /></h2>
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-[#8A7E6E]">{t("orders.detail.subtotal")}</span>
+                  <span className="text-[#8A7E6E]"><Txt k="orders.detail.subtotal" /></span>
                   <span>{formatPrice(order.subtotal)}</span>
                 </div>
                 {order.discount > 0 && (
                   <div className="flex justify-between text-green-700">
-                    <span>{t("orders.detail.discount")}{order.promoCodeUsed ? ` (${order.promoCodeUsed})` : ""}</span>
+                    <span><Txt k="orders.detail.discount" />{order.promoCodeUsed ? ` (${order.promoCodeUsed})` : ""}</span>
                     <span>−{formatPrice(order.discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-[#8A7E6E]">{t("orders.detail.shipping")}</span>
-                  <span>{order.shippingFee > 0 ? formatPrice(order.shippingFee) : t("orders.detail.free")}</span>
+                  <span className="text-[#8A7E6E]"><Txt k="orders.detail.shipping" /></span>
+                  <span>{order.shippingFee > 0 ? formatPrice(order.shippingFee) : <Txt k="orders.detail.free" />}</span>
                 </div>
                 <div className="flex justify-between font-medium pt-3 mt-1 border-t border-[#EDE6D4] text-base">
-                  <span>{t("orders.detail.total")}</span>
+                  <span><Txt k="orders.detail.total" /></span>
                   <span className="text-[#A8975E]">{formatPrice(order.total)}</span>
                 </div>
                 {order.paymentType === "DEPOSIT" && (
                   <div className="pt-3 mt-1 border-t border-[#EDE6D4] space-y-1.5">
                     <div className="flex justify-between">
-                      <span className="text-[#8A7E6E]">{t("orders.detail.depositPaid")}</span>
+                      <span className="text-[#8A7E6E]"><Txt k="orders.detail.depositPaid" /></span>
                       <span>{formatPrice(order.amountDue)}</span>
                     </div>
                     <div className="flex justify-between font-medium">
-                      <span>{t("orders.detail.dueOnDelivery")}</span>
+                      <span><Txt k="orders.detail.dueOnDelivery" /></span>
                       <span className="text-[#A8975E]">{formatPrice(order.balanceDue)}</span>
                     </div>
                   </div>
@@ -210,7 +212,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
             </div>
 
             <div className={card}>
-              <h2 className={heading}>{t("orders.detail.shippingTo")}</h2>
+              <h2 className={heading}><Txt k="orders.detail.shippingTo" /></h2>
               <div className="text-sm text-[#5A5040] space-y-1.5">
                 <p className="text-[#1C1711]">{order.customerName}</p>
                 {addressLine && <p>{addressLine}</p>}
@@ -231,10 +233,10 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
 
             <div className="flex flex-col gap-2">
               <Link href="/shop" className="block text-center bg-[#A8975E] text-[#F5EFE2] py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors">
-                {t("orders.detail.continue")}
+                <Txt k="orders.detail.continue" />
               </Link>
               <Link href="/orders" className="block text-center border border-[#CFC4A6] bg-white/50 text-[#5A5040] py-3 text-xs tracking-widest uppercase hover:border-[#A8975E] transition-colors">
-                {t("orders.detail.allOrders")}
+                <Txt k="orders.detail.allOrders" />
               </Link>
             </div>
           </div>

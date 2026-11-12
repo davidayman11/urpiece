@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
-import { useT } from "@/components/store/TextsProvider";
+import { useT, Txt } from "@/components/store/TextsProvider";
 
 const NAV_LINKS = [
   ["nav.menu.home", "/"],
@@ -68,7 +68,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
           {/* Logo — centered */}
           <Link href="/" className="absolute left-1/2 -translate-x-1/2">
             <span className={`font-serif text-[22px] font-light tracking-[0.25em] uppercase transition-colors duration-500 ${logoColor}`}>
-              {t("nav.brand")}
+              <Txt k="nav.brand" />
             </span>
           </Link>
 
@@ -80,7 +80,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
                 solidNav ? "text-[#5A5040] hover:text-[#A8975E]" : "text-[#F5EFE2]/80 hover:text-[#C4B07A]"
               }`}
             >
-              {t("nav.menu.shop")}
+              <Txt k="nav.menu.shop" />
             </Link>
             <Link
               href={customerName ? "/account" : "/account/login"}
@@ -135,7 +135,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
         >
           {/* Drawer header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-[#EDE6D4]">
-            <span className="font-serif text-lg tracking-[0.2em] text-[#A8975E] uppercase">{t("nav.brand")}</span>
+            <span className="font-serif text-lg tracking-[0.2em] text-[#A8975E] uppercase"><Txt k="nav.brand" /></span>
             <button
               onClick={() => setMenuOpen(false)}
               className="p-1 text-[#5A5040] hover:text-[#1C1711] transition-colors"
@@ -158,7 +158,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
                   pathname === href ? "text-[#A8975E]" : "text-[#5A5040] hover:text-[#A8975E]"
                 }`}
               >
-                {t(labelKey)}
+                <Txt k={labelKey} />
               </Link>
             ))}
           </div>
@@ -167,19 +167,19 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
           <div className="px-6 pb-5 -mt-3 flex flex-col gap-3 border-b border-[#EDE6D4]">
             {customerName ? (
               <Link href="/account" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]">
-                {t("nav.drawer.greetingAccount", { name: customerName.split(" ")[0] })}
+                <Txt k="nav.drawer.greetingAccount" vars={{ name: customerName.split(" ")[0] }} />
               </Link>
             ) : (
               <>
-                <Link href="/account/login" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]">{t("nav.signIn")}</Link>
-                <Link href="/account/register" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#5A5040] hover:text-[#A8975E]">{t("nav.drawer.createAccount")}</Link>
+                <Link href="/account/login" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]"><Txt k="nav.signIn" /></Link>
+                <Link href="/account/register" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#5A5040] hover:text-[#A8975E]"><Txt k="nav.drawer.createAccount" /></Link>
               </>
             )}
           </div>
 
           {/* Category quick-links */}
           <div className="px-6 py-5 border-t border-[#EDE6D4]">
-            <p className="text-[9px] tracking-[0.3em] uppercase text-[#A8975E] mb-4">{t("nav.drawer.collections")}</p>
+            <p className="text-[9px] tracking-[0.3em] uppercase text-[#A8975E] mb-4"><Txt k="nav.drawer.collections" /></p>
             {COLLECTIONS.map(([slug, catKey]) => (
               <Link
                 key={slug}
@@ -187,7 +187,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
                 onClick={() => setMenuOpen(false)}
                 className="block text-xs text-[#8A7E6E] hover:text-[#A8975E] transition-colors py-1.5 tracking-wide"
               >
-                {t(catKey)}
+                <Txt k={catKey} />
               </Link>
             ))}
           </div>

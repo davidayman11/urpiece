@@ -11,6 +11,7 @@ import { getT, getTexts } from "@/lib/texts/server";
 import { parseSections } from "@/lib/texts";
 import type { Metadata } from "next";
 
+import { Txt } from "@/components/store/TextsProvider";
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -49,9 +50,10 @@ export default async function ProductPage({ params }: Props) {
   const viewCount = product.views + 1;
 
   // Boxes under the buy button: the two built-in ones, then any the admin added in Site Text
-  const sections = [
-    { title: t("product.shipping.title"), body: t("product.shipping.body") },
-    { title: t("product.care.title"), body: t("product.care.body") },
+  // (tk / bk = the text names of the two built-in boxes, so their font / bold / underline from Site Text apply)
+  const sections: { title: string; body: string; tk?: string; bk?: string }[] = [
+    { title: t("product.shipping.title"), body: t("product.shipping.body"), tk: "product.shipping.title", bk: "product.shipping.body" },
+    { title: t("product.care.title"), body: t("product.care.body"), tk: "product.care.title", bk: "product.care.body" },
     ...parseSections((await getTexts())["product.extraSections"]),
   ].filter((x) => x.title || x.body);
 
@@ -81,14 +83,14 @@ export default async function ProductPage({ params }: Props) {
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                     <circle cx="4" cy="4" r="3" fill="#8A7E6E"/>
                   </svg>
-                  {t("product.outOfStock")}
+                  <Txt k="product.outOfStock" />
                 </span>
               ) : isLowStock ? (
                 <span className="inline-flex items-center gap-1.5 bg-[#8A5C2E]/10 border border-[#8A5C2E]/30 text-[#8A5C2E] text-[10px] tracking-[0.2em] uppercase px-3 py-1">
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                     <circle cx="4" cy="4" r="3" fill="#C4834A"/>
                   </svg>
-                  {t("product.lowStock", { count: totalInventory })}
+                  <Txt k="product.lowStock" vars={{ count: totalInventory }} />
                 </span>
               ) : null}
               <span className="text-[11px] text-[#A8975E] flex items-center gap-1.5">
@@ -96,7 +98,7 @@ export default async function ProductPage({ params }: Props) {
                   <ellipse cx="6.5" cy="5" rx="6" ry="4" stroke="currentColor" strokeWidth="1.1"/>
                   <circle cx="6.5" cy="5" r="1.8" fill="currentColor"/>
                 </svg>
-                {viewCount.toLocaleString()} {viewCount === 1 ? t("product.viewSingular") : t("product.viewPlural")}
+                {viewCount.toLocaleString()} {viewCount === 1 ? <Txt k="product.viewSingular" /> : <Txt k="product.viewPlural" />}
               </span>
             </div>
 
@@ -111,12 +113,12 @@ export default async function ProductPage({ params }: Props) {
               {sections.map((sec, i) => (
                 <details key={i} className="group">
                   <summary className="flex items-center justify-between cursor-pointer text-xs tracking-widest uppercase text-[#5A5040] py-2">
-                    <span>{sec.title}</span>
+                    <span>{sec.tk ? <Txt k={sec.tk} /> : sec.title}</span>
                     <svg className="group-open:rotate-180 transition-transform" width="12" height="8" viewBox="0 0 12 8" fill="none">
                       <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                     </svg>
                   </summary>
-                  <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">{sec.body}</p>
+                  <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">{sec.bk ? <Txt k={sec.bk} /> : sec.body}</p>
                 </details>
               ))}
             </div>

@@ -6,6 +6,7 @@ import AccountClient from "@/components/store/AccountClient";
 import { loadShipping } from "@/lib/shipping";
 import { getT } from "@/lib/texts/server";
 
+import { Txt } from "@/components/store/TextsProvider";
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const t = await getT();
@@ -30,14 +31,14 @@ export default async function AccountPage() {
       <div className="max-w-3xl mx-auto px-6">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2">{t("account.page.eyebrow")}</p>
-            <h1 className="font-serif text-4xl font-light text-[#1C1711]">{t("account.page.hello", { name: customer.name.split(" ")[0] })}</h1>
+            <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2"><Txt k="account.page.eyebrow" /></p>
+            <h1 className="font-serif text-4xl font-light text-[#1C1711]"><Txt k="account.page.hello" vars={{ name: customer.name.split(" ")[0] }} /></h1>
           </div>
           <Link
             href="/orders"
             className="text-[11px] tracking-[0.2em] uppercase text-[#5A5040] border-b border-[#5A5040]/30 pb-0.5 hover:text-[#A8975E] hover:border-[#A8975E] transition-colors"
           >
-            {t("account.page.myOrders", { count: orderCount })}
+            <Txt k="account.page.myOrders" vars={{ count: orderCount }} />
           </Link>
         </div>
         <AccountClient

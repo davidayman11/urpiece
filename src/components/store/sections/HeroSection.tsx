@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useT } from "@/components/store/TextsProvider";
+import { useT, Txt } from "@/components/store/TextsProvider";
 
 interface Props {
   content: Record<string, string>;
@@ -134,7 +134,7 @@ export default function HeroSection({ content }: Props) {
         aria-label={t("home.hero.scroll")}
         className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 ${cueTone} opacity-90 hover:opacity-100 transition-opacity`}
       >
-        <span className="text-[9px] tracking-[0.35em] uppercase">{t("home.hero.scroll")}</span>
+        <span className="text-[9px] tracking-[0.35em] uppercase"><Txt k="home.hero.scroll" /></span>
         <svg className="animate-bounce" width="18" height="11" viewBox="0 0 18 11" fill="none" aria-hidden>
           <path d="M1 1.5l8 8 8-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

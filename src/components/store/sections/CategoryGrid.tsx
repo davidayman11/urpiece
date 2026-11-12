@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Category } from "@prisma/client";
-import { getT } from "@/lib/texts/server";
 
+
+import { Txt } from "@/components/store/TextsProvider";
 interface Props {
   categories: Category[];
   content?: Record<string, string>;
@@ -10,8 +11,6 @@ interface Props {
 
 export default async function CategoryGrid({ categories, content = {} }: Props) {
   if (categories.length === 0) return null;
-  const t = await getT();
-
   const eyebrow = content.eyebrow || "Collections";
   const heading = content.heading || "Shop by Category";
   const linkText = content.linkText || "All Pieces";
@@ -82,7 +81,7 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
                   </p>
                 )}
                 <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-1 group-hover:translate-y-0">
-                  <span className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E]">{t("home.categories.shopNow")}</span>
+                  <span className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E]"><Txt k="home.categories.shopNow" /></span>
                   <svg width="10" height="7" viewBox="0 0 10 7" fill="none">
                     <path d="M1 3.5h8M6 1l3 2.5L6 6" stroke="#A8975E" strokeWidth="1" strokeLinecap="round" />
                   </svg>

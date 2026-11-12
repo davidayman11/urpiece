@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useT } from "@/components/store/TextsProvider";
+import { useT, Txt } from "@/components/store/TextsProvider";
 
 interface PopupData {
   id: string;
@@ -95,7 +95,7 @@ export default function PopupManager() {
             onClick={dismiss}
             className="mt-4 block w-full text-xs text-[#8A7E6E] hover:text-[#5A5040] tracking-wider"
           >
-            {t("popup.noThanks")}
+            <Txt k="popup.noThanks" />
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
 
+import { Txt } from "@/components/store/TextsProvider";
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const t = await getT();
@@ -33,8 +34,8 @@ export default async function ContactPage() {
         <div className="space-y-6 text-sm text-[#5A5040]">
           {supportEmail && (
             <div className="bg-[#EDE6D4] p-6">
-              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">{t("contact.support.title")}</p>
-              <p className="leading-relaxed">{t("contact.support.body")}</p>
+              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3"><Txt k="contact.support.title" /></p>
+              <p className="leading-relaxed"><Txt k="contact.support.body" /></p>
               <a href={`mailto:${supportEmail}`} className="text-[#A8975E] hover:underline font-medium mt-2 block">
                 {supportEmail}
               </a>
@@ -42,13 +43,13 @@ export default async function ContactPage() {
           )}
           {paymentNote && (
             <div className="bg-[#EDE6D4] p-6">
-              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">{t("contact.payment.title")}</p>
+              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3"><Txt k="contact.payment.title" /></p>
               <p className="leading-relaxed">{paymentNote}</p>
             </div>
           )}
           {shippingNote && (
             <div className="bg-[#EDE6D4] p-6">
-              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">{t("contact.shipping.title")}</p>
+              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3"><Txt k="contact.shipping.title" /></p>
               <p className="leading-relaxed">{shippingNote}</p>
             </div>
           )}

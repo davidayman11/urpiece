@@ -7,6 +7,7 @@ import { statusInfo } from "@/lib/order-status";
 import { getT } from "@/lib/texts/server";
 import TrackOrderForm from "@/components/store/TrackOrderForm";
 
+import { Txt } from "@/components/store/TextsProvider";
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const t = await getT();
@@ -40,26 +41,26 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               </svg>
             </span>
             <div className="text-sm">
-              <p className="text-[#1C1711] font-medium">{t("orders.list.thanks")}</p>
+              <p className="text-[#1C1711] font-medium"><Txt k="orders.list.thanks" /></p>
               <p className="text-[#5A5040] mt-0.5">
-                {t("orders.list.review")}{" "}
+                <Txt k="orders.list.review" />{" "}
                 <Link href={`/orders/${justPlaced.orderNumber}`} className="text-[#A8975E] underline underline-offset-4">
-                  {t("orders.list.viewOrder", { number: justPlaced.orderNumber })}
+                  <Txt k="orders.list.viewOrder" vars={{ number: justPlaced.orderNumber }} />
                 </Link>
               </p>
             </div>
           </div>
         )}
         <div className="text-center mb-10">
-          <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3">{t("orders.list.eyebrow")}</p>
-          <h1 className="font-serif text-4xl font-light text-[#1C1711]">{t("orders.list.title")}</h1>
+          <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3"><Txt k="orders.list.eyebrow" /></p>
+          <h1 className="font-serif text-4xl font-light text-[#1C1711]"><Txt k="orders.list.title" /></h1>
         </div>
 
         {orders.length === 0 ? (
           <div className="text-center py-14 bg-[#FBF8F0] border border-[#E0D6BD]">
-            <p className="text-sm text-[#5A5040]">{t("orders.list.empty")}</p>
+            <p className="text-sm text-[#5A5040]"><Txt k="orders.list.empty" /></p>
             <Link href="/shop" className="inline-block mt-5 bg-[#A8975E] text-[#F5EFE2] px-8 py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors">
-              {t("orders.list.startShopping")}
+              <Txt k="orders.list.startShopping" />
             </Link>
           </div>
         ) : (
@@ -82,7 +83,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                       <p className="mt-1 text-xs text-[#8A7E6E]">{format(new Date(order.createdAt), "d MMM yyyy")}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className={`text-[11px] px-2.5 py-1 rounded-full ${st.tone}`}>{st.label}</span>
+                      <span className={`text-[11px] px-2.5 py-1 rounded-full ${st.tone}`}>{st.labelKey ? <Txt k={st.labelKey} /> : st.label}</span>
                       <p className="mt-2 text-sm font-medium text-[#1C1711]">{formatPrice(order.total)}</p>
                     </div>
                   </div>

@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useT } from "@/components/store/TextsProvider";
+import { useT, Txt } from "@/components/store/TextsProvider";
 import type { TFunction } from "@/lib/texts/types";
 
 type FieldKey = "name" | "email" | "phone" | "password" | "confirm";
@@ -15,13 +15,15 @@ const ICONS: Record<string, React.ReactNode> = {
   password: (<><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 018 0v3" /></>),
 };
 
-const benefits = (t: TFunction) => [
-  [t("account.auth.benefit1.title"), t("account.auth.benefit1.desc")],
-  [t("account.auth.benefit2.title"), t("account.auth.benefit2.desc")],
-  [t("account.auth.benefit3.title"), t("account.auth.benefit3.desc")],
+// text names (shown through <Txt>, so font / bold / underline from Site Text apply)
+const BENEFIT_KEYS = [
+  ["account.auth.benefit1.title", "account.auth.benefit1.desc"],
+  ["account.auth.benefit2.title", "account.auth.benefit2.desc"],
+  ["account.auth.benefit3.title", "account.auth.benefit3.desc"],
 ];
+const STRENGTH_KEYS = ["", "account.auth.strength.weak", "account.auth.strength.fair", "account.auth.strength.good", "account.auth.strength.strong"];
 
-function strength(pw: string, t: TFunction) {
+function strength(pw: string) {
   let score = 0;
   if (pw.length >= 8) score++;
   if (pw.length >= 12) score++;
@@ -29,7 +31,7 @@ function strength(pw: string, t: TFunction) {
   if (/\d/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   const level = pw.length === 0 ? 0 : Math.min(4, Math.max(1, score));
-  return { level, label: ["", t("account.auth.strength.weak"), t("account.auth.strength.fair"), t("account.auth.strength.good"), t("account.auth.strength.strong")][level] };
+  return { level, labelKey: STRENGTH_KEYS[level] };
 }
 
 const STRENGTH_COLORS = ["", "#C4584A", "#D49A3A", "#A8975E", "#4F8A5B"];
@@ -94,12 +96,12 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
   };
 
   const nextQ = next !== "/account" ? `?next=${encodeURIComponent(next)}` : "";
-  const st = strength(form.password, t);
+  const st = strength(form.password);
 
   const renderField = ({
-    k, label, type = "text", autoComplete, placeholder, optional, inputMode, icon, autoFocus, trailing,
+    k, labelKey, type = "text", autoComplete, placeholder, optional, inputMode, icon, autoFocus, trailing,
   }: {
-    k: FieldKey; label: string; type?: string; autoComplete?: string; placeholder?: string;
+    k: FieldKey; labelKey: string; type?: string; autoComplete?: string; placeholder?: string;
     optional?: boolean; inputMode?: "tel" | "email"; icon: string; autoFocus?: boolean; trailing?: React.ReactNode;
   }) => {
     const err = fieldError(k);
@@ -107,8 +109,8 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
     return (
       <div>
         <label htmlFor={id} className="text-[11px] tracking-[0.18em] uppercase text-[#5A5040] mb-1.5 block">
-          {label}
-          {optional && <span className="normal-case tracking-normal text-[#B5AA92]"> · {t("account.auth.label.optional")}</span>}
+          <Txt k={labelKey} />
+          {optional && <span className="normal-case tracking-normal text-[#B5AA92]"> · <Txt k="account.auth.label.optional" /></span>}
         </label>
         <div className="relative">
           <svg
@@ -171,20 +173,20 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
             })}
           </svg>
           <div className="relative">
-            <p className="font-serif text-2xl tracking-[0.3em] uppercase text-[#C4B07A]">{t("nav.brand")}</p>
+            <p className="font-serif text-2xl tracking-[0.3em] uppercase text-[#C4B07A]"><Txt k="nav.brand" /></p>
             <p className="mt-10 font-serif text-3xl font-light leading-snug">
-              {isRegister ? t("account.auth.tagline.register") : t("account.auth.tagline.login")}
+              {isRegister ? <Txt k="account.auth.tagline.register" /> : <Txt k="account.auth.tagline.login" />}
             </p>
           </div>
           <ul className="relative space-y-5 mt-10">
-            {benefits(t).map(([title, d]) => (
-              <li key={title} className="flex gap-3">
+            {BENEFIT_KEYS.map(([titleKey, descKey]) => (
+              <li key={titleKey} className="flex gap-3">
                 <svg className="mt-0.5 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C4B07A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M5 12.5l4.5 4.5L19 7.5" />
                 </svg>
                 <span>
-                  <span className="block text-sm">{title}</span>
-                  <span className="block text-xs text-[#F5EFE2]/55 mt-0.5 leading-relaxed">{d}</span>
+                  <span className="block text-sm"><Txt k={titleKey} /></span>
+                  <span className="block text-xs text-[#F5EFE2]/55 mt-0.5 leading-relaxed"><Txt k={descKey} /></span>
                 </span>
               </li>
             ))}
@@ -195,23 +197,23 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
         <div className="p-6 sm:p-10">
           <div className="mb-7">
             <h1 className="font-serif text-3xl sm:text-4xl font-light text-[#1C1711]">
-              {isRegister ? t("account.auth.title.register") : t("account.auth.title.login")}
+              {isRegister ? <Txt k="account.auth.title.register" /> : <Txt k="account.auth.title.login" />}
             </h1>
             <p className="text-sm text-[#8A7E6E] mt-2">
               {next === "/checkout"
-                ? (isRegister ? t("account.auth.sub.checkoutRegister") : t("account.auth.sub.checkoutLogin"))
-                : isRegister ? t("account.auth.sub.register") : t("account.auth.sub.login")}
+                ? (isRegister ? <Txt k="account.auth.sub.checkoutRegister" /> : <Txt k="account.auth.sub.checkoutLogin" />)
+                : isRegister ? <Txt k="account.auth.sub.register" /> : <Txt k="account.auth.sub.login" />}
             </p>
           </div>
 
           <form onSubmit={submit} noValidate className="space-y-5">
-            {isRegister && renderField({ k: "name", label: t("account.auth.label.name"), autoComplete: "name", placeholder: t("account.auth.placeholder.name"), icon: "name", autoFocus: true })}
-            {renderField({ k: "email", label: t("account.auth.label.email"), type: "email", inputMode: "email", autoComplete: "email", placeholder: t("account.auth.placeholder.email"), icon: "email", autoFocus: !isRegister })}
-            {isRegister && renderField({ k: "phone", label: t("account.auth.label.phone"), type: "tel", inputMode: "tel", autoComplete: "tel", placeholder: t("account.auth.placeholder.phone"), icon: "phone", optional: true })}
+            {isRegister && renderField({ k: "name", labelKey: "account.auth.label.name", autoComplete: "name", placeholder: t("account.auth.placeholder.name"), icon: "name", autoFocus: true })}
+            {renderField({ k: "email", labelKey: "account.auth.label.email", type: "email", inputMode: "email", autoComplete: "email", placeholder: t("account.auth.placeholder.email"), icon: "email", autoFocus: !isRegister })}
+            {isRegister && renderField({ k: "phone", labelKey: "account.auth.label.phone", type: "tel", inputMode: "tel", autoComplete: "tel", placeholder: t("account.auth.placeholder.phone"), icon: "phone", optional: true })}
             <div>
               {renderField({
                 k: "password",
-                label: t("account.auth.label.password"),
+                labelKey: "account.auth.label.password",
                 type: showPw ? "text" : "password",
                 autoComplete: isRegister ? "new-password" : "current-password",
                 placeholder: isRegister ? t("account.auth.placeholder.passwordNew") : t("account.auth.placeholder.passwordLogin"),
@@ -230,13 +232,13 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
                     ))}
                   </div>
                   <p className="text-[11px] mt-1.5" style={{ color: STRENGTH_COLORS[st.level] }}>
-                    {st.label}
-                    {st.level < 3 && <span className="text-[#8A7E6E]"> — {t("account.auth.strength.hint")}</span>}
+                    {st.labelKey && <Txt k={st.labelKey} />}
+                    {st.level < 3 && <span className="text-[#8A7E6E]"> — <Txt k="account.auth.strength.hint" /></span>}
                   </p>
                 </div>
               )}
             </div>
-            {isRegister && renderField({ k: "confirm", label: t("account.auth.label.confirm"), type: showPw ? "text" : "password", autoComplete: "new-password", placeholder: t("account.auth.placeholder.confirm"), icon: "password" })}
+            {isRegister && renderField({ k: "confirm", labelKey: "account.auth.label.confirm", type: showPw ? "text" : "password", autoComplete: "new-password", placeholder: t("account.auth.placeholder.confirm"), icon: "password" })}
 
             {error && (
               <div role="alert" className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs px-3.5 py-2.5">
@@ -258,14 +260,14 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
                   <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                 </svg>
               )}
-              {loading ? t("account.auth.wait") : isRegister ? t("account.auth.submit.register") : t("account.auth.submit.login")}
+              {loading ? <Txt k="account.auth.wait" /> : isRegister ? <Txt k="account.auth.submit.register" /> : <Txt k="account.auth.submit.login" />}
             </button>
           </form>
 
           <p className="text-center text-sm text-[#8A7E6E] mt-7">
-            {isRegister ? t("account.auth.switch.haveAccount") : t("account.auth.switch.new")}{" "}
+            {isRegister ? <Txt k="account.auth.switch.haveAccount" /> : <Txt k="account.auth.switch.new" />}{" "}
             <Link href={`/account/${isRegister ? "login" : "register"}${nextQ}`} className="text-[#A8975E] underline underline-offset-4 hover:text-[#8A7A4A]">
-              {isRegister ? t("account.auth.switch.signIn") : t("account.auth.switch.create")}
+              {isRegister ? <Txt k="account.auth.switch.signIn" /> : <Txt k="account.auth.switch.create" />}
             </Link>
           </p>
         </div>
