@@ -4,16 +4,25 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
+import { useT } from "@/components/store/TextsProvider";
 
 const NAV_LINKS = [
-  ["Home", "/"],
-  ["Shop", "/shop"],
-  ["About", "/about"],
-  ["Contact", "/contact"],
-  ["My Orders", "/orders"],
+  ["nav.menu.home", "/"],
+  ["nav.menu.shop", "/shop"],
+  ["nav.menu.about", "/about"],
+  ["nav.menu.contact", "/contact"],
+  ["nav.menu.orders", "/orders"],
+] as const;
+
+const COLLECTIONS = [
+  ["necklaces", "nav.drawer.necklaces"],
+  ["earrings", "nav.drawer.earrings"],
+  ["rings", "nav.drawer.rings"],
+  ["bracelets", "nav.drawer.bracelets"],
 ] as const;
 
 export default function Navbar({ tagline = "", customerName = "", hasBundles = false }: { tagline?: string; customerName?: string; hasBundles?: boolean }) {
+  const t = useT();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -47,7 +56,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
           <button
             onClick={() => setMenuOpen(true)}
             className={`p-2 -ml-2 ${textColor} transition-colors`}
-            aria-label="Open menu"
+            aria-label={t("nav.openMenu")}
           >
             <svg width="22" height="14" viewBox="0 0 22 14" fill="none">
               <line x1="0" y1="1" x2="22" y2="1" stroke="currentColor" strokeWidth="1.4" />
@@ -59,7 +68,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
           {/* Logo — centered */}
           <Link href="/" className="absolute left-1/2 -translate-x-1/2">
             <span className={`font-serif text-[22px] font-light tracking-[0.25em] uppercase transition-colors duration-500 ${logoColor}`}>
-              UrPiece
+              {t("nav.brand")}
             </span>
           </Link>
 
@@ -71,13 +80,13 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
                 solidNav ? "text-[#5A5040] hover:text-[#A8975E]" : "text-[#F5EFE2]/80 hover:text-[#C4B07A]"
               }`}
             >
-              Shop
+              {t("nav.menu.shop")}
             </Link>
             <Link
               href={customerName ? "/account" : "/account/login"}
               className={`p-1.5 transition-colors duration-300 ${textColor}`}
-              aria-label={customerName ? "My account" : "Sign in"}
-              title={customerName ? `Hi, ${customerName.split(" ")[0]}` : "Sign in"}
+              aria-label={customerName ? t("nav.account") : t("nav.signIn")}
+              title={customerName ? t("nav.greeting", { name: customerName.split(" ")[0] }) : t("nav.signIn")}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="8" r="4" />
@@ -87,7 +96,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
             <Link
               href="/cart"
               className={`relative p-1.5 -mr-1.5 transition-colors duration-300 ${textColor}`}
-              aria-label="Cart"
+              aria-label={t("nav.cart")}
             >
               <svg width="21" height="19" viewBox="0 0 21 19" fill="none">
                 <path d="M1 1h3.2l2.3 9.5h8.5l2.3-6.5H5.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -126,11 +135,11 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
         >
           {/* Drawer header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-[#EDE6D4]">
-            <span className="font-serif text-lg tracking-[0.2em] text-[#A8975E] uppercase">UrPiece</span>
+            <span className="font-serif text-lg tracking-[0.2em] text-[#A8975E] uppercase">{t("nav.brand")}</span>
             <button
               onClick={() => setMenuOpen(false)}
               className="p-1 text-[#5A5040] hover:text-[#1C1711] transition-colors"
-              aria-label="Close menu"
+              aria-label={t("nav.closeMenu")}
             >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M2 2l14 14M16 2 2 16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -140,7 +149,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
 
           {/* Nav links */}
           <div className="flex flex-col px-6 py-8 gap-5">
-            {(hasBundles ? ([...NAV_LINKS.slice(0, 2), ["Bundles", "/bundles"], ...NAV_LINKS.slice(2)] as unknown as typeof NAV_LINKS) : NAV_LINKS).map(([label, href]) => (
+            {(hasBundles ? ([...NAV_LINKS.slice(0, 2), ["nav.menu.bundles", "/bundles"], ...NAV_LINKS.slice(2)] as unknown as typeof NAV_LINKS) : NAV_LINKS).map(([labelKey, href]) => (
               <Link
                 key={href}
                 href={href}
@@ -149,7 +158,7 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
                   pathname === href ? "text-[#A8975E]" : "text-[#5A5040] hover:text-[#A8975E]"
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </Link>
             ))}
           </div>
@@ -158,27 +167,27 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
           <div className="px-6 pb-5 -mt-3 flex flex-col gap-3 border-b border-[#EDE6D4]">
             {customerName ? (
               <Link href="/account" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]">
-                Hi, {customerName.split(" ")[0]} · My account
+                {t("nav.drawer.greetingAccount", { name: customerName.split(" ")[0] })}
               </Link>
             ) : (
               <>
-                <Link href="/account/login" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]">Sign in</Link>
-                <Link href="/account/register" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#5A5040] hover:text-[#A8975E]">Create account</Link>
+                <Link href="/account/login" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#A8975E]">{t("nav.signIn")}</Link>
+                <Link href="/account/register" onClick={() => setMenuOpen(false)} className="text-xs tracking-[0.18em] uppercase text-[#5A5040] hover:text-[#A8975E]">{t("nav.drawer.createAccount")}</Link>
               </>
             )}
           </div>
 
           {/* Category quick-links */}
           <div className="px-6 py-5 border-t border-[#EDE6D4]">
-            <p className="text-[9px] tracking-[0.3em] uppercase text-[#A8975E] mb-4">Collections</p>
-            {["Necklaces", "Earrings", "Rings", "Bracelets"].map((cat) => (
+            <p className="text-[9px] tracking-[0.3em] uppercase text-[#A8975E] mb-4">{t("nav.drawer.collections")}</p>
+            {COLLECTIONS.map(([slug, catKey]) => (
               <Link
-                key={cat}
-                href={`/shop?category=${cat.toLowerCase()}`}
+                key={slug}
+                href={`/shop?category=${slug}`}
                 onClick={() => setMenuOpen(false)}
                 className="block text-xs text-[#8A7E6E] hover:text-[#A8975E] transition-colors py-1.5 tracking-wide"
               >
-                {cat}
+                {t(catKey)}
               </Link>
             ))}
           </div>

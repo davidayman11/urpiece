@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useT } from "@/components/store/TextsProvider";
 import type { Category } from "@prisma/client";
 
 interface Props {
@@ -9,13 +10,13 @@ interface Props {
   sort?: string;
 }
 
-const SORT_OPTIONS = [
-  { value: "newest", label: "Newest" },
-  { value: "price-asc", label: "Price: Low–High" },
-  { value: "price-desc", label: "Price: High–Low" },
-];
-
 export default function ShopFilters({ categories, selected, sort }: Props) {
+  const t = useT();
+  const SORT_OPTIONS = [
+    { value: "newest", label: t("shop.filters.sortNewest") },
+    { value: "price-asc", label: t("shop.filters.sortPriceAsc") },
+    { value: "price-desc", label: t("shop.filters.sortPriceDesc") },
+  ];
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -40,7 +41,7 @@ export default function ShopFilters({ categories, selected, sort }: Props) {
               : "bg-transparent text-[#5A5040] border-[#C4B07A]/50 hover:border-[#A8975E] hover:text-[#1C1711]"
           }`}
         >
-          All
+          {t("shop.filters.all")}
         </button>
         {categories.map((cat) => (
           <button

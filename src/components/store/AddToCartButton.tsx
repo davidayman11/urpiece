@@ -6,6 +6,7 @@ import { parseImgs } from "@/lib/product-images";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
+import { useT } from "@/components/store/TextsProvider";
 import type { Product, Variant } from "@prisma/client";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function AddToCartButton({ product }: Props) {
+  const t = useT();
   const addItem = useCartStore((s) => s.addItem);
   // The chosen variant is shared with the photo gallery (so the right photos show)
   const shared = useVariantSelection();
@@ -29,7 +31,7 @@ export default function AddToCartButton({ product }: Props) {
   if (product.variants.length === 0) {
     return (
       <div className="mt-8">
-        <p className="text-sm text-[#8A7E6E]">This product has no variants available.</p>
+        <p className="text-sm text-[#8A7E6E]">{t("buy.noVariants")}</p>
       </div>
     );
   }
@@ -103,13 +105,13 @@ export default function AddToCartButton({ product }: Props) {
       {!inStock && (
         <p className="flex items-center gap-2 text-[11px] text-[#8A7E6E] tracking-wide">
           <span className="w-2 h-2 rounded-full bg-[#8A7E6E] inline-block" />
-          This variant is out of stock
+          {t("buy.variantOutOfStock")}
         </p>
       )}
       {isLowStock && (
         <p className="flex items-center gap-2 text-[11px] text-[#C4834A] tracking-wide">
           <span className="w-2 h-2 rounded-full bg-[#C4834A] inline-block" />
-          Only {inventory} left — order soon
+          {t("buy.lowStock", { count: inventory })}
         </p>
       )}
 
@@ -142,7 +144,7 @@ export default function AddToCartButton({ product }: Props) {
               : "bg-[#A8975E] text-[#F5EFE2] hover:bg-[#8A7A4A]"
           }`}
         >
-          {!inStock ? "Sold Out" : added ? "Added ✓" : "Add to Cart"}
+          {!inStock ? t("buy.soldOut") : added ? t("buy.added") : t("buy.addToCart")}
         </button>
       </div>
     </div>

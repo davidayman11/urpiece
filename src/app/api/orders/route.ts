@@ -6,13 +6,15 @@ import { quoteOrder, QuoteError } from "@/lib/pricing-engine";
 import { parseFieldModes, parseCustomFields } from "@/lib/checkout-fields";
 import { getCustomer } from "@/lib/customer-auth";
 import { loadShipping } from "@/lib/shipping";
+import { getT } from "@/lib/texts/server";
 
 export async function POST(req: NextRequest) {
+  const t = await getT();
   try {
     // Orders need a signed-in customer account
     const account = await getCustomer();
     if (!account) {
-      return NextResponse.json({ error: "Please sign in to place an order" }, { status: 401 });
+      return NextResponse.json({ error: t("checkout.msg.signIn") }, { status: 401 });
     }
 
     const fd = await req.formData();
@@ -33,14 +35,14 @@ export async function POST(req: NextRequest) {
     const shipping = await loadShipping();
     const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
 
-    if (!itemsJson) return bad("Missing required fields");
-    if (modes.name === "required" && !name?.trim()) return bad("Name is required");
-    if (modes.email === "required" && !email?.trim()) return bad("Email is required");
-    if (modes.phone === "required" && !phone?.trim()) return bad("Phone number is required");
-    if (modes.address === "required" && !address?.trim()) return bad("Street is required");
-    if ((modes.governorate === "required" || shipping.adminDriven) && !governorate?.trim()) return bad("Governorate is required");
-    if (modes.building === "required" && !building?.trim()) return bad("Building is required");
-    if ((modes.city === "required" || shipping.hasZones) && !city?.trim()) return bad("City is required");
+    if (!itemsJson) return bad(t("checkout.msg.missingFields"));
+    if (modes.name === "required" && !name?.trim()) return bad(t("checkout.msg.nameRequired"));
+    if (modes.email === "required" && !email?.trim()) return bad(t("checkout.msg.emailRequired"));
+    if (modes.phone === "required" && !phone?.trim()) return bad(t("checkout.msg.phoneRequired"));
+    if (modes.address === "required" && !address?.trim()) return bad(t("checkout.msg.streetRequired"));
+    if ((modes.governorate === "required" || shipping.adminDriven) && !governorate?.trim()) return bad(t("checkout.msg.governorateRequired"));
+    if (modes.building === "required" && !building?.trim()) return bad(t("checkout.msg.buildingRequired"));
+    if ((modes.city === "required" || shipping.hasZones) && !city?.trim()) return bad(t("checkout.msg.cityRequired"));
 
     // Admin-defined custom fields: store answers keyed by the label (snapshot)
     let customAnswers: Record<string, string> = {};
@@ -49,17 +51,17 @@ export async function POST(req: NextRequest) {
     for (const f of customDefs) {
       const v = String(customAnswers[f.id] ?? "").trim().slice(0, 1000);
       if (!v) {
-        if (f.required) return bad(`${f.label} is required`);
+        if (f.required) return bad(t("checkout.msg.customRequired", { label: f.label }));
         continue;
       }
-      if (f.type === "select" && !(f.options || []).includes(v)) return bad(`Invalid choice for ${f.label}`);
+      if (f.type === "select" && !(f.options || []).includes(v)) return bad(t("checkout.msg.customInvalid", { label: f.label }));
       customData[f.label] = v;
     }
 
     // Every price, discount and the shipping fee are computed on the server
     let rawItems: { variantId: string; quantity: number }[] = [];
-    try { rawItems = JSON.parse(itemsJson); } catch { return bad("Invalid cart"); }
-    const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true });
+    try { rawItems = JSON.parse(itemsJson); } catch { return bad(t("checkout.msg.invalidCart")); }
+    const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true }, t);
     // Stock is checked per variant across ALL lines (a bundle and a normal purchase can share a variant)
     const wanted = new Map<string, { qty: number; stock: number; name: string }>();
     for (const l of quote.lines) {
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
       wanted.set(l.variantId, cur);
     }
     for (const w of wanted.values()) {
-      if (w.stock < w.qty) return bad(`Insufficient stock for ${w.name}`);
+      if (w.stock < w.qty) return bad(t("checkout.msg.insufficientStock", { name: w.name }));
     }
     const { subtotal, discount, shippingFee, total } = quote;
 
@@ -203,7 +205,7 @@ export async function POST(req: NextRequest) {
     }
     console.error("Order creation error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create order" },
+      { error: error instanceof Error ? error.message : t("checkout.msg.orderFailed") },
       { status: 500 }
     );
   }

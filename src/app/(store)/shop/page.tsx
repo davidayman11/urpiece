@@ -3,15 +3,20 @@ import ProductCard from "@/components/store/ProductCard";
 
 export const dynamic = "force-dynamic";
 import ShopFilters from "@/components/store/ShopFilters";
+import { getT } from "@/lib/texts/server";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
   searchParams: Promise<{ category?: string; q?: string; sort?: string }>;
 }
 
-export const metadata = { title: "Shop" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("shop.meta.title") };
+}
 
 export default async function ShopPage({ searchParams }: Props) {
+  const t = await getT();
   const params = await searchParams;
   const { category, q, sort } = params;
 
@@ -41,14 +46,14 @@ export default async function ShopPage({ searchParams }: Props) {
         <div className="max-w-7xl mx-auto">
           <p className="text-[10px] tracking-[0.4em] uppercase text-[#A8975E] mb-3 flex items-center gap-3">
             <span className="w-6 h-px bg-[#A8975E]" />
-            {selectedCategory ? selectedCategory.name : "All Collections"}
+            {selectedCategory ? selectedCategory.name : t("shop.banner.allCollections")}
           </p>
           <div className="flex items-end justify-between">
             <h1 className="font-serif text-5xl md:text-6xl font-light text-[#F5EFE2]">
-              {q ? `"${q}"` : selectedCategory ? selectedCategory.name : "Shop"}
+              {q ? `"${q}"` : selectedCategory ? selectedCategory.name : t("shop.banner.title")}
             </h1>
             <p className="hidden md:block text-sm text-[#8A7E6E] mb-1">
-              {products.length} {products.length === 1 ? "piece" : "pieces"}
+              {products.length === 1 ? t("shop.count.one", { count: products.length }) : t("shop.count.many", { count: products.length })}
             </p>
           </div>
         </div>
@@ -60,14 +65,14 @@ export default async function ShopPage({ searchParams }: Props) {
 
         {/* Mobile count */}
         <p className="md:hidden text-xs text-[#8A7E6E] mb-6">
-          {products.length} {products.length === 1 ? "piece" : "pieces"}
+          {products.length === 1 ? t("shop.count.one", { count: products.length }) : t("shop.count.many", { count: products.length })}
         </p>
 
         {/* Product grid */}
         {products.length === 0 ? (
           <div className="text-center py-24">
-            <p className="font-serif text-2xl text-[#1C1711] mb-3">No pieces found</p>
-            <p className="text-sm text-[#8A7E6E]">Try a different filter or search term.</p>
+            <p className="font-serif text-2xl text-[#1C1711] mb-3">{t("shop.empty.title")}</p>
+            <p className="text-sm text-[#8A7E6E]">{t("shop.empty.text")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">

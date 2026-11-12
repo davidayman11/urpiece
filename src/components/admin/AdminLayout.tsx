@@ -20,6 +20,7 @@ const NAV = [
   { label: "Promo Codes", href: "/admin/promo-codes", icon: "🎟" },
   { label: "Expenses", href: "/admin/expenses", icon: "💸" },
   { label: "Reports", href: "/admin/reports", icon: "📊" },
+  { label: "Site Text", href: "/admin/texts", icon: "🔤" },
   { label: "Settings", href: "/admin/settings", icon: "⚙" },
 ];
 

@@ -3,8 +3,10 @@ import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import { summarizeBundle, type BundleView } from "@/lib/bundles";
 import { coverImage } from "@/lib/product-images";
+import { getT } from "@/lib/texts/server";
 
-export default function BundleCard({ bundle }: { bundle: BundleView }) {
+export default async function BundleCard({ bundle }: { bundle: BundleView }) {
+  const t = await getT();
   const s = summarizeBundle(bundle);
   const pct = s.listTotal > 0 ? Math.round((s.savings / s.listTotal) * 100) : 0;
   return (
@@ -26,17 +28,17 @@ export default function BundleCard({ bundle }: { bundle: BundleView }) {
           </div>
         )}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          <span className="bg-[#1C1711] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">Bundle</span>
-          {pct > 0 && <span className="bg-[#B23A3A] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">Save {pct}%</span>}
-          {!s.inStock && <span className="bg-[#8A7E6E] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">Out of stock</span>}
+          <span className="bg-[#1C1711] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">{t("bundle.card.badge")}</span>
+          {pct > 0 && <span className="bg-[#B23A3A] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">{t("bundle.card.save", { pct })}</span>}
+          {!s.inStock && <span className="bg-[#8A7E6E] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">{t("bundle.card.outOfStock")}</span>}
         </div>
       </div>
       <div className="pt-3.5 pb-1">
-        <p className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E] mb-1">{bundle.items.length} pieces</p>
+        <p className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E] mb-1">{t("bundle.card.pieces", { count: bundle.items.length })}</p>
         <h3 className="text-sm font-serif text-[#1C1711] group-hover:text-[#8A7A4A] transition-colors leading-snug">{bundle.name}</h3>
         <p className="mt-1.5 text-sm text-[#5A5040] tabular-nums">
           {s.savings > 0 && <span className="line-through text-[#8A7E6E] mr-2">{formatPrice(s.listTotal)}</span>}
-          {s.hasChoice && bundle.priceType === "PERCENT" ? "From " : ""}
+          {s.hasChoice && bundle.priceType === "PERCENT" ? t("bundle.card.from") : ""}
           {formatPrice(s.price)}
         </p>
       </div>

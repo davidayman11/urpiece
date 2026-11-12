@@ -8,6 +8,7 @@ import type { Quote } from "@/lib/pricing-engine";
 import type { ShippingConfig } from "@/lib/shipping";
 import { formatAddress, EGYPT_GOVERNORATES, DEFAULT_MODES, type FieldModes, type CustomField } from "@/lib/checkout-fields";
 import Image from "next/image";
+import { useT } from "@/components/store/TextsProvider";
 
 interface PaymentSettings {
   instapayId?: string;
@@ -28,6 +29,7 @@ interface SavedAddress {
 }
 
 export default function CheckoutPage() {
+  const t = useT();
   const { items, total, clearCart } = useCartStore();
   const router = useRouter();
   const [step, setStep] = useState<CheckoutStep>("details");
@@ -121,7 +123,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (items.length === 0) return;
     let cancelled = false;
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await fetch("/api/checkout/quote", {
           method: "POST",
@@ -143,7 +145,7 @@ export default function CheckoutPage() {
         else setPromoError(data.error || "");
       } catch { /* keep the last quote */ }
     }, 200);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [items, appliedCode, form.city, form.governorate]);
 
   const cartTotal = quote?.subtotal ?? total();
@@ -190,7 +192,7 @@ export default function CheckoutPage() {
       clearCart();
       router.push(`/orders?placed=${encodeURIComponent(data.orderNumber)}`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Order failed");
+      alert(e instanceof Error ? e.message : t("checkout.err.orderFailed"));
     } finally {
       setLoading(false);
     }
@@ -203,20 +205,20 @@ export default function CheckoutPage() {
   const isRequired = (field: string) =>
     (field === "city" && hasZones) || (field === "governorate" && adminDriven) || modes[field as keyof FieldModes] === "required";
   const mark = (required: boolean) =>
-    required ? <span className="text-[#A8975E]">*</span> : <span className="normal-case tracking-normal text-[#C4B8A0]">(optional)</span>;
+    required ? <span className="text-[#A8975E]">*</span> : <span className="normal-case tracking-normal text-[#C4B8A0]">{t("checkout.fields.optional")}</span>;
   const orderOf = (key: string) => {
     const i = (paySettings.fieldOrder || []).indexOf(key);
     return i === -1 ? 999 : i;
   };
   const customError = (f: CustomField) =>
-    touched["c_" + f.id] && f.required && !(customValues[f.id] || "").trim() ? "This field is required" : "";
+    touched["c_" + f.id] && f.required && !(customValues[f.id] || "").trim() ? t("checkout.err.required") : "";
 
   const fieldError = (field: string): string => {
     if (!touched[field]) return "";
     const v = form[field as keyof typeof form].trim();
-    if (!v) return isRequired(field) ? (field === "city" ? "Please select your city" : "This field is required") : "";
-    if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Enter a valid email address";
-    if (field === "phone" && !/^\+?[0-9\s-]{10,15}$/.test(v)) return "Enter a valid phone number";
+    if (!v) return isRequired(field) ? (field === "city" ? t("checkout.err.selectCity") : t("checkout.err.required")) : "";
+    if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return t("checkout.err.email");
+    if (field === "phone" && !/^\+?[0-9\s-]{10,15}$/.test(v)) return t("checkout.err.phone");
     return "";
   };
 
@@ -225,11 +227,11 @@ export default function CheckoutPage() {
   const inputCls = `${inputBase} bg-white`;
 
   const textFields = ([
-    { field: "name", label: "Full Name", type: "text", placeholder: "Your full name", autoComplete: "name", inputMode: undefined, full: true },
-    { field: "email", label: "Email", type: "email", placeholder: "you@example.com", autoComplete: "email", inputMode: "email" as const, full: false },
-    { field: "phone", label: "Phone Number", type: "tel", placeholder: "01XXXXXXXXX", autoComplete: "tel", inputMode: "tel" as const, full: false },
-    { field: "building", label: "Building", type: "text", placeholder: "Building number / name", autoComplete: "address-line2", inputMode: undefined, full: false },
-    { field: "address", label: "Street", type: "text", placeholder: "Street name", autoComplete: "address-line1", inputMode: undefined, full: false },
+    { field: "name", label: t("checkout.fields.name"), type: "text", placeholder: t("checkout.fields.namePlaceholder"), autoComplete: "name", inputMode: undefined, full: true },
+    { field: "email", label: t("checkout.fields.email"), type: "email", placeholder: t("checkout.fields.emailPlaceholder"), autoComplete: "email", inputMode: "email" as const, full: false },
+    { field: "phone", label: t("checkout.fields.phone"), type: "tel", placeholder: t("checkout.fields.phonePlaceholder"), autoComplete: "tel", inputMode: "tel" as const, full: false },
+    { field: "building", label: t("checkout.fields.building"), type: "text", placeholder: t("checkout.fields.buildingPlaceholder"), autoComplete: "address-line2", inputMode: undefined, full: false },
+    { field: "address", label: t("checkout.fields.street"), type: "text", placeholder: t("checkout.fields.streetPlaceholder"), autoComplete: "address-line1", inputMode: undefined, full: false },
   ] as const).filter((f) => !isHidden(f.field));
 
   if (items.length === 0) return null;
@@ -237,7 +239,7 @@ export default function CheckoutPage() {
   return (
     <div className="pt-28 pb-24 min-h-screen">
       <div className="max-w-5xl mx-auto px-6">
-        <h1 className="font-serif text-4xl font-light text-[#1C1711] mb-10">Checkout</h1>
+        <h1 className="font-serif text-4xl font-light text-[#1C1711] mb-10">{t("checkout.title")}</h1>
 
         {/* Steps */}
         <div className="flex items-center gap-2 mb-10 text-xs tracking-widest uppercase">
@@ -253,7 +255,7 @@ export default function CheckoutPage() {
                     : "text-[#A59C88]"
                 }
               >
-                {s}
+                {t(`checkout.steps.${s}`)}
               </span>
             </div>
           ))}
@@ -265,13 +267,13 @@ export default function CheckoutPage() {
             {step === "details" && (
               <div className="space-y-5">
                 <div>
-                  <h2 className="font-serif text-2xl text-[#1C1711]">Shipping Details</h2>
-                  <p className="text-xs text-[#8A7E6E] mt-1">Where should we deliver your order?</p>
+                  <h2 className="font-serif text-2xl text-[#1C1711]">{t("checkout.details.title")}</h2>
+                  <p className="text-xs text-[#8A7E6E] mt-1">{t("checkout.details.subtitle")}</p>
                 </div>
 
                 {addresses.length > 0 && (
                   <div>
-                    <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-2">Deliver to</p>
+                    <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-2">{t("checkout.details.deliverTo")}</p>
                     <div className="grid sm:grid-cols-2 gap-3">
                       {addresses.map((a) => (
                         <button
@@ -284,10 +286,10 @@ export default function CheckoutPage() {
                         >
                           <span className="flex items-center justify-between gap-2">
                             <span className="text-[#1C1711] font-medium truncate">{a.label || a.fullName}</span>
-                            {a.isDefault && <span className="text-[9px] tracking-[0.2em] uppercase text-[#A8975E] shrink-0">Default</span>}
+                            {a.isDefault && <span className="text-[9px] tracking-[0.2em] uppercase text-[#A8975E] shrink-0">{t("checkout.details.default")}</span>}
                           </span>
                           <span className="block text-[#8A7E6E] mt-1">
-                            {[a.building && `Building ${a.building}`, a.street, a.city, a.governorate].filter(Boolean).join(", ")}
+                            {[a.building && t("checkout.details.buildingPrefix", { building: a.building }), a.street, a.city, a.governorate].filter(Boolean).join(", ")}
                           </span>
                           <span className="block text-[#8A7E6E]">{a.phone}</span>
                         </button>
@@ -299,7 +301,7 @@ export default function CheckoutPage() {
                           selectedAddr === "new" ? "border-[#A8975E] bg-[#A8975E]/5" : "border-dashed border-[#C9BE9F] hover:border-[#A8975E]"
                         }`}
                       >
-                        <span className="text-[#A8975E]">+ Use a new address</span>
+                        <span className="text-[#A8975E]">{t("checkout.details.useNewAddress")}</span>
                       </button>
                     </div>
                   </div>
@@ -331,7 +333,7 @@ export default function CheckoutPage() {
                   {!isHidden("governorate") && (
                     <div className="sm:col-span-2" style={{ order: orderOf("governorate") }}>
                       <label htmlFor="governorate" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
-                        Governorate {mark(isRequired("governorate"))}
+                        {t("checkout.fields.governorate")} {mark(isRequired("governorate"))}
                       </label>
                       <div className="relative">
                         <select
@@ -342,10 +344,10 @@ export default function CheckoutPage() {
                           onBlur={() => setTouched((t) => ({ ...t, governorate: true }))}
                           className={`${inputCls} appearance-none pr-10 cursor-pointer ${fieldError("governorate") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                         >
-                          <option value="">Select your governorate</option>
+                          <option value="">{t("checkout.fields.governoratePlaceholder")}</option>
                           {govOptions.map((g) => (
                             <option key={g} value={g}>
-                              {g}{adminDriven ? ` — ${govPrice(g) > 0 ? formatPrice(govPrice(g)) : "Free shipping"}` : ""}
+                              {adminDriven ? t("checkout.fields.optionWithFee", { name: g, fee: govPrice(g) > 0 ? formatPrice(govPrice(g)) : t("checkout.fields.freeShipping") }) : g}
                             </option>
                           ))}
                         </select>
@@ -360,7 +362,7 @@ export default function CheckoutPage() {
                   {!isHidden("city") && (
                   <div className="sm:col-span-2" style={{ order: orderOf("city") }}>
                     <label htmlFor="city" className="text-xs tracking-widest uppercase text-[#5A5040] mb-1.5 block">
-                      City {mark(isRequired("city"))}
+                      {t("checkout.fields.city")} {mark(isRequired("city"))}
                     </label>
                     {hasZones ? (
                       <div className="space-y-2">
@@ -377,13 +379,13 @@ export default function CheckoutPage() {
                             disabled={adminDriven && !form.governorate}
                             className={`${inputCls} appearance-none pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${fieldError("city") ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                           >
-                            <option value="">{adminDriven && !form.governorate ? "Select a governorate first" : "Select your city"}</option>
+                            <option value="">{adminDriven && !form.governorate ? t("checkout.fields.cityNeedGovernorate") : t("checkout.fields.citySelectPlaceholder")}</option>
                             {cityOptions.map((c) => (
                               <option key={c} value={c}>
-                                {adminDriven ? c : `${c} — ${(shipping.zones.find((z) => z.city === c)?.price ?? 0) > 0 ? formatPrice(shipping.zones.find((z) => z.city === c)?.price ?? 0) : "Free shipping"}`}
+                                {adminDriven ? c : t("checkout.fields.optionWithFee", { name: c, fee: (shipping.zones.find((z) => z.city === c)?.price ?? 0) > 0 ? formatPrice(shipping.zones.find((z) => z.city === c)?.price ?? 0) : t("checkout.fields.freeShipping") })}
                               </option>
                             ))}
-                            {adminDriven && <option value="__other__">Other (my city isn&apos;t listed)</option>}
+                            {adminDriven && <option value="__other__">{t("checkout.fields.cityOther")}</option>}
                           </select>
                           <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
                             <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -395,7 +397,7 @@ export default function CheckoutPage() {
                             type="text"
                             autoFocus
                             autoComplete="address-level2"
-                            placeholder="Type your city / area"
+                            placeholder={t("checkout.fields.cityOtherPlaceholder")}
                             value={form.city}
                             onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
                             onBlur={() => setTouched((t) => ({ ...t, city: true }))}
@@ -408,7 +410,7 @@ export default function CheckoutPage() {
                         id="city"
                         type="text"
                         autoComplete="address-level2"
-                        placeholder="Your city"
+                        placeholder={t("checkout.fields.cityPlaceholder")}
                         value={form.city}
                         onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
                         className={`${inputCls} border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20`}
@@ -417,8 +419,8 @@ export default function CheckoutPage() {
                     {fieldError("city") && <p className="text-[11px] text-red-600 mt-1">{fieldError("city")}</p>}
                     {(adminDriven ? form.governorate : form.city) && hasZones && (
                       <p className="text-[11px] text-[#8A7E6E] mt-1.5">
-                        Delivery to {adminDriven ? form.governorate : form.city}: {shippingFee > 0 ? formatPrice(shippingFee) : "free"}
-                        {freeShippingApplied && cityFee > 0 ? " (free shipping applied)" : ""}
+                        {t("checkout.fields.deliveryTo", { place: adminDriven ? form.governorate : form.city, fee: shippingFee > 0 ? formatPrice(shippingFee) : t("checkout.fields.deliveryFree") })}
+                        {freeShippingApplied && cityFee > 0 ? " " + t("checkout.fields.freeShippingApplied") : ""}
                       </p>
                     )}
                   </div>
@@ -448,7 +450,7 @@ export default function CheckoutPage() {
                             onBlur={() => setTouched((t) => ({ ...t, ["c_" + f.id]: true }))}
                             className={`${inputCls} appearance-none pr-10 cursor-pointer ${customError(f) ? "border-red-400" : "border-[#CFC4A6] hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20"}`}
                           >
-                            <option value="">Select…</option>
+                            <option value="">{t("checkout.fields.selectPlaceholder")}</option>
                             {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                           </select>
                           <svg className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A8975E]" width="12" height="8" viewBox="0 0 12 8" fill="none">
@@ -474,7 +476,7 @@ export default function CheckoutPage() {
                 {selectedAddr === "new" && (
                   <label className="flex items-center gap-2 text-sm text-[#5A5040] cursor-pointer">
                     <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} />
-                    Save this address to my account
+                    {t("checkout.fields.saveAddress")}
                   </label>
                 )}
 
@@ -482,7 +484,7 @@ export default function CheckoutPage() {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Promo code"
+                    placeholder={t("checkout.promo.placeholder")}
                     value={promoInput}
                     onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                     className="flex-1 border border-[#CFC4A6] bg-white px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#A59C88] outline-none hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20 transition-all"
@@ -491,28 +493,28 @@ export default function CheckoutPage() {
                     onClick={applyPromo}
                     className="px-6 py-3 bg-[#1C1711] text-[#F5EFE2] text-xs tracking-widest uppercase hover:bg-[#5A5040] transition-colors"
                   >
-                    Apply
+                    {t("checkout.promo.apply")}
                   </button>
                 </div>
                 {promoError && <p className="text-xs text-red-600">{promoError}</p>}
                 {promoData && (
                   <p className="text-xs text-green-700">
-                    Code applied — {formatPrice(promoData.discount)} discount!
+                    {t("checkout.promo.applied", { amount: formatPrice(promoData.discount) })}
                   </p>
                 )}
 
                 <button
                   onClick={() => {
-                    const t: Record<string, boolean> = { name: true, email: true, phone: true, governorate: true, city: true, building: true, address: true };
-                    customFields.forEach((f) => { t["c_" + f.id] = true; });
-                    setTouched(t);
+                    const all: Record<string, boolean> = { name: true, email: true, phone: true, governorate: true, city: true, building: true, address: true };
+                    customFields.forEach((f) => { all["c_" + f.id] = true; });
+                    setTouched(all);
                     if (["name", "email", "phone", "governorate", "city", "building", "address"].some((f) => !isHidden(f) && fieldError(f))) return;
                     if (customFields.some((f) => customError({ ...f }) || (f.required && !(customValues[f.id] || "").trim()))) return;
                     setStep("payment");
                   }}
                   className="w-full bg-[#A8975E] text-[#F5EFE2] py-3.5 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors"
                 >
-                  Continue to Payment
+                  {t("checkout.details.continueButton")}
                 </button>
               </div>
             )}
@@ -520,22 +522,22 @@ export default function CheckoutPage() {
             {/* Step 2: Payment */}
             {step === "payment" && (
               <div className="space-y-6">
-                <h2 className="font-serif text-2xl text-[#1C1711]">InstaPay Payment</h2>
+                <h2 className="font-serif text-2xl text-[#1C1711]">{t("checkout.payment.title")}</h2>
                 <div className="bg-[#EDE6D4] p-6 space-y-3">
-                  <p className="text-xs tracking-widest uppercase text-[#A8975E]">Payment Instructions</p>
+                  <p className="text-xs tracking-widest uppercase text-[#A8975E]">{t("checkout.payment.instructionsTitle")}</p>
                   <p className="text-sm text-[#5A5040] leading-relaxed">
                     {paySettings.instructions ||
-                      "Transfer the total amount via InstaPay to the details below, then upload your payment screenshot."}
+                      t("checkout.payment.instructionsDefault")}
                   </p>
                   {paySettings.instapayId && (
                     <div className="mt-4 p-4 bg-[#F5EFE2] text-center">
-                      <p className="text-xs text-[#8A7E6E] mb-1">InstaPay ID</p>
+                      <p className="text-xs text-[#8A7E6E] mb-1">{t("checkout.payment.instapayId")}</p>
                       <p className="text-lg font-medium text-[#1C1711]">{paySettings.instapayId}</p>
                     </div>
                   )}
                   {paySettings.instapayPhone && (
                     <div className="p-4 bg-[#F5EFE2] text-center">
-                      <p className="text-xs text-[#8A7E6E] mb-1">Phone</p>
+                      <p className="text-xs text-[#8A7E6E] mb-1">{t("checkout.payment.phone")}</p>
                       <p className="text-lg font-medium text-[#1C1711]">{paySettings.instapayPhone}</p>
                     </div>
                   )}
@@ -544,7 +546,7 @@ export default function CheckoutPage() {
                       {f.label && <p className="text-xs text-[#8A7E6E] mb-1">{f.label}</p>}
                       {f.type === "qr" && f.value ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={f.value} alt={f.label || "QR code"} className="mx-auto w-44 h-44 object-contain" />
+                        <img src={f.value} alt={f.label || t("checkout.payment.qrAlt")} className="mx-auto w-44 h-44 object-contain" />
                       ) : f.type === "link" && f.value ? (
                         <a href={f.value} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#A8975E] underline break-all">
                           {f.value}
@@ -556,35 +558,35 @@ export default function CheckoutPage() {
                   ))}
                   {dep?.enabled && (
                     <fieldset className="mt-4 space-y-2">
-                      <legend className="text-xs tracking-widest uppercase text-[#A8975E] mb-2">How would you like to pay?</legend>
+                      <legend className="text-xs tracking-widest uppercase text-[#A8975E] mb-2">{t("checkout.payment.howToPay")}</legend>
                       <label className={`flex items-start gap-3 p-4 bg-[#F5EFE2] border cursor-pointer ${usingDeposit ? "border-[#A8975E]" : "border-transparent"}`}>
                         <input type="radio" name="payOption" className="mt-1" checked={usingDeposit} onChange={() => setPayOption("deposit")} />
                         <span className="text-sm">
-                          <span className="block text-[#1C1711] font-medium">Pay a deposit now — {formatPrice(dep.amount)}</span>
-                          <span className="block text-[#8A7E6E] mt-0.5">The remaining {formatPrice(dep.balance)} is paid when your order arrives.</span>
+                          <span className="block text-[#1C1711] font-medium">{t("checkout.payment.depositOption", { amount: formatPrice(dep.amount) })}</span>
+                          <span className="block text-[#8A7E6E] mt-0.5">{t("checkout.payment.depositRemaining", { amount: formatPrice(dep.balance) })}</span>
                         </span>
                       </label>
                       {dep.allowFull && (
                         <label className={`flex items-start gap-3 p-4 bg-[#F5EFE2] border cursor-pointer ${!usingDeposit ? "border-[#A8975E]" : "border-transparent"}`}>
                           <input type="radio" name="payOption" className="mt-1" checked={!usingDeposit} onChange={() => setPayOption("full")} />
                           <span className="text-sm">
-                            <span className="block text-[#1C1711] font-medium">Pay in full now — {formatPrice(finalTotal)}</span>
-                            <span className="block text-[#8A7E6E] mt-0.5">Nothing to pay on delivery.</span>
+                            <span className="block text-[#1C1711] font-medium">{t("checkout.payment.fullOption", { amount: formatPrice(finalTotal) })}</span>
+                            <span className="block text-[#8A7E6E] mt-0.5">{t("checkout.payment.fullNote")}</span>
                           </span>
                         </label>
                       )}
                     </fieldset>
                   )}
                   <div className="mt-4 p-4 bg-[#A8975E] text-center">
-                    <p className="text-xs text-[#F5EFE2]/70 mb-1">{usingDeposit ? "Deposit to Transfer Now" : "Amount to Transfer"}</p>
+                    <p className="text-xs text-[#F5EFE2]/70 mb-1">{usingDeposit ? t("checkout.payment.depositToTransfer") : t("checkout.payment.amountToTransfer")}</p>
                     <p className="text-2xl font-serif text-[#F5EFE2]">{formatPrice(payNow)}</p>
-                    {usingDeposit && <p className="text-xs text-[#F5EFE2]/80 mt-1">+ {formatPrice(dueOnDelivery)} on delivery</p>}
+                    {usingDeposit && <p className="text-xs text-[#F5EFE2]/80 mt-1">{t("checkout.payment.onDeliveryPlus", { amount: formatPrice(dueOnDelivery) })}</p>}
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs tracking-widest uppercase text-[#5A5040] mb-2 block">
-                    Upload Payment Screenshot *
+                    {t("checkout.payment.uploadLabel")}
                   </label>
                   <input
                     type="file"
@@ -592,7 +594,7 @@ export default function CheckoutPage() {
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (!f) return;
-                      if (f.size > 5 * 1024 * 1024) return alert("Max file size is 5MB");
+                      if (f.size > 5 * 1024 * 1024) return alert(t("checkout.err.maxFileSize"));
                       setScreenshotFile(f);
                       setScreenshotPreview(URL.createObjectURL(f));
                     }}
@@ -600,7 +602,7 @@ export default function CheckoutPage() {
                   />
                   {screenshotPreview && (
                     <div className="mt-3 relative w-full h-48">
-                      <Image src={screenshotPreview} alt="Screenshot" fill className="object-contain" />
+                      <Image src={screenshotPreview} alt={t("checkout.payment.screenshotAlt")} fill className="object-contain" />
                     </div>
                   )}
                 </div>
@@ -610,16 +612,16 @@ export default function CheckoutPage() {
                     onClick={() => setStep("details")}
                     className="px-6 py-3 border border-[#CFC4A6] bg-white/50 text-xs tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors"
                   >
-                    Back
+                    {t("checkout.payment.back")}
                   </button>
                   <button
                     onClick={() => {
-                      if (!screenshotFile) return alert("Please upload your payment screenshot");
+                      if (!screenshotFile) return alert(t("checkout.err.uploadScreenshot"));
                       setStep("confirm");
                     }}
                     className="flex-1 bg-[#A8975E] text-[#F5EFE2] py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors"
                   >
-                    Review Order
+                    {t("checkout.payment.reviewButton")}
                   </button>
                 </div>
               </div>
@@ -628,13 +630,13 @@ export default function CheckoutPage() {
             {/* Step 3: Confirm */}
             {step === "confirm" && (
               <div className="space-y-6">
-                <h2 className="font-serif text-2xl text-[#1C1711]">Review Your Order</h2>
+                <h2 className="font-serif text-2xl text-[#1C1711]">{t("checkout.confirm.title")}</h2>
                 <div className="bg-[#EDE6D4] p-5 space-y-2 text-sm">
-                  {form.name && <p><span className="text-[#8A7E6E]">Name:</span> {form.name}</p>}
-                  {form.email && <p><span className="text-[#8A7E6E]">Email:</span> {form.email}</p>}
-                  {form.phone && <p><span className="text-[#8A7E6E]">Phone:</span> {form.phone}</p>}
+                  {form.name && <p><span className="text-[#8A7E6E]">{t("checkout.confirm.name")}</span> {form.name}</p>}
+                  {form.email && <p><span className="text-[#8A7E6E]">{t("checkout.confirm.email")}</span> {form.email}</p>}
+                  {form.phone && <p><span className="text-[#8A7E6E]">{t("checkout.confirm.phone")}</span> {form.phone}</p>}
                   {(form.address || form.city || form.governorate || form.building) && (
-                    <p><span className="text-[#8A7E6E]">Address:</span> {formatAddress(form)}</p>
+                    <p><span className="text-[#8A7E6E]">{t("checkout.confirm.address")}</span> {formatAddress(form)}</p>
                   )}
                   {customFields.filter((f) => (customValues[f.id] || "").trim()).map((f) => (
                     <p key={f.id}><span className="text-[#8A7E6E]">{f.label}:</span> {customValues[f.id]}</p>
@@ -649,34 +651,34 @@ export default function CheckoutPage() {
                   ))}
                   {shippingFee > 0 && (
                     <div className="flex justify-between text-sm text-[#5A5040]">
-                      <span>Shipping ({form.city})</span>
+                      <span>{t("checkout.confirm.shippingTo", { city: form.city })}</span>
                       <span>{formatPrice(shippingFee)}</span>
                     </div>
                   )}
                   {quote && quote.ruleDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-700">
-                      <span>{quote.ruleName || "Discount"}</span>
+                      <span>{quote.ruleName || t("checkout.confirm.discount")}</span>
                       <span>−{formatPrice(quote.ruleDiscount)}</span>
                     </div>
                   )}
                   {promoData && (
                     <div className="flex justify-between text-sm text-green-700">
-                      <span>Promo ({promoData.code})</span>
+                      <span>{t("checkout.confirm.promo", { code: promoData.code })}</span>
                       <span>−{formatPrice(promoData.discount)}</span>
                     </div>
                   )}
                   <div className="pt-3 border-t border-[#EDE6D4] flex justify-between font-medium">
-                    <span>Total</span>
+                    <span>{t("checkout.confirm.total")}</span>
                     <span className="text-[#A8975E]">{formatPrice(finalTotal)}</span>
                   </div>
                   {usingDeposit && (
                     <>
                       <div className="flex justify-between text-sm">
-                        <span className="text-[#5A5040]">Deposit paid now</span>
+                        <span className="text-[#5A5040]">{t("checkout.confirm.depositNow")}</span>
                         <span>{formatPrice(payNow)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-[#5A5040]">Due on delivery</span>
+                        <span className="text-[#5A5040]">{t("checkout.confirm.dueOnDelivery")}</span>
                         <span>{formatPrice(dueOnDelivery)}</span>
                       </div>
                     </>
@@ -687,14 +689,14 @@ export default function CheckoutPage() {
                     onClick={() => setStep("payment")}
                     className="px-6 py-3 border border-[#CFC4A6] bg-white/50 text-xs tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors"
                   >
-                    Back
+                    {t("checkout.confirm.back")}
                   </button>
                   <button
                     onClick={submitOrder}
                     disabled={loading}
                     className="flex-1 bg-[#A8975E] text-[#F5EFE2] py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors disabled:opacity-60"
                   >
-                    {loading ? "Placing Order..." : "Place Order"}
+                    {loading ? t("checkout.confirm.placingOrder") : t("checkout.confirm.placeOrder")}
                   </button>
                 </div>
               </div>
@@ -703,12 +705,12 @@ export default function CheckoutPage() {
 
           {/* Order summary sidebar */}
           <div className="bg-[#EDE6D4] p-6 h-fit">
-            <h3 className="font-serif text-lg text-[#1C1711] mb-4">Summary</h3>
+            <h3 className="font-serif text-lg text-[#1C1711] mb-4">{t("checkout.summary.title")}</h3>
             {freeMin > 0 && (
               <p className={`text-xs mb-4 ${freeShippingApplied ? "text-green-700" : "text-[#8A7E6E]"}`}>
                 {freeShippingApplied
-                  ? "You've unlocked free shipping!"
-                  : `Add ${formatPrice(freeMin - afterDiscount)} more for free shipping`}
+                  ? t("checkout.summary.freeUnlocked")
+                  : t("checkout.summary.addMoreForFree", { amount: formatPrice(freeMin - afterDiscount) })}
               </p>
             )}
             <div className="space-y-3 text-sm">
@@ -720,34 +722,34 @@ export default function CheckoutPage() {
               ))}
               {quote && quote.saleSavings > 0 && (
                 <div className="flex justify-between text-xs text-[#8A7E6E]">
-                  <span>Sale savings included</span>
+                  <span>{t("checkout.summary.saleSavings")}</span>
                   <span>{formatPrice(quote.saleSavings)}</span>
                 </div>
               )}
               {quote && quote.ruleDiscount > 0 && (
                 <div className="flex justify-between text-green-700">
-                  <span className="truncate mr-2">{quote.ruleName || "Discount"}</span>
+                  <span className="truncate mr-2">{quote.ruleName || t("checkout.confirm.discount")}</span>
                   <span className="shrink-0">−{formatPrice(quote.ruleDiscount)}</span>
                 </div>
               )}
               {promoData && (
                 <div className="flex justify-between text-green-700">
-                  <span>Promo ({promoData.code})</span>
+                  <span>{t("checkout.confirm.promo", { code: promoData.code })}</span>
                   <span>−{formatPrice(promoData.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-[#5A5040]">
-                <span>Shipping</span>
-                <span>{freeShippingApplied ? "Free" : !(adminDriven ? form.governorate : form.city) && hasZones ? (adminDriven ? "Select governorate" : "Select city") : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
+                <span>{t("checkout.summary.shipping")}</span>
+                <span>{freeShippingApplied ? t("checkout.summary.free") : !(adminDriven ? form.governorate : form.city) && hasZones ? (adminDriven ? t("checkout.summary.selectGovernorate") : t("checkout.summary.selectCity")) : shippingFee > 0 ? formatPrice(shippingFee) : t("checkout.summary.free")}</span>
               </div>
               <div className="pt-3 border-t border-[#E0D8C4] flex justify-between font-medium">
-                <span>Total</span>
+                <span>{t("checkout.summary.total")}</span>
                 <span className="text-[#A8975E]">{formatPrice(finalTotal)}</span>
               </div>
               {usingDeposit && step !== "details" && (
                 <div className="text-xs space-y-1 pt-1">
-                  <div className="flex justify-between"><span className="text-[#5A5040]">Pay now (deposit)</span><span>{formatPrice(payNow)}</span></div>
-                  <div className="flex justify-between"><span className="text-[#5A5040]">On delivery</span><span>{formatPrice(dueOnDelivery)}</span></div>
+                  <div className="flex justify-between"><span className="text-[#5A5040]">{t("checkout.summary.payNow")}</span><span>{formatPrice(payNow)}</span></div>
+                  <div className="flex justify-between"><span className="text-[#5A5040]">{t("checkout.summary.onDelivery")}</span><span>{formatPrice(dueOnDelivery)}</span></div>
                 </div>
               )}
             </div>

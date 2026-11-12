@@ -5,14 +5,17 @@ import PopupManager from "@/components/store/PopupManager";
 import AnnouncementBar, { ANNOUNCEMENT_HEIGHT } from "@/components/store/AnnouncementBar";
 import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
+import { getTexts, getT } from "@/lib/texts/server";
+import { TextsProvider } from "@/components/store/TextsProvider";
 import { parseJson } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: { default: "UrPiece", template: "%s | UrPiece" },
-  description: "Premium jewelry and accessories.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  const title = t("site.title");
+  return { title: { default: title, template: `%s | ${title}` }, description: t("site.description") };
+}
 
 async function getSiteTagline() {
   const section = await prisma.siteSection.findFirst({
@@ -42,10 +45,11 @@ async function getAnnouncement() {
 }
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [tagline, announcement, customer, bundleCount] = await Promise.all([
-    getSiteTagline(), getAnnouncement(), getCustomer(), prisma.bundle.count({ where: { isActive: true } }),
+  const [tagline, announcement, customer, bundleCount, texts] = await Promise.all([
+    getSiteTagline(), getAnnouncement(), getCustomer(), prisma.bundle.count({ where: { isActive: true } }), getTexts(),
   ]);
   return (
+    <TextsProvider texts={texts}>
     <div style={{ "--announce-h": announcement ? `${ANNOUNCEMENT_HEIGHT}px` : "0px" } as React.CSSProperties}>
       {announcement && <AnnouncementBar {...announcement} />}
       <Navbar tagline={tagline} customerName={customer?.name || ""} hasBundles={bundleCount > 0} />
@@ -53,5 +57,6 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <Footer />
       <PopupManager />
     </div>
+    </TextsProvider>
   );
 }

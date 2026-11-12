@@ -247,6 +247,13 @@ model MonthlyReport {
   @@unique([year, month])
 }
 
+/// Text overrides edited from Admin > Site Text. Missing key = use the default from src/lib/texts.
+model SiteText {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model Bundle {
   id          String       @id @default(cuid())
   name        String

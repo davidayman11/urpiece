@@ -5,12 +5,17 @@ import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
 import { formatPrice } from "@/lib/utils";
 import { statusInfo } from "@/lib/order-status";
+import { getT } from "@/lib/texts/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "My orders" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("orders.list.metaTitle") };
+}
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ placed?: string }> }) {
   const { placed } = await searchParams;
+  const t = await getT();
   const customer = await getCustomer();
   if (!customer) redirect("/account/login?next=/orders");
 
@@ -35,32 +40,32 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               </svg>
             </span>
             <div className="text-sm">
-              <p className="text-[#1C1711] font-medium">Thank you! Your order was placed.</p>
+              <p className="text-[#1C1711] font-medium">{t("orders.list.thanks")}</p>
               <p className="text-[#5A5040] mt-0.5">
-                We&apos;ll review your payment shortly.{" "}
+                {t("orders.list.review")}{" "}
                 <Link href={`/orders/${justPlaced.orderNumber}`} className="text-[#A8975E] underline underline-offset-4">
-                  View order {justPlaced.orderNumber}
+                  {t("orders.list.viewOrder", { number: justPlaced.orderNumber })}
                 </Link>
               </p>
             </div>
           </div>
         )}
         <div className="text-center mb-10">
-          <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3">My account</p>
-          <h1 className="font-serif text-4xl font-light text-[#1C1711]">My orders</h1>
+          <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3">{t("orders.list.eyebrow")}</p>
+          <h1 className="font-serif text-4xl font-light text-[#1C1711]">{t("orders.list.title")}</h1>
         </div>
 
         {orders.length === 0 ? (
           <div className="text-center py-14 bg-[#FBF8F0] border border-[#E0D6BD]">
-            <p className="text-sm text-[#5A5040]">You haven&apos;t placed any orders yet.</p>
+            <p className="text-sm text-[#5A5040]">{t("orders.list.empty")}</p>
             <Link href="/shop" className="inline-block mt-5 bg-[#A8975E] text-[#F5EFE2] px-8 py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors">
-              Start shopping
+              {t("orders.list.startShopping")}
             </Link>
           </div>
         ) : (
           <div className="space-y-3">
             {orders.map((order) => {
-              const st = statusInfo(order.status);
+              const st = statusInfo(order.status, t);
               return (
                 <Link
                   key={order.id}
@@ -72,7 +77,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                       <p className="text-[11px] tracking-[0.2em] uppercase text-[#A8975E] break-all">{order.orderNumber}</p>
                       <p className="mt-1.5 text-sm text-[#1C1711]">
                         {order.items.slice(0, 2).map((i) => `${i.productName} ×${i.quantity}`).join(", ")}
-                        {order.items.length > 2 && ` +${order.items.length - 2} more`}
+                        {order.items.length > 2 && ` ${t("orders.list.more", { count: order.items.length - 2 })}`}
                       </p>
                       <p className="mt-1 text-xs text-[#8A7E6E]">{format(new Date(order.createdAt), "d MMM yyyy")}</p>
                     </div>

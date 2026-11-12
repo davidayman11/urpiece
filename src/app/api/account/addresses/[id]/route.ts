@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getT } from "@/lib/texts/server";
 import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
 import { addressSchema, firstError } from "@/lib/customer-validation";
@@ -10,12 +11,13 @@ async function owned(id: string, customerId: string) {
 }
 
 export async function PUT(req: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const c = await getCustomer();
-  if (!c) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!c) return NextResponse.json({ error: t("account.api.notSignedIn") }, { status: 401 });
   const { id } = await params;
-  if (!(await owned(id, c.id))) return NextResponse.json({ error: "Address not found" }, { status: 404 });
-  const parsed = addressSchema.safeParse(await req.json().catch(() => ({})));
-  if (!parsed.success) return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
+  if (!(await owned(id, c.id))) return NextResponse.json({ error: t("account.api.addressNotFound") }, { status: 404 });
+  const parsed = addressSchema(t).safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) return NextResponse.json({ error: firstError(parsed.error, t) }, { status: 400 });
 
   const address = await prisma.$transaction(async (tx) => {
     if (parsed.data.isDefault) await tx.address.updateMany({ where: { customerId: c.id }, data: { isDefault: false } });
@@ -25,11 +27,12 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
+  const t = await getT();
   const c = await getCustomer();
-  if (!c) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!c) return NextResponse.json({ error: t("account.api.notSignedIn") }, { status: 401 });
   const { id } = await params;
   const a = await owned(id, c.id);
-  if (!a) return NextResponse.json({ error: "Address not found" }, { status: 404 });
+  if (!a) return NextResponse.json({ error: t("account.api.addressNotFound") }, { status: 404 });
   await prisma.address.delete({ where: { id } });
   // Keep one default if any addresses remain
   if (a.isDefault) {

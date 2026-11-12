@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import { parseImgs } from "@/lib/product-images";
+import { useT } from "@/components/store/TextsProvider";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function ProductCard({ product }: Props) {
+  const t = useT();
   const general = parseImgs(product.images);
   // a product whose photos are all assigned to variants still needs a card picture
   const images = general.length > 0 ? general : [...new Set(product.variants.flatMap((v) => parseImgs(v.images)))];
@@ -73,7 +75,7 @@ export default function ProductCard({ product }: Props) {
 
         {/* Quick-shop overlay */}
         <div className="absolute inset-x-0 bottom-0 h-12 bg-[#1C1711]/80 backdrop-blur-sm flex items-center justify-center translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
-          <span className="text-[10px] tracking-[0.25em] uppercase text-[#C4B07A]">View Piece</span>
+          <span className="text-[10px] tracking-[0.25em] uppercase text-[#C4B07A]">{t("card.viewPiece")}</span>
         </div>
 
         {/* Views badge */}
@@ -94,17 +96,17 @@ export default function ProductCard({ product }: Props) {
           )}
           {!inStock && (
             <span className="bg-[#1C1711] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">
-              Out of Stock
+              {t("card.outOfStock")}
             </span>
           )}
           {isLowStock && (
             <span className="bg-[#C4834A] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">
-              Low Stock
+              {t("card.lowStock")}
             </span>
           )}
           {product.isFeatured && inStock && !isLowStock && (
             <span className="bg-[#A8975E] text-[#F5EFE2] text-[9px] tracking-[0.2em] uppercase px-2 py-1">
-              Featured
+              {t("card.featured")}
             </span>
           )}
         </div>

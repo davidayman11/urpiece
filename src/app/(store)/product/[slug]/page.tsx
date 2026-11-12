@@ -7,6 +7,7 @@ import ProductGallery from "@/components/store/ProductGallery";
 import AddToCartButton from "@/components/store/AddToCartButton";
 import { VariantSelectionProvider } from "@/components/store/VariantSelection";
 import { parseImgs } from "@/lib/product-images";
+import { getT } from "@/lib/texts/server";
 import type { Metadata } from "next";
 
 interface Props {
@@ -22,6 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
+  const t = await getT();
   const product = await prisma.product.findUnique({
     where: { slug, isActive: true },
     include: {
@@ -71,14 +73,14 @@ export default async function ProductPage({ params }: Props) {
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                     <circle cx="4" cy="4" r="3" fill="#8A7E6E"/>
                   </svg>
-                  Out of Stock
+                  {t("product.outOfStock")}
                 </span>
               ) : isLowStock ? (
                 <span className="inline-flex items-center gap-1.5 bg-[#8A5C2E]/10 border border-[#8A5C2E]/30 text-[#8A5C2E] text-[10px] tracking-[0.2em] uppercase px-3 py-1">
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                     <circle cx="4" cy="4" r="3" fill="#C4834A"/>
                   </svg>
-                  Low Stock — only {totalInventory} left
+                  {t("product.lowStock", { count: totalInventory })}
                 </span>
               ) : null}
               <span className="text-[11px] text-[#A8975E] flex items-center gap-1.5">
@@ -86,7 +88,7 @@ export default async function ProductPage({ params }: Props) {
                   <ellipse cx="6.5" cy="5" rx="6" ry="4" stroke="currentColor" strokeWidth="1.1"/>
                   <circle cx="6.5" cy="5" r="1.8" fill="currentColor"/>
                 </svg>
-                {viewCount.toLocaleString()} {viewCount === 1 ? "view" : "views"}
+                {viewCount.toLocaleString()} {viewCount === 1 ? t("product.viewSingular") : t("product.viewPlural")}
               </span>
             </div>
 
@@ -100,24 +102,24 @@ export default async function ProductPage({ params }: Props) {
             <div className="mt-8 pt-8 border-t border-[#EDE6D4] space-y-4">
               <details className="group">
                 <summary className="flex items-center justify-between cursor-pointer text-xs tracking-widest uppercase text-[#5A5040] py-2">
-                  <span>Shipping & Returns</span>
+                  <span>{t("product.shipping.title")}</span>
                   <svg className="group-open:rotate-180 transition-transform" width="12" height="8" viewBox="0 0 12 8" fill="none">
                     <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                   </svg>
                 </summary>
-                <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed">
-                  Orders are shipped within 2–5 business days. Contact us for returns within 7 days of receipt.
+                <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">
+                  {t("product.shipping.body")}
                 </p>
               </details>
               <details className="group">
                 <summary className="flex items-center justify-between cursor-pointer text-xs tracking-widest uppercase text-[#5A5040] py-2">
-                  <span>Care Instructions</span>
+                  <span>{t("product.care.title")}</span>
                   <svg className="group-open:rotate-180 transition-transform" width="12" height="8" viewBox="0 0 12 8" fill="none">
                     <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                   </svg>
                 </summary>
-                <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed">
-                  Store in a cool, dry place away from direct sunlight. Clean gently with a soft cloth.
+                <p className="mt-3 text-sm text-[#8A7E6E] leading-relaxed whitespace-pre-line">
+                  {t("product.care.body")}
                 </p>
               </details>
             </div>

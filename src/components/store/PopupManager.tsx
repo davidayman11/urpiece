@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useT } from "@/components/store/TextsProvider";
 
 interface PopupData {
   id: string;
@@ -15,6 +16,7 @@ interface PopupData {
 }
 
 export default function PopupManager() {
+  const t = useT();
   const [popup, setPopup] = useState<PopupData | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -56,6 +58,7 @@ export default function PopupManager() {
       >
         <button
           onClick={dismiss}
+          aria-label={t("popup.close")}
           className="absolute top-3 right-3 z-10 p-1.5 text-[#8A7E6E] hover:text-[#1C1711] transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -65,7 +68,7 @@ export default function PopupManager() {
 
         {popup.image && (
           <div className="relative aspect-video">
-            <Image src={popup.image} alt="Promo" fill className="object-cover" />
+            <Image src={popup.image} alt={t("popup.imageAlt")} fill className="object-cover" />
           </div>
         )}
 
@@ -92,7 +95,7 @@ export default function PopupManager() {
             onClick={dismiss}
             className="mt-4 block w-full text-xs text-[#8A7E6E] hover:text-[#5A5040] tracking-wider"
           >
-            No thanks
+            {t("popup.noThanks")}
           </button>
         </div>
       </div>

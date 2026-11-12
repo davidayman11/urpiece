@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/components/store/TextsProvider";
 import { EGYPT_GOVERNORATES } from "@/lib/checkout-fields";
 import type { Address } from "@prisma/client";
 import type { ShippingConfig } from "@/lib/shipping";
@@ -25,6 +26,7 @@ export default function AccountClient({
   customer, addresses, shipping,
 }: { customer: { name: string; email: string; phone: string }; addresses: Address[]; shipping: ShippingConfig }) {
   const govOptions = shipping.adminDriven ? shipping.governorates.map((g) => g.name) : EGYPT_GOVERNORATES;
+  const t = useT();
   const router = useRouter();
 
   // Profile
@@ -39,7 +41,7 @@ export default function AccountClient({
     });
     const d = await res.json().catch(() => ({}));
     setBusy(false);
-    setProfileMsg(res.ok ? "Saved ✓" : d.error || "Could not save");
+    setProfileMsg(res.ok ? t("account.profile.saved") : d.error || t("account.profile.saveFailed"));
     if (res.ok) router.refresh();
   };
 
@@ -53,7 +55,7 @@ export default function AccountClient({
     });
     const d = await res.json().catch(() => ({}));
     setBusy(false);
-    setPwMsg(res.ok ? "Password changed ✓" : d.error || "Could not change password");
+    setPwMsg(res.ok ? t("account.pw.changed") : d.error || t("account.pw.failed"));
     if (res.ok) setPw({ currentPassword: "", newPassword: "" });
   };
 
@@ -83,11 +85,11 @@ export default function AccountClient({
     });
     const d = await res.json().catch(() => ({}));
     setBusy(false);
-    if (!res.ok) return setAddrError(d.error || "Could not save address");
+    if (!res.ok) return setAddrError(d.error || t("account.addr.saveFailed"));
     setModal(false); router.refresh();
   };
   const removeAddress = async (a: Address) => {
-    if (!confirm("Delete this address?")) return;
+    if (!confirm(t("account.addr.confirmDelete"))) return;
     await fetch(`/api/account/addresses/${a.id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -105,35 +107,35 @@ export default function AccountClient({
   };
 
   const line = (a: Address) =>
-    [a.building && `Building ${a.building}`, a.street, a.city, a.governorate].filter(Boolean).join(", ");
+    [a.building && t("account.addr.building", { building: a.building }), a.street, a.city, a.governorate].filter(Boolean).join(", ");
 
   return (
     <div className="space-y-8">
       {/* Addresses */}
       <section className={card}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[10px] tracking-[0.3em] uppercase text-[#A8975E]">Saved addresses</h2>
+          <h2 className="text-[10px] tracking-[0.3em] uppercase text-[#A8975E]">{t("account.addr.title")}</h2>
           <button onClick={openNew} className="text-[11px] tracking-widest uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors">
-            + Add address
+            {t("account.addr.add")}
           </button>
         </div>
         {addresses.length === 0 ? (
-          <p className="text-sm text-[#8A7E6E]">No saved addresses yet. Add one to check out faster.</p>
+          <p className="text-sm text-[#8A7E6E]">{t("account.addr.empty")}</p>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {addresses.map((a) => (
               <div key={a.id} className={`border p-4 text-sm ${a.isDefault ? "border-[#A8975E]" : "border-[#D8CEB3]"}`}>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <p className="text-[#1C1711] font-medium truncate">{a.label || a.fullName}</p>
-                  {a.isDefault && <span className="text-[9px] tracking-[0.2em] uppercase bg-[#A8975E] text-[#F5EFE2] px-2 py-0.5 shrink-0">Default</span>}
+                  {a.isDefault && <span className="text-[9px] tracking-[0.2em] uppercase bg-[#A8975E] text-[#F5EFE2] px-2 py-0.5 shrink-0">{t("account.addr.default")}</span>}
                 </div>
                 <p className="text-[#5A5040]">{a.fullName}</p>
                 <p className="text-[#8A7E6E]">{line(a)}</p>
                 <p className="text-[#8A7E6E]">{a.phone}</p>
                 <div className="mt-3 flex gap-4 text-[11px] tracking-wider">
-                  <button onClick={() => openEdit(a)} className="text-[#A8975E] hover:underline">Edit</button>
-                  {!a.isDefault && <button onClick={() => makeDefault(a)} className="text-[#5A5040] hover:underline">Make default</button>}
-                  <button onClick={() => removeAddress(a)} className="text-red-600 hover:underline">Delete</button>
+                  <button onClick={() => openEdit(a)} className="text-[#A8975E] hover:underline">{t("account.addr.edit")}</button>
+                  {!a.isDefault && <button onClick={() => makeDefault(a)} className="text-[#5A5040] hover:underline">{t("account.addr.makeDefault")}</button>}
+                  <button onClick={() => removeAddress(a)} className="text-red-600 hover:underline">{t("account.addr.delete")}</button>
                 </div>
               </div>
             ))}
@@ -143,50 +145,50 @@ export default function AccountClient({
 
       {/* Profile */}
       <section className={card}>
-        <h2 className="text-[10px] tracking-[0.3em] uppercase text-[#A8975E] mb-5">Profile</h2>
+        <h2 className="text-[10px] tracking-[0.3em] uppercase text-[#A8975E] mb-5">{t("account.profile.title")}</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={lbl}>Full name</label>
+            <label className={lbl}>{t("account.profile.name")}</label>
             <input className={input} value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} />
           </div>
           <div>
-            <label className={lbl}>Phone</label>
+            <label className={lbl}>{t("account.profile.phone")}</label>
             <input className={input} type="tel" value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} />
           </div>
           <div className="sm:col-span-2">
-            <label className={lbl}>Email</label>
+            <label className={lbl}>{t("account.profile.email")}</label>
             <input className={`${input} !bg-[#EFE8D6] !text-[#7A705E] cursor-not-allowed`} value={customer.email} readOnly />
           </div>
         </div>
         <div className="mt-4 flex items-center gap-4">
-          <button onClick={saveProfile} disabled={busy} className={btn}>Save profile</button>
+          <button onClick={saveProfile} disabled={busy} className={btn}>{t("account.profile.save")}</button>
           {profileMsg && <span className="text-xs text-[#8A7E6E]">{profileMsg}</span>}
         </div>
       </section>
 
       {/* Password */}
       <section className={card}>
-        <h2 className="text-[10px] tracking-[0.3em] uppercase text-[#A8975E] mb-5">Change password</h2>
+        <h2 className="text-[10px] tracking-[0.3em] uppercase text-[#A8975E] mb-5">{t("account.pw.title")}</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={lbl}>Current password</label>
+            <label className={lbl}>{t("account.pw.current")}</label>
             <input className={input} type="password" autoComplete="current-password" value={pw.currentPassword}
               onChange={(e) => setPw((p) => ({ ...p, currentPassword: e.target.value }))} />
           </div>
           <div>
-            <label className={lbl}>New password</label>
-            <input className={input} type="password" autoComplete="new-password" placeholder="At least 8 characters" value={pw.newPassword}
+            <label className={lbl}>{t("account.pw.new")}</label>
+            <input className={input} type="password" autoComplete="new-password" placeholder={t("account.pw.newPlaceholder")} value={pw.newPassword}
               onChange={(e) => setPw((p) => ({ ...p, newPassword: e.target.value }))} />
           </div>
         </div>
         <div className="mt-4 flex items-center gap-4">
-          <button onClick={changePassword} disabled={busy || !pw.currentPassword || !pw.newPassword} className={btn}>Update password</button>
+          <button onClick={changePassword} disabled={busy || !pw.currentPassword || !pw.newPassword} className={btn}>{t("account.pw.update")}</button>
           {pwMsg && <span className="text-xs text-[#8A7E6E]">{pwMsg}</span>}
         </div>
       </section>
 
       <button onClick={signOut} className="text-[11px] tracking-[0.2em] uppercase text-[#8A7E6E] hover:text-red-600 transition-colors">
-        Sign out
+        {t("account.signOut")}
       </button>
 
       {/* Address modal */}
@@ -194,31 +196,31 @@ export default function AccountClient({
         <div className="fixed inset-0 z-[150] flex items-start justify-center p-4 bg-[#1C1711]/50 overflow-y-auto" onClick={() => setModal(false)}>
           <div className="bg-[#F5EFE2] w-full max-w-lg my-8 p-6 md:p-8" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-serif text-2xl text-[#1C1711]">{editId ? "Edit address" : "New address"}</h3>
-              <button onClick={() => setModal(false)} aria-label="Close" className="text-[#8A7E6E] hover:text-[#1C1711] text-xl">×</button>
+              <h3 className="font-serif text-2xl text-[#1C1711]">{editId ? t("account.modal.editTitle") : t("account.modal.newTitle")}</h3>
+              <button onClick={() => setModal(false)} aria-label={t("account.modal.close")} className="text-[#8A7E6E] hover:text-[#1C1711] text-xl">×</button>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className={lbl}>Label <span className="normal-case tracking-normal text-[#C4B8A0]">(e.g. Home, Work)</span></label>
+                <label className={lbl}>{t("account.modal.label")} <span className="normal-case tracking-normal text-[#C4B8A0]">{t("account.modal.labelHint")}</span></label>
                 <input className={input} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
               </div>
               <div>
-                <label className={lbl}>Recipient name *</label>
+                <label className={lbl}>{t("account.modal.recipient")}</label>
                 <input className={input} value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} />
               </div>
               <div>
-                <label className={lbl}>Phone *</label>
+                <label className={lbl}>{t("account.modal.phone")}</label>
                 <input className={input} type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
               </div>
               <div>
-                <label className={lbl}>Governorate</label>
+                <label className={lbl}>{t("account.modal.governorate")}</label>
                 <select className={input} value={form.governorate} onChange={(e) => { setCityOther(false); setForm((f) => ({ ...f, governorate: e.target.value, city: shipping.adminDriven ? "" : f.city })); }}>
-                  <option value="">Select…</option>
+                  <option value="">{t("account.modal.select")}</option>
                   {govOptions.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div>
-                <label className={lbl}>City</label>
+                <label className={lbl}>{t("account.modal.city")}</label>
                 {shipping.hasZones ? (
                   <div className="space-y-2">
                     <select
@@ -230,12 +232,12 @@ export default function AccountClient({
                         else { setCityOther(false); setForm((f) => ({ ...f, city: e.target.value })); }
                       }}
                     >
-                      <option value="">{shipping.adminDriven && !form.governorate ? "Choose a governorate first" : "Select…"}</option>
+                      <option value="">{shipping.adminDriven && !form.governorate ? t("account.modal.chooseGov") : t("account.modal.select")}</option>
                       {listedCities.map((c) => <option key={c} value={c}>{c}</option>)}
-                      {shipping.adminDriven && <option value="__other__">Other (not listed)</option>}
+                      {shipping.adminDriven && <option value="__other__">{t("account.modal.cityOther")}</option>}
                     </select>
                     {otherSelected && (
-                      <input className={input} placeholder="Type your city / area" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
+                      <input className={input} placeholder={t("account.modal.cityType")} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
                     )}
                   </div>
                 ) : (
@@ -243,26 +245,26 @@ export default function AccountClient({
                 )}
               </div>
               <div>
-                <label className={lbl}>Building</label>
+                <label className={lbl}>{t("account.modal.building")}</label>
                 <input className={input} value={form.building} onChange={(e) => setForm((f) => ({ ...f, building: e.target.value }))} />
               </div>
               <div>
-                <label className={lbl}>Street</label>
+                <label className={lbl}>{t("account.modal.street")}</label>
                 <input className={input} value={form.street} onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))} />
               </div>
               <div className="sm:col-span-2">
-                <label className={lbl}>Delivery notes <span className="normal-case tracking-normal text-[#C4B8A0]">(optional)</span></label>
+                <label className={lbl}>{t("account.modal.notes")} <span className="normal-case tracking-normal text-[#C4B8A0]">{t("account.modal.optional")}</span></label>
                 <input className={input} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
               <label className="sm:col-span-2 flex items-center gap-2 text-sm text-[#5A5040] cursor-pointer">
                 <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))} />
-                Make this my default address
+                {t("account.modal.isDefault")}
               </label>
             </div>
             {addrError && <p role="alert" className="text-xs text-red-600 mt-4">{addrError}</p>}
             <div className="mt-6 flex gap-3 justify-end">
-              <button onClick={() => setModal(false)} className="px-6 py-2.5 border border-[#CFC4A6] bg-white/50 text-[11px] tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors">Cancel</button>
-              <button onClick={saveAddress} disabled={busy} className={btn}>{busy ? "Saving…" : "Save address"}</button>
+              <button onClick={() => setModal(false)} className="px-6 py-2.5 border border-[#CFC4A6] bg-white/50 text-[11px] tracking-widest uppercase text-[#5A5040] hover:border-[#A8975E] transition-colors">{t("account.modal.cancel")}</button>
+              <button onClick={saveAddress} disabled={busy} className={btn}>{busy ? t("account.modal.saving") : t("account.modal.save")}</button>
             </div>
           </div>
         </div>

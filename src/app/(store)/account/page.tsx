@@ -4,11 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
 import AccountClient from "@/components/store/AccountClient";
 import { loadShipping } from "@/lib/shipping";
+import { getT } from "@/lib/texts/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "My account" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("account.page.metaTitle") };
+}
 
 export default async function AccountPage() {
+  const t = await getT();
   const customer = await getCustomer();
   if (!customer) redirect("/account/login?next=/account");
 
@@ -25,14 +30,14 @@ export default async function AccountPage() {
       <div className="max-w-3xl mx-auto px-6">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2">My account</p>
-            <h1 className="font-serif text-4xl font-light text-[#1C1711]">Hello, {customer.name.split(" ")[0]}</h1>
+            <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2">{t("account.page.eyebrow")}</p>
+            <h1 className="font-serif text-4xl font-light text-[#1C1711]">{t("account.page.hello", { name: customer.name.split(" ")[0] })}</h1>
           </div>
           <Link
             href="/orders"
             className="text-[11px] tracking-[0.2em] uppercase text-[#5A5040] border-b border-[#5A5040]/30 pb-0.5 hover:text-[#A8975E] hover:border-[#A8975E] transition-colors"
           >
-            My orders ({orderCount})
+            {t("account.page.myOrders", { count: orderCount })}
           </Link>
         </div>
         <AccountClient

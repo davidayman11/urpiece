@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { getT } from "@/lib/texts/server";
 
-export const metadata: Metadata = {
-  title: { default: "UrPiece", template: "%s | UrPiece" },
-  description: "Your Glow, Your Piece — premium jewelry & accessories",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  const title = t("site.title");
+  return { title: { default: title, template: `%s | ${title}` }, description: t("site.description") };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

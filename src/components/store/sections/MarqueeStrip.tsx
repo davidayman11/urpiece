@@ -1,3 +1,5 @@
+import { getT } from "@/lib/texts/server";
+
 interface Props {
   content: Record<string, string>;
 }
@@ -38,9 +40,10 @@ const ICONS: Record<string, React.ReactNode> = {
 
 export const STRIP_ICONS = ["heart", "truck", "star", "sparkle", "gift", "shield", "diamond"];
 
-export default function MarqueeStrip({ content }: Props) {
+export default async function MarqueeStrip({ content }: Props) {
   const messages = (content.messages || "").split("\n").map((m) => m.trim()).filter(Boolean);
   if (messages.length === 0) return null;
+  const t = await getT();
 
   const icon = content.icon === "none" ? null : ICONS[content.icon || "heart"] ?? ICONS.heart;
   const iconColor = content.iconColor || "#C4B07A";
@@ -70,7 +73,7 @@ export default function MarqueeStrip({ content }: Props) {
   return (
     <div
       role="region"
-      aria-label="Highlights"
+      aria-label={t("home.marquee.region")}
       className="marquee-strip overflow-hidden py-4"
       style={{ backgroundColor: content.bgColor || "#1C1711", color: content.textColor || "#F5EFE2" }}
     >

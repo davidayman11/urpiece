@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
+import { getT } from "@/lib/texts/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "About" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("about.metaTitle") };
+}
 
 export default async function AboutPage() {
   const section = await prisma.siteSection.findFirst({

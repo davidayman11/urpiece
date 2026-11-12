@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import { bundlePrice } from "@/lib/bundles";
+import { useT } from "@/components/store/TextsProvider";
 
 export interface BuyItem {
   id: string;
@@ -19,6 +20,7 @@ export interface BuyItem {
 export default function BundleBuyBox({
   bundle,
 }: { bundle: { id: string; name: string; image: string; priceType: string; priceValue: number; items: BuyItem[] } }) {
+  const t = useT();
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const [qty, setQty] = useState(1);
@@ -109,32 +111,32 @@ export default function BundleBuyBox({
           <>
             <span className="text-[#8A7E6E] line-through">{formatPrice(listTotal)}</span>
             <span className="text-[10px] tracking-[0.2em] uppercase bg-[#B23A3A] text-[#F5EFE2] px-2 py-1">
-              Save {formatPrice(listTotal - price)}
+              {t("bundle.buy.save", { amount: formatPrice(listTotal - price) })}
             </span>
           </>
         )}
       </div>
 
-      {unavailable && <p className="text-xs text-[#8A7E6E]">One of the chosen items is out of stock.</p>}
-      {!unavailable && notEnough && <p className="text-xs text-[#C4834A]">Not enough stock for that quantity.</p>}
+      {unavailable && <p className="text-xs text-[#8A7E6E]">{t("bundle.buy.itemOutOfStock")}</p>}
+      {!unavailable && notEnough && <p className="text-xs text-[#C4834A]">{t("bundle.buy.notEnough")}</p>}
 
       <div className="flex gap-3">
         <div className="flex items-center border border-[#CFC4A6] bg-white">
-          <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-10 h-12 text-[#5A5040]" aria-label="Less">−</button>
+          <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-10 h-12 text-[#5A5040]" aria-label={t("bundle.buy.less")}>−</button>
           <span className="w-8 text-center text-sm">{qty}</span>
-          <button onClick={() => setQty((q) => q + 1)} className="w-10 h-12 text-[#5A5040]" aria-label="More">+</button>
+          <button onClick={() => setQty((q) => q + 1)} className="w-10 h-12 text-[#5A5040]" aria-label={t("bundle.buy.more")}>+</button>
         </div>
         <button
           onClick={add}
           disabled={unavailable || notEnough}
           className="flex-1 bg-[#A8975E] text-[#F5EFE2] py-3.5 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {added ? "Added to cart ✓" : unavailable ? "Out of stock" : "Add bundle to cart"}
+          {added ? t("bundle.buy.added") : unavailable ? t("bundle.buy.outOfStock") : t("bundle.buy.add")}
         </button>
       </div>
       {added && (
         <button onClick={() => router.push("/cart")} className="text-xs tracking-widest uppercase text-[#A8975E] underline underline-offset-4">
-          View cart →
+          {t("bundle.buy.viewCart")}
         </button>
       )}
     </div>

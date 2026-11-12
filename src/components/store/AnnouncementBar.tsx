@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/texts/server";
 
 interface Props {
   messages: string[];
@@ -11,8 +12,9 @@ interface Props {
 
 export const ANNOUNCEMENT_HEIGHT = 36;
 
-export default function AnnouncementBar({ messages, bgColor, textColor, speed = 30, href }: Props) {
+export default async function AnnouncementBar({ messages, bgColor, textColor, speed = 30, href }: Props) {
   if (messages.length === 0) return null;
+  const t = await getT();
 
   // One "set" of messages; repeated so the strip is always wider than the screen.
   const set = (key: string) => (
@@ -41,7 +43,7 @@ export default function AnnouncementBar({ messages, bgColor, textColor, speed = 
   return (
     <div
       role="region"
-      aria-label="Announcements"
+      aria-label={t("announce.region")}
       className="announce-bar fixed top-0 left-0 right-0 z-[60] overflow-hidden flex items-center"
       style={{
         height: ANNOUNCEMENT_HEIGHT,

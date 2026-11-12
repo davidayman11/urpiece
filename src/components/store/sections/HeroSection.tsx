@@ -3,12 +3,14 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useT } from "@/components/store/TextsProvider";
 
 interface Props {
   content: Record<string, string>;
 }
 
 export default function HeroSection({ content }: Props) {
+  const t = useT();
   const textRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function HeroSection({ content }: Props) {
       {/* Background */}
       {content.image ? (
         <>
-          <Image src={content.image} alt="Hero" fill className="object-cover" priority quality={90} />
+          <Image src={content.image} alt={t("home.hero.imageAlt")} fill className="object-cover" priority quality={90} />
           <div className="absolute inset-0 bg-gradient-to-r from-[#1C1711]/80 via-[#1C1711]/40 to-transparent" />
         </>
       ) : (

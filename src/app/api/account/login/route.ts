@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { getT } from "@/lib/texts/server";
 import { prisma } from "@/lib/prisma";
 import { createCustomerSession } from "@/lib/customer-auth";
 import { loginSchema } from "@/lib/customer-validation";
@@ -8,8 +9,9 @@ import { loginSchema } from "@/lib/customer-validation";
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 11);
 
 export async function POST(req: NextRequest) {
+  const t = await getT();
   const parsed = loginSchema.safeParse(await req.json().catch(() => ({})));
-  const fail = () => NextResponse.json({ error: "Incorrect email or password" }, { status: 401 });
+  const fail = () => NextResponse.json({ error: t("account.api.badLogin") }, { status: 401 });
   if (!parsed.success) return fail();
   const { email, password } = parsed.data;
 

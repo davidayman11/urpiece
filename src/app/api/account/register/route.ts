@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { getT } from "@/lib/texts/server";
 import { prisma } from "@/lib/prisma";
 import { createCustomerSession } from "@/lib/customer-auth";
 import { registerSchema, firstError } from "@/lib/customer-validation";
 
 export async function POST(req: NextRequest) {
-  const parsed = registerSchema.safeParse(await req.json().catch(() => ({})));
-  if (!parsed.success) return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
+  const t = await getT();
+  const parsed = registerSchema(t).safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) return NextResponse.json({ error: firstError(parsed.error, t) }, { status: 400 });
   const { name, email, phone, password } = parsed.data;
 
   const existing = await prisma.customer.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
   if (existing?.passwordHash) {
-    return NextResponse.json({ error: "An account with this email already exists. Please sign in." }, { status: 409 });
+    return NextResponse.json({ error: t("account.api.emailExists") }, { status: 409 });
   }
 
   const passwordHash = await bcrypt.hash(password, 11);

@@ -3,6 +3,7 @@ import { productSalePrice } from "@/lib/pricing";
 import { loadShipping, findFee } from "@/lib/shipping";
 import { bundlePrice, allocateBundle } from "@/lib/bundles";
 import type { PromoCode } from "@prisma/client";
+import { TEXT_DEFAULTS, formatText, type TFunction } from "@/lib/texts";
 
 export class QuoteError extends Error {}
 
@@ -74,7 +75,8 @@ interface Opts { sale: boolean; rule: boolean; promo: boolean; freeShip: boolean
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
-export async function quoteOrder(input: QuoteInput): Promise<Quote> {
+export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quote> {
+  const tr: TFunction = t ?? ((k, v) => formatText(TEXT_DEFAULTS[k] ?? k, v));
   const now = new Date();
   const [settings, rules, shipping, depositRules] = await Promise.all([
     prisma.paymentSettings.findFirst(),
@@ -88,7 +90,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   const freeMin = settings?.freeShippingMin || 0;
 
   // ---- items
-  if (!input.items.length) throw new QuoteError("Your cart is empty");
+  if (!input.items.length) throw new QuoteError(tr("checkout.msg.cartEmpty"));
   const plainIds = input.items.filter((i) => !i.bundleId).map((i) => i.variantId || "");
   const bundleIds = [...new Set(input.items.filter((i) => i.bundleId).map((i) => i.bundleId as string))];
   const bundles = bundleIds.length
@@ -110,16 +112,16 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     const quantity = Math.max(1, Math.floor(Number(i.quantity) || 1));
     if (!i.bundleId) {
       const v = byId.get(i.variantId || "");
-      if (!v) throw new QuoteError("An item in your cart is no longer available");
+      if (!v) throw new QuoteError(tr("checkout.msg.itemUnavailable"));
       baseLines.push({ v, quantity });
       continue;
     }
     const bundle = bundles.find((b) => b.id === i.bundleId);
-    if (!bundle || bundle.items.length === 0) throw new QuoteError("A bundle in your cart is no longer available");
+    if (!bundle || bundle.items.length === 0) throw new QuoteError(tr("checkout.msg.bundleUnavailable"));
     const parts = bundle.items.map((bi) => {
       const v = byId.get(bi.variantId || (i.selections || {})[bi.id] || "");
       if (!v || v.productId !== bi.productId || !v.isActive) {
-        throw new QuoteError(`Please choose an option for every item in "${bundle.name}"`);
+        throw new QuoteError(tr("checkout.msg.bundleChooseOption", { name: bundle.name }));
       }
       return v;
     });
@@ -137,7 +139,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     if (fee !== null) cityFee = fee;
     else {
       shippingPending = true;
-      if (input.strict) throw new QuoteError(shipping.adminDriven ? "Please select a valid governorate and city" : "Please select a valid city");
+      if (input.strict) throw new QuoteError(shipping.adminDriven ? tr("checkout.msg.invalidGovCity") : tr("checkout.msg.invalidCity"));
     }
   }
 
@@ -147,14 +149,14 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   let promoInvalid = false;
   const code = (input.promoCode || "").trim().toUpperCase();
   if (code) {
-    if (!promosEnabled) { promoMessage = "Promo codes are not available right now"; promoInvalid = true; }
+    if (!promosEnabled) { promoMessage = tr("checkout.msg.promoUnavailable"); promoInvalid = true; }
     else {
       const rec = await prisma.promoCode.findUnique({ where: { code } });
-      if (!rec) { promoMessage = "Invalid promo code"; promoInvalid = true; }
-      else if (!rec.isActive) { promoMessage = "This code is no longer active"; promoInvalid = true; }
-      else if (rec.startsAt && rec.startsAt > now) { promoMessage = "This code is not yet active"; promoInvalid = true; }
-      else if (rec.expiresAt && rec.expiresAt < now) { promoMessage = "This code has expired"; promoInvalid = true; }
-      else if (rec.usageLimit && rec.usedCount >= rec.usageLimit) { promoMessage = "This code has reached its usage limit"; promoInvalid = true; }
+      if (!rec) { promoMessage = tr("checkout.msg.promoInvalid"); promoInvalid = true; }
+      else if (!rec.isActive) { promoMessage = tr("checkout.msg.promoInactive"); promoInvalid = true; }
+      else if (rec.startsAt && rec.startsAt > now) { promoMessage = tr("checkout.msg.promoNotYet"); promoInvalid = true; }
+      else if (rec.expiresAt && rec.expiresAt < now) { promoMessage = tr("checkout.msg.promoExpired"); promoInvalid = true; }
+      else if (rec.usageLimit && rec.usedCount >= rec.usageLimit) { promoMessage = tr("checkout.msg.promoLimit"); promoInvalid = true; }
       else promo = rec;
     }
   }
@@ -194,7 +196,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     if (o.promo && promo) {
       const base = subtotal - ruleDiscount;
       if (promo.minOrderAmount && base < promo.minOrderAmount) {
-        promoNote = `Minimum order of ${promo.minOrderAmount} EGP required for this code`;
+        promoNote = tr("checkout.msg.promoMinOrder", { amount: promo.minOrderAmount });
       } else {
         let d = promo.discountType === "PERCENTAGE" ? (base * promo.discountValue) / 100 : promo.discountValue;
         if (promo.discountType === "PERCENTAGE" && promo.maxDiscount) d = Math.min(d, promo.maxDiscount);
@@ -237,8 +239,8 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     promoMessage = r.promoNote;
     if (input.strict && promoMessage) throw new QuoteError(promoMessage);
   }
-  if (notChosenPromo) promoMessage = "Another discount already gives you a better price, so the code wasn't added.";
-  if (promoInvalid && input.strict) throw new QuoteError(promoMessage || "Invalid promo code");
+  if (notChosenPromo) promoMessage = tr("checkout.msg.promoBetterDiscount");
+  if (promoInvalid && input.strict) throw new QuoteError(promoMessage || tr("checkout.msg.promoInvalid"));
 
   const applied: string[] = [];
   const saved = (pred: (l: QuoteLine) => boolean) =>

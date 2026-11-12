@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
 import AuthForm from "@/components/store/AuthForm";
 import { getCustomer, safeNext } from "@/lib/customer-auth";
+import { getT } from "@/lib/texts/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Create account" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("account.register.metaTitle") };
+}
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;

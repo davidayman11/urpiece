@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
+import { getT } from "@/lib/texts/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Contact" };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t("contact.metaTitle") };
+}
 
 export default async function ContactPage() {
+  const t = await getT();
   const section = await prisma.siteSection.findFirst({
     where: { pageSlug: "contact", type: "contact", isVisible: true },
   });
@@ -28,8 +33,8 @@ export default async function ContactPage() {
         <div className="space-y-6 text-sm text-[#5A5040]">
           {supportEmail && (
             <div className="bg-[#EDE6D4] p-6">
-              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">Order Support</p>
-              <p className="leading-relaxed">For order inquiries, tracking, or returns, email us at:</p>
+              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">{t("contact.support.title")}</p>
+              <p className="leading-relaxed">{t("contact.support.body")}</p>
               <a href={`mailto:${supportEmail}`} className="text-[#A8975E] hover:underline font-medium mt-2 block">
                 {supportEmail}
               </a>
@@ -37,13 +42,13 @@ export default async function ContactPage() {
           )}
           {paymentNote && (
             <div className="bg-[#EDE6D4] p-6">
-              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">Payment</p>
+              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">{t("contact.payment.title")}</p>
               <p className="leading-relaxed">{paymentNote}</p>
             </div>
           )}
           {shippingNote && (
             <div className="bg-[#EDE6D4] p-6">
-              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">Shipping</p>
+              <p className="text-xs tracking-widest uppercase text-[#A8975E] mb-3">{t("contact.shipping.title")}</p>
               <p className="leading-relaxed">{shippingNote}</p>
             </div>
           )}
