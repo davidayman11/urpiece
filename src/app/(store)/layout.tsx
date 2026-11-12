@@ -8,7 +8,8 @@ import { getCustomer } from "@/lib/customer-auth";
 import { getTexts, getT } from "@/lib/texts/server";
 import { TextsProvider } from "@/components/store/TextsProvider";
 import { getFontSettings } from "@/lib/font-settings";
-import { buildFontCss, buildFontsUrl, fontsInUse } from "@/lib/fonts";
+import { buildFontCss, buildFontsUrl, fontsInUse, ARABIC_DEFAULT_FONTS } from "@/lib/fonts";
+import { getLang } from "@/lib/lang-server";
 import { parseJson } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -47,14 +48,19 @@ async function getAnnouncement() {
 }
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   const [tagline, announcement, customer, bundleCount, texts, fonts] = await Promise.all([
-    getSiteTagline(), getAnnouncement(), getCustomer(), prisma.bundle.count({ where: { isActive: true } }), getTexts(), getFontSettings(),
+    getSiteTagline(), getAnnouncement(), getCustomer(), prisma.bundle.count({ where: { isActive: true } }), getTexts(lang), getFontSettings(),
   ]);
   // Fonts chosen in Admin > Fonts / Site Text: CSS for the sections + one Google Fonts link for the extra fonts
   const fontCss = buildFontCss(fonts.config);
-  const fontsUrl = buildFontsUrl(fontsInUse(fonts.config, fonts.styles));
+  // The Arabic version also needs its Arabic fonts (the admin can change them in Fonts > "Arabic version")
+  const arabic = fonts.config.areas.arabic;
+  const wanted = fontsInUse(fonts.config, fonts.styles);
+  if (lang === "ar") for (const n of [arabic?.heading || ARABIC_DEFAULT_FONTS.heading, arabic?.body || ARABIC_DEFAULT_FONTS.body]) if (!wanted.includes(n)) wanted.push(n);
+  const fontsUrl = buildFontsUrl(wanted);
   return (
-    <TextsProvider texts={texts} styles={fonts.styles}>
+    <TextsProvider texts={texts} styles={fonts.styles} lang={lang}>
       {fontsUrl && <link rel="stylesheet" href={fontsUrl} precedence="default" />}
       {fontCss && <style dangerouslySetInnerHTML={{ __html: fontCss }} />}
     <div style={{ "--announce-h": announcement ? `${ANNOUNCEMENT_HEIGHT}px` : "0px" } as React.CSSProperties}>

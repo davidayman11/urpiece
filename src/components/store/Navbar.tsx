@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
+import LanguageSwitch from "@/components/store/LanguageSwitch";
 import { useT, Txt } from "@/components/store/TextsProvider";
 
 const NAV_LINKS = [
@@ -74,6 +75,11 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
 
           {/* Right actions */}
           <div className="flex items-center gap-5">
+            <LanguageSwitch
+              className={`text-[11px] tracking-[0.15em] transition-colors duration-300 ${
+                solidNav ? "text-[#5A5040] hover:text-[#A8975E]" : "text-[#F5EFE2]/80 hover:text-[#C4B07A]"
+              }`}
+            />
             <Link
               href="/shop"
               className={`hidden md:block text-[11px] tracking-[0.2em] uppercase transition-colors duration-300 ${

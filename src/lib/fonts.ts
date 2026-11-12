@@ -79,6 +79,7 @@ export interface FontArea { key: string; label: string; hint: string }
 
 export const FONT_AREAS: FontArea[] = [
   { key: "site", label: "Whole website", hint: "Used everywhere unless a section below has its own font" },
+  { key: "arabic", label: "Arabic version (whole website)", hint: "Used instead of the fonts above when a customer switches to Arabic. Pick fonts marked Arabic + Latin" },
   { key: "announce", label: "Announcement bar", hint: "The scrolling bar at the very top" },
   { key: "menu", label: "Menu bar & side menu", hint: "Logo, menu links, the slide-out menu" },
   { key: "hero", label: "Home — top banner", hint: "The big picture with the main title" },
@@ -165,10 +166,13 @@ export function buildFontCss(config: FontConfig): string {
     if (h) decl.push(`--site-font-heading:${h}`);
     if (b) decl.push(`--site-font-body:${b}`);
     if (decl.length === 0) continue;
-    if (area.key === "site") {
-      rules.push(`:root{${decl.join(";")}}`);
+    if (area.key === "arabic") {
+      // the Arabic version has its own fonts; the English choices below do not apply there (Latin fonts have no Arabic letters)
+      rules.push(`html[lang="ar"]{${decl.join(";")}}`);
+    } else if (area.key === "site") {
+      rules.push(`html[lang="en"]{${decl.join(";")}}`);
     } else {
-      rules.push(`[data-font-area="${area.key}"]{${decl.join(";")};font-family:var(--site-font-body)}`);
+      rules.push(`html[lang="en"] [data-font-area="${area.key}"]{${decl.join(";")};font-family:var(--site-font-body)}`);
     }
   }
   return rules.join("\n");
@@ -206,3 +210,6 @@ export function textStyleToCss(s: TextStyle | undefined): React.CSSProperties | 
   if (s.color && /^#[0-9a-fA-F]{6}$/.test(s.color)) css.color = s.color;
   return Object.keys(css).length ? css : undefined;
 }
+
+/** Fonts the Arabic version uses until the admin picks others (Fonts > "Arabic version"). */
+export const ARABIC_DEFAULT_FONTS = { heading: "Amiri", body: "Cairo" };

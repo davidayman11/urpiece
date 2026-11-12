@@ -1,0 +1,12 @@
+export const arHome: Record<string, string> = {
+  "home.hero.scroll": "مرّر للأسفل",
+  "home.hero.imageAlt": "الصورة الرئيسية",
+  "home.categories.shopNow": "تسوّقي الآن",
+  "home.marquee.region": "أبرز العروض",
+  "about.metaTitle": "من نحن",
+  "contact.metaTitle": "تواصل معنا",
+  "contact.support.title": "دعم الطلبات",
+  "contact.support.body": "للاستفسار عن الطلبات أو تتبّعها أو الإرجاع، راسلينا على:",
+  "contact.payment.title": "الدفع",
+  "contact.shipping.title": "الشحن",
+};

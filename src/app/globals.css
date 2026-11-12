@@ -140,3 +140,23 @@ input:focus, textarea:focus, select:focus {
 @media (prefers-reduced-motion: reduce) {
   .announce-track { animation: none; }
 }
+
+/* ---------- Arabic version (right-to-left) ---------- */
+html[lang="ar"] {
+  --site-font-heading: "Amiri", "Noto Naskh Arabic", Georgia, serif;
+  --site-font-body: "Cairo", "Tajawal", system-ui, sans-serif;
+  font-size: 118%; /* Arabic letters look smaller at the same size */
+}
+/* spaced-out capital letters make no sense in Arabic and break the joined letters */
+html[lang="ar"] *,
+html[lang="ar"] *::before,
+html[lang="ar"] *::after {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+html[lang="ar"] body {
+  font-weight: 400;
+  line-height: 1.7;
+}
+/* arrows and chevrons that point "forward" must point the other way */
+[dir="rtl"] .flip-rtl { transform: scaleX(-1); }

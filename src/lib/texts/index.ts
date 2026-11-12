@@ -16,6 +16,7 @@ export const TEXT_DEFS: TextDef[] = [
 
 export const TEXT_DEFAULTS: Record<string, string> = Object.fromEntries(TEXT_DEFS.map((d) => [d.key, d.default]));
 
+export { AR_DEFAULTS } from "./ar";
 export { formatText } from "./types";
 export { parseSections, normalizeSections } from "./types";
 export type { TextDef, TFunction, TextVars, TextSection } from "./types";

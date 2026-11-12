@@ -1,0 +1,18 @@
+export const arCart: Record<string, string> = {
+  "cart.empty.title": "سلتك فارغة",
+  "cart.empty.subtitle": "اكتشفي قطعنا المختارة بعناية وابحثي عن لمعانكِ.",
+  "cart.empty.shopNow": "تسوّقي الآن",
+  "cart.title": "سلتك",
+  "cart.item.bundle": "عرض مجمّع",
+  "cart.item.remove": "إزالة",
+  "cart.summary.title": "ملخص الطلب",
+  "cart.summary.subtotal": "المجموع الفرعي",
+  "cart.summary.shipping": "الشحن",
+  "cart.summary.free": "مجاني",
+  "cart.summary.calculatedAtCheckout": "يُحسب عند إتمام الطلب",
+  "cart.summary.freeUnlocked": "لقد حصلتِ على شحن مجاني!",
+  "cart.summary.addMoreForFree": "أضيفي {amount} للحصول على شحن مجاني",
+  "cart.summary.total": "الإجمالي",
+  "cart.summary.checkoutButton": "إتمام الطلب",
+  "cart.summary.continueShopping": "مواصلة التسوق",
+};

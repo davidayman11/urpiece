@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getT } from "@/lib/texts/server";
+import { getLang } from "@/lib/lang-server";
+import { dirOf } from "@/lib/lang";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -8,9 +10,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: { default: title, template: `%s | ${title}` }, description: t("site.description") };
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   return (
-    <html lang="en" className="h-full">
+    <html lang={lang} dir={dirOf(lang)} className="h-full">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

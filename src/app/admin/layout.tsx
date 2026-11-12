@@ -22,7 +22,7 @@ export default async function AdminRootLayout({ children }: { children: React.Re
     try { count = (await getLowStock()).count; } catch { /* badge is optional */ }
   }
   return (
-    <div className={jost.className}>
+    <div className={jost.className} dir="ltr" lang="en">
       <AutoRefresh intervalMs={30000} />
       <StockProvider count={count}>{children}</StockProvider>
     </div>
