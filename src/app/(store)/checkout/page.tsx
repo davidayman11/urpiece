@@ -11,6 +11,7 @@ interface PaymentSettings {
   instapayId?: string;
   instapayPhone?: string;
   instructions?: string;
+  freeShippingMin?: number | null;
   fieldModes?: FieldModes;
   customFields?: CustomField[];
   extraFields?: { id: string; label: string; value: string; type: "text" | "link" | "qr" }[];
@@ -44,8 +45,12 @@ export default function CheckoutPage() {
 
   const cartTotal = total();
   const discount = promoData?.discount || 0;
-  const shippingFee = zones.find((z) => z.city === form.city)?.price ?? 0;
-  const finalTotal = Math.max(0, cartTotal - discount) + shippingFee;
+  const afterDiscount = Math.max(0, cartTotal - discount);
+  const freeMin = paySettings.freeShippingMin || 0;
+  const freeShippingApplied = freeMin > 0 && afterDiscount >= freeMin;
+  const cityFee = zones.find((z) => z.city === form.city)?.price ?? 0;
+  const shippingFee = freeShippingApplied ? 0 : cityFee;
+  const finalTotal = afterDiscount + shippingFee;
 
   const applyPromo = async () => {
     setPromoError("");
@@ -207,6 +212,7 @@ export default function CheckoutPage() {
                     {form.city && zones.length > 0 && (
                       <p className="text-[11px] text-[#8A7E6E] mt-1.5">
                         Delivery to {form.city}: {shippingFee > 0 ? formatPrice(shippingFee) : "free"}
+                        {freeShippingApplied && cityFee > 0 ? " (free shipping applied)" : ""}
                       </p>
                     )}
                   </div>
@@ -445,6 +451,13 @@ export default function CheckoutPage() {
           {/* Order summary sidebar */}
           <div className="bg-[#EDE6D4] p-6 h-fit">
             <h3 className="font-serif text-lg text-[#1C1711] mb-4">Summary</h3>
+            {freeMin > 0 && (
+              <p className={`text-xs mb-4 ${freeShippingApplied ? "text-green-700" : "text-[#8A7E6E]"}`}>
+                {freeShippingApplied
+                  ? "You've unlocked free shipping!"
+                  : `Add ${formatPrice(freeMin - afterDiscount)} more for free shipping`}
+              </p>
+            )}
             <div className="space-y-3 text-sm">
               {items.map((i) => (
                 <div key={i.id} className="flex justify-between">
@@ -460,7 +473,7 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between text-[#5A5040]">
                 <span>Shipping</span>
-                <span>{!form.city && zones.length > 0 ? "Select city" : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
+                <span>{freeShippingApplied ? "Free" : !form.city && zones.length > 0 ? "Select city" : shippingFee > 0 ? formatPrice(shippingFee) : "Free"}</span>
               </div>
               <div className="pt-3 border-t border-[#E0D8C4] flex justify-between font-medium">
                 <span>Total</span>

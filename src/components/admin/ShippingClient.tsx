@@ -5,11 +5,25 @@ import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 import type { ShippingZone } from "@prisma/client";
 
-export default function ShippingClient({ zones }: { zones: ShippingZone[] }) {
+export default function ShippingClient({ zones, freeShippingMin }: { zones: ShippingZone[]; freeShippingMin: number | null }) {
   const router = useRouter();
   const [city, setCity] = useState("");
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [freeMin, setFreeMin] = useState(freeShippingMin ? String(freeShippingMin) : "");
+  const [freeSaved, setFreeSaved] = useState(false);
+
+  const saveFree = async () => {
+    setBusy(true);
+    const res = await fetch("/api/admin/shipping-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ freeShippingMin: freeMin }),
+    });
+    setBusy(false);
+    if (res.ok) { setFreeSaved(true); setTimeout(() => setFreeSaved(false), 2000); router.refresh(); }
+    else alert("Failed to save");
+  };
   const [edits, setEdits] = useState<Record<string, { city: string; price: string; isActive: boolean }>>({});
 
   const call = async (url: string, method: string, body?: unknown) => {
@@ -56,6 +70,32 @@ export default function ShippingClient({ zones }: { zones: ShippingZone[] }) {
         <p className="text-sm text-gray-500 mt-1">
           Cities shown in the checkout dropdown, each with its own shipping price.
         </p>
+      </div>
+
+      <div className="bg-white rounded-lg p-5 border border-gray-100 space-y-3">
+        <h2 className="font-medium text-gray-700 text-sm">Free shipping condition</h2>
+        <p className="text-xs text-gray-400">
+          Orders at or above this amount (after any promo discount) ship free to every city. Leave empty to turn it off.
+        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-sm text-gray-600">Free shipping over</span>
+          <input
+            type="number"
+            min="0"
+            value={freeMin}
+            onChange={(e) => setFreeMin(e.target.value)}
+            placeholder="e.g. 1000"
+            className="sm:w-40 border border-gray-200 rounded px-3 py-2 text-sm"
+          />
+          <span className="text-sm text-gray-600">EGP</span>
+          <button
+            onClick={saveFree}
+            disabled={busy}
+            className="px-5 py-2 bg-[#A8975E] text-white rounded text-sm hover:bg-[#8A7A4A] disabled:opacity-60"
+          >
+            {freeSaved ? "✓ Saved" : "Save"}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg p-5 border border-gray-100 space-y-3">

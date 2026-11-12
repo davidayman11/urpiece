@@ -234,6 +234,7 @@ model PaymentSettings {
   instructions String?
   extraFields String   @default("[]")
   customFields String @default("[]")
+  freeShippingMin Float?
   requiredFields String @default("{\"phone\":true,\"address\":true,\"city\":true}")
   updatedAt   DateTime @updatedAt
 }

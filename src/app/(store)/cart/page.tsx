@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice } from "@/lib/utils";
 import Image from "next/image";
@@ -7,6 +8,13 @@ import Link from "next/link";
 
 export default function CartPage() {
   const { items, removeItem, updateQty, total } = useCartStore();
+  const [freeMin, setFreeMin] = useState(0);
+  useEffect(() => {
+    fetch("/api/settings/payment")
+      .then((r) => r.json())
+      .then((d) => setFreeMin(d.freeShippingMin || 0))
+      .catch(() => {});
+  }, []);
 
   if (items.length === 0) {
     return (
@@ -100,8 +108,17 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#5A5040]">Shipping</span>
-                  <span className="text-[#8A7E6E]">Calculated at checkout</span>
+                  <span className="text-[#8A7E6E]">
+                    {freeMin > 0 && cartTotal >= freeMin ? "Free" : "Calculated at checkout"}
+                  </span>
                 </div>
+                {freeMin > 0 && (
+                  <p className={`text-xs ${cartTotal >= freeMin ? "text-green-700" : "text-[#8A7E6E]"}`}>
+                    {cartTotal >= freeMin
+                      ? "You've unlocked free shipping!"
+                      : `Add ${formatPrice(freeMin - cartTotal)} more for free shipping`}
+                  </p>
+                )}
               </div>
               <div className="mt-6 pt-4 border-t border-[#E0D8C4] flex justify-between font-medium">
                 <span>Total</span>

@@ -13,9 +13,10 @@ export default async function ShippingPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
   const zones = await prisma.shippingZone.findMany({ orderBy: [{ sortOrder: "asc" }, { city: "asc" }] });
+  const settings = await prisma.paymentSettings.findFirst();
   return (
     <AdminLayout>
-      <ShippingClient zones={zones} />
+      <ShippingClient zones={zones} freeShippingMin={settings?.freeShippingMin ?? null} />
     </AdminLayout>
   );
 }

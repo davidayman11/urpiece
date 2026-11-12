@@ -71,7 +71,9 @@ export async function POST(req: NextRequest) {
       }
       shippingFee = zone.price;
     }
-    const total = Math.max(0, subtotal - discount) + shippingFee;
+    const afterDiscount = Math.max(0, subtotal - discount);
+    if (settings?.freeShippingMin && afterDiscount >= settings.freeShippingMin) shippingFee = 0;
+    const total = afterDiscount + shippingFee;
 
     // Handle screenshot upload
     let screenshotPath: string | null = null;

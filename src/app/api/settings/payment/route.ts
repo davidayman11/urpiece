@@ -11,6 +11,7 @@ export async function GET() {
     instructions: settings.instructions,
     fieldModes: parseFieldModes(settings.requiredFields),
     customFields: parseCustomFields(settings.customFields),
+    freeShippingMin: settings.freeShippingMin,
     extraFields: (() => { try { return JSON.parse(settings.extraFields || "[]"); } catch { return []; } })(),
   });
 }
