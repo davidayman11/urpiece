@@ -126,4 +126,6 @@ export const arCheckout: Record<string, string> = {
   "checkout.guest.banner": "لديك حساب؟ سجّل الدخول لتستخدم عناوينك المحفوظة وأكواد الخصم — أو تابع كضيف.",
   "checkout.guest.signIn": "تسجيل الدخول",
   "checkout.msg.emailInvalid": "أدخل بريدًا إلكترونيًا صحيحًا",
+  "checkout.note.label": "ملاحظة على الطلب",
+  "checkout.note.placeholder": "أي طلبات خاصة أو تعليمات لطلبك…",
 };

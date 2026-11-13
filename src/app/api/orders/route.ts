@@ -121,6 +121,7 @@ export async function POST(req: NextRequest) {
       // an email that belongs to a registered account is NOT attached to it (anyone could type that email)
     }
     // Secret token so a guest can open their order page from a link
+    const customerNote = String(fd.get("customerNote") || "").trim().slice(0, 2000) || undefined;
     const accessToken = randomBytes(16).toString("hex");
 
     const orderNumber = generateOrderNumber();
@@ -140,6 +141,7 @@ export async function POST(req: NextRequest) {
           discount,
           shippingFee,
           customData: JSON.stringify(customData),
+          customerNote,
           paymentType,
           amountDue,
           balanceDue,

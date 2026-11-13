@@ -10,6 +10,7 @@ import { useLowStockCount } from "@/components/admin/AdminStockContext";
 const NAV = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "⬛" },
   { label: "Products", href: "/admin/products", icon: "🏷" },
+  { label: "Variant Presets", href: "/admin/variant-presets", icon: "🎨" },
   { label: "Bundles", href: "/admin/bundles", icon: "🎁" },
   { label: "Categories", href: "/admin/categories", icon: "📂" },
   { label: "Orders", href: "/admin/orders", icon: "📦" },

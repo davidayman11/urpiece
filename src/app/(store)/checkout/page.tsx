@@ -45,6 +45,7 @@ export default function CheckoutPage() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [customerNote, setCustomerNote] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
@@ -190,6 +191,7 @@ export default function CheckoutPage() {
       fd.append("screenshot", screenshotFile);
       fd.append("items", JSON.stringify(items));
       fd.append("custom", JSON.stringify(customValues));
+      if (customerNote.trim()) fd.append("customerNote", customerNote.trim());
       if (quote?.promoCode) fd.append("promoCode", quote.promoCode);
       fd.append("saveAddress", saveAddress && selectedAddr === "new" ? "1" : "0");
       fd.append("paymentOption", usingDeposit ? "deposit" : "full");
@@ -499,6 +501,21 @@ export default function CheckoutPage() {
                     <Txt k="checkout.fields.saveAddress" />
                   </label>
                 )}
+
+                {/* Order note */}
+                <div>
+                  <label className="block text-xs tracking-widest uppercase text-[#A8975E] mb-2">
+                    <Txt k="checkout.note.label" /> <span className="normal-case tracking-normal text-[#C4B8A0]"><Txt k="checkout.fields.optional" /></span>
+                  </label>
+                  <textarea
+                    value={customerNote}
+                    onChange={(e) => setCustomerNote(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    placeholder={t("checkout.note.placeholder")}
+                    className="w-full border border-[#CFC4A6] bg-white px-4 py-3 text-sm text-[#1C1711] placeholder:text-[#A59C88] outline-none hover:border-[#B8AB85] focus:border-[#A8975E] focus:ring-2 focus:ring-[#A8975E]/20 transition-all resize-none"
+                  />
+                </div>
 
                 {/* Promo */}
                 <div className="flex gap-2">

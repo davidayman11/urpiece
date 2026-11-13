@@ -133,6 +133,7 @@ model Order {
   paymentScreenshot String?
   rejectionReason   String?
   adminNotes        String?
+  customerNote      String?
   customData        String              @default("{}")
   accessToken       String?
   paymentType       String              @default("FULL")
@@ -381,4 +382,11 @@ model PaymentSettings {
   requiredFields String @default("{\"phone\":true,\"address\":true,\"city\":true}")
   updatedAt   DateTime @updatedAt
   instructionsAr String?
+}
+
+model VariantPreset {
+  id        String   @id @default(cuid())
+  name      String
+  values    String   @default("[]")
+  createdAt DateTime @default(now())
 }

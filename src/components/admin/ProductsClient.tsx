@@ -18,12 +18,19 @@ import type { Product, Variant, Category } from "@prisma/client";
 
 type ProductWithVariants = Product & { variants: Variant[]; category: Category | null };
 
+interface VariantPreset {
+  id: string;
+  name: string;
+  values: string[];
+}
+
 interface Props {
   products: ProductWithVariants[];
   categories: Category[];
   lowStockThreshold?: number;
   lowStockCount?: number;
   initialLow?: boolean;
+  presets?: VariantPreset[];
 }
 
 interface VariantForm {
@@ -68,7 +75,7 @@ const emptyForm = (): ProductForm => ({
   images: [], variants: [emptyVariant()],
 });
 
-export default function ProductsClient({ products: initial, categories, lowStockThreshold = 5, lowStockCount = 0, initialLow = false }: Props) {
+export default function ProductsClient({ products: initial, categories, lowStockThreshold = 5, lowStockCount = 0, initialLow = false, presets: initialPresets = [] }: Props) {
   const router = useRouter();
   const [products, setProducts] = useState(initial);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
@@ -76,11 +83,13 @@ export default function ProductsClient({ products: initial, categories, lowStock
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [pickerFor, setPickerFor] = useState<string | null>(null); // variant whose "choose from product photos" panel is open
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [onlyLow, setOnlyLow] = useState(initialLow);
   const [threshold, setThreshold] = useState(String(lowStockThreshold));
   const [thresholdSaved, setThresholdSaved] = useState(false);
+  const [presets] = useState(initialPresets);
+  const [exporting, setExporting] = useState(false);
   const isLow = (p: ProductWithVariants) => p.variants.some((v) => v.isActive && v.inventory <= lowStockThreshold);
 
   const saveThreshold = async () => {
@@ -138,6 +147,78 @@ export default function ProductsClient({ products: initial, categories, lowStock
       ),
     }));
 
+  const moveImage = (from: number, to: number) =>
+    setForm((f) => {
+      const imgs = [...f.images];
+      const [item] = imgs.splice(from, 1);
+      imgs.splice(to, 0, item);
+      return { ...f, images: imgs };
+    });
+
+  const applyToAll = (sourceIdx: number, field: "price" | "costPrice" | "inventory") =>
+    setForm((f) => {
+      const val = f.variants[sourceIdx][field];
+      return { ...f, variants: f.variants.map((v) => ({ ...v, [field]: val })) };
+    });
+
+  const applyPreset = (preset: VariantPreset) => {
+    const newVariants = preset.values.map((name) => ({ ...emptyVariant(), name }));
+    setForm((f) => {
+      const existing = f.variants.filter((v) => v.name.trim() !== "");
+      return { ...f, variants: existing.length > 0 ? [...existing, ...newVariants] : newVariants };
+    });
+  };
+
+  const duplicateProduct = async (p: ProductWithVariants) => {
+    if (!confirm(`Duplicate "${p.name}"?`)) return;
+    const payload = {
+      name: p.name + " (Copy)",
+      nameAr: p.nameAr || "",
+      descriptionAr: p.descriptionAr || "",
+      slug: p.slug + "-copy-" + Date.now(),
+      description: p.description || "",
+      categoryId: p.categoryId || "",
+      isActive: false,
+      isFeatured: false,
+      salePercent: 0,
+      saleType: "PERCENT",
+      saleStartsAt: null,
+      saleEndsAt: null,
+      images: mergePhotos(
+        parseImgs(p.images).map((url) => ({ url, variantKeys: [] as string[] })),
+        p.variants.flatMap((v) => parseImgs(v.images).map((url) => ({ url, variantKeys: [v.id] }))),
+      ),
+      variants: p.variants.map((v) => ({
+        key: `new-${Math.random().toString(36).slice(2)}`,
+        name: v.name, nameAr: v.nameAr || "",
+        price: String(v.price), costPrice: String(v.costPrice),
+        inventory: String(v.inventory), options: v.options, sku: "",
+      })),
+    };
+    const res = await fetch("/api/admin/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) router.refresh();
+    else { const d = await res.json().catch(() => ({})); alert(d.error || "Duplicate failed"); }
+  };
+
+  const exportExcel = async () => {
+    setExporting(true);
+    const res = await fetch("/api/admin/products/export");
+    if (res.ok) {
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "products.xlsx";
+      a.click();
+    } else {
+      alert("Export failed");
+    }
+    setExporting(false);
+  };
+
   const save = async () => {
     setSaving(true);
     const payload = {
@@ -180,9 +261,14 @@ export default function ProductsClient({ products: initial, categories, lowStock
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-800">Products</h1>
-        <button onClick={openCreate} className="bg-[#A8975E] text-white px-4 py-2 text-sm rounded-md hover:bg-[#8A7A4A] transition-colors">
-          + Add Product
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportExcel} disabled={exporting} className="border border-gray-200 bg-white text-gray-600 px-3 py-2 text-sm rounded-md hover:bg-gray-50 disabled:opacity-60">
+            {exporting ? "Exporting..." : "⬇ Excel"}
+          </button>
+          <button onClick={openCreate} className="bg-[#A8975E] text-white px-4 py-2 text-sm rounded-md hover:bg-[#8A7A4A] transition-colors">
+            + Add Product
+          </button>
+        </div>
       </div>
 
       {/* Low-stock alert */}
@@ -277,6 +363,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
                     <td className="p-4">
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => openEdit(p)} className="text-xs text-[#A8975E] hover:underline">Edit</button>
+                        <button onClick={() => duplicateProduct(p)} className="text-xs text-gray-400 hover:underline">Copy</button>
                         <button onClick={() => deleteProduct(p.id)} className="text-xs text-red-500 hover:underline">Delete</button>
                       </div>
                     </td>
@@ -445,15 +532,31 @@ export default function ProductsClient({ products: initial, categories, lowStock
                       <div key={i} className="w-24">
                         <div className="relative w-24 h-24">
                           <Image src={img.url} alt="" fill className="object-cover rounded" />
+                          {i === 0 && (
+                            <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] bg-[#A8975E]/80 text-white py-0.5">Cover</span>
+                          )}
                           <button
                             onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
                             className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
                             aria-label="Remove photo"
                           >×</button>
                         </div>
-                        <p className="mt-1 text-[10px] leading-tight text-gray-500">
+                        <div className="flex items-center justify-between mt-1 gap-1">
+                          <div className="flex gap-0.5">
+                            {i > 0 && (
+                              <button type="button" onClick={() => moveImage(i, i - 1)} className="text-[10px] text-gray-400 hover:text-gray-600 px-1" title="Move left">←</button>
+                            )}
+                            {i < form.images.length - 1 && (
+                              <button type="button" onClick={() => moveImage(i, i + 1)} className="text-[10px] text-gray-400 hover:text-gray-600 px-1" title="Move right">→</button>
+                            )}
+                          </div>
+                          {i > 0 && (
+                            <button type="button" onClick={() => moveImage(i, 0)} className="text-[9px] text-[#A8975E] hover:underline">Cover</button>
+                          )}
+                        </div>
+                        <p className="text-[10px] leading-tight text-gray-500">
                           {img.variantKeys.length === 0
-                            ? "Shown for all variants"
+                            ? "All variants"
                             : img.variantKeys.map((k) => form.variants.find((v) => v.key === k)?.name || "Variant").join(", ")}
                         </p>
                       </div>
@@ -469,12 +572,29 @@ export default function ProductsClient({ products: initial, categories, lowStock
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs text-gray-500">Variants (Price / Cost Price / Stock)</label>
-                  <button
-                    onClick={() => setForm((f) => ({ ...f, variants: [...f.variants, emptyVariant()] }))}
-                    className="text-xs text-[#A8975E] hover:underline"
-                  >
-                    + Add Variant
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {presets.length > 0 && (
+                      <select
+                        className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 focus:outline-none"
+                        value=""
+                        onChange={(e) => {
+                          const p = presets.find((x) => x.id === e.target.value);
+                          if (p) applyPreset(p);
+                        }}
+                      >
+                        <option value="">Use preset…</option>
+                        {presets.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    )}
+                    <button
+                      onClick={() => setForm((f) => ({ ...f, variants: [...f.variants, emptyVariant()] }))}
+                      className="text-xs text-[#A8975E] hover:underline"
+                    >
+                      + Add Variant
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   {form.variants.map((v, i) => (
@@ -541,6 +661,13 @@ export default function ProductsClient({ products: initial, categories, lowStock
                         <p className="text-xs text-emerald-600">
                           Profit: {formatPrice(parseFloat(v.price) - parseFloat(v.costPrice))} / unit
                         </p>
+                      )}
+                      {form.variants.length > 1 && (
+                        <div className="flex gap-3 text-[10px] text-gray-400">
+                          {v.price && <button type="button" onClick={() => applyToAll(i, "price")} className="hover:text-[#A8975E]">Apply price to all</button>}
+                          {v.costPrice && <button type="button" onClick={() => applyToAll(i, "costPrice")} className="hover:text-[#A8975E]">Apply cost to all</button>}
+                          {v.inventory && <button type="button" onClick={() => applyToAll(i, "inventory")} className="hover:text-[#A8975E]">Apply stock to all</button>}
+                        </div>
                       )}
                       {/* Photos for this variant */}
                       <div className="pt-2 border-t border-gray-50">

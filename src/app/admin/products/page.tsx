@@ -15,18 +15,25 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
 
-  const [products, categories, lowStock] = await Promise.all([
+  const [products, categories, lowStock, rawPresets] = await Promise.all([
     prisma.product.findMany({
       include: { variants: true, category: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
     getLowStock(),
+    prisma.variantPreset.findMany({ orderBy: { createdAt: "asc" } }),
   ]);
+
+  const presets = rawPresets.map((p) => ({
+    id: p.id,
+    name: p.name,
+    values: (() => { try { return JSON.parse(p.values) as string[]; } catch { return [] as string[]; } })(),
+  }));
 
   return (
     <AdminLayout>
-      <ProductsClient products={products as Parameters<typeof ProductsClient>[0]["products"]} categories={categories} lowStockThreshold={lowStock.threshold} lowStockCount={lowStock.count} initialLow={stock === "low"} />
+      <ProductsClient products={products as Parameters<typeof ProductsClient>[0]["products"]} categories={categories} lowStockThreshold={lowStock.threshold} lowStockCount={lowStock.count} initialLow={stock === "low"} presets={presets} />
     </AdminLayout>
   );
 }

@@ -127,4 +127,6 @@ export const checkoutTexts: TextDef[] = [
   { key: "checkout.guest.banner", group: "Checkout", label: "Banner for customers who are not signed in", default: "Have an account? Sign in for saved addresses and promo codes — or continue as a guest." },
   { key: "checkout.guest.signIn", group: "Checkout", label: "Guest banner — sign in link", default: "Sign in" },
   { key: "checkout.msg.emailInvalid", group: "Checkout — messages", label: "Order error — email is not valid", default: "Enter a valid email address" },
+  { key: "checkout.note.label", group: "Checkout", label: "Order note — field label", default: "Order note" },
+  { key: "checkout.note.placeholder", group: "Checkout", label: "Order note — placeholder", default: "Any special requests or instructions for your order…" },
 ];

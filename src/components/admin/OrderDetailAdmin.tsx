@@ -44,6 +44,7 @@ interface Order {
   paymentScreenshot?: string;
   rejectionReason?: string;
   adminNotes?: string;
+  customerNote?: string;
   customData?: string;
   subtotal: number;
   discount: number;
@@ -257,6 +258,12 @@ export default function OrderDetailAdmin({ order: initial }: { order: Order }) {
               <p className="text-xs text-gray-400 mb-1">Shipping Address</p>
               <p className="text-sm text-gray-600">{formatAddress(shipping)}</p>
             </div>
+            {order.customerNote && (
+              <div className="mt-4 pt-4 border-t border-gray-50">
+                <p className="text-xs text-gray-400 mb-1">Customer Note</p>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap bg-amber-50 border border-amber-100 rounded p-2">{order.customerNote}</p>
+              </div>
+            )}
             {Object.entries(parseJson<Record<string, string>>(order.customData || "{}", {})).map(([k, v]) => (
               <div key={k} className="mt-3 pt-3 border-t border-gray-50">
                 <p className="text-xs text-gray-400 mb-1">{k}</p>
