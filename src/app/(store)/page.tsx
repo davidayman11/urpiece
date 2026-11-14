@@ -9,6 +9,7 @@ import { bundleInclude } from "@/lib/bundle-include";
 import type { BundleView } from "@/lib/bundles";
 import MarqueeStrip from "@/components/store/sections/MarqueeStrip";
 import EditorialSection from "@/components/store/sections/EditorialSection";
+import CustomSection from "@/components/store/sections/CustomSection";
 import type { Product, Category, Variant, SiteSection } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -128,6 +129,12 @@ export default async function HomePage() {
       {bannerSection && (
         <BannerSection content={parseJson<Record<string, string>>(bannerSection.content, {})} />
       )}
+
+      {sections
+        .filter((s: SiteSection) => s.type === "custom")
+        .map((s: SiteSection) => (
+          <CustomSection key={s.id} content={JSON.parse(s.content || "{}")} />
+        ))}
 
       {strips("bottom")}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { parseJson } from "@/lib/utils";
@@ -70,6 +70,22 @@ const SECTION_TYPES = [
     type: "settings", label: "Site Settings (Footer / Nav)", page: "site",
     fields: ["tagline", "brandDescription", "contactEmail", "paymentNote", "shippingNote", "copyright"],
   },
+  {
+    type: "custom", label: "Custom Section (fully customizable)", page: "*",
+    fields: [],
+  },
+];
+
+const CUSTOM_FIELD_OPTIONS: { key: string; label: string }[] = [
+  { key: "eyebrow", label: "Eyebrow (small top label)" },
+  { key: "heading", label: "Heading" },
+  { key: "subheading", label: "Subheading" },
+  { key: "body", label: "Body Text" },
+  { key: "image", label: "Image / Photo" },
+  { key: "button", label: "Button / CTA" },
+  { key: "quote", label: "Quote (italic)" },
+  { key: "bgColor", label: "Background Color" },
+  { key: "textColor", label: "Text Color" },
 ];
 
 const FIELD_LABELS: Record<string, string> = {
@@ -241,6 +257,7 @@ export default function PagesClient({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  const [customFields, setCustomFields] = useState<string[]>([]);
 
   const uploadImage = async (file: File, field: string) => {
     setUploading(true);
@@ -253,7 +270,26 @@ export default function PagesClient({
     setUploading(false);
   };
 
-  const typesForPage = (slug: string) => SECTION_TYPES.filter((t) => t.page === slug);
+  const typesForPage = (slug: string) => [
+    ...SECTION_TYPES.filter((t) => t.page === slug),
+    SECTION_TYPES.find((t) => t.type === "custom")!,
+  ];
+
+  const addCustomField = useCallback((key: string) => {
+    setCustomFields((prev) => {
+      const next = [...prev, key];
+      setContent((c) => ({ ...c, _fields: JSON.stringify(next) }));
+      return next;
+    });
+  }, []);
+
+  const removeCustomField = useCallback((key: string) => {
+    setCustomFields((prev) => {
+      const next = prev.filter((f) => f !== key);
+      setContent((c) => ({ ...c, _fields: JSON.stringify(next) }));
+      return next;
+    });
+  }, []);
 
   const openCreate = () => {
     setEditId(null);
@@ -261,6 +297,7 @@ export default function PagesClient({
     setPageSlug(activeTab);
     setSectionType(defaultType);
     setContent({});
+    setCustomFields([]);
     setIsVisible(true);
     setSortOrder(sections.filter((s) => s.pageSlug === activeTab).length * 10);
     setModal("create");
@@ -270,7 +307,16 @@ export default function PagesClient({
     setEditId(s.id);
     setPageSlug(s.pageSlug);
     setSectionType(s.type);
-    setContent(parseJson<Record<string, string>>(s.content, {}));
+    const c = parseJson<Record<string, string>>(s.content, {});
+    setContent(c);
+    if (s.type === "custom") {
+      try {
+        const f = JSON.parse(c._fields || "[]");
+        setCustomFields(Array.isArray(f) ? f : []);
+      } catch { setCustomFields([]); }
+    } else {
+      setCustomFields([]);
+    }
     setIsVisible(s.isVisible);
     setSortOrder(s.sortOrder);
     setModal("edit");
@@ -360,7 +406,7 @@ export default function PagesClient({
                   </span>
                 </div>
                 <p className="text-sm text-gray-700 mt-1 truncate font-medium">
-                  {c.heading || c.tagline || c.eyebrow || `${s.type} section`}
+                  {c._label || c.heading || c.tagline || c.eyebrow || `${s.type} section`}
                 </p>
                 {c.subheading || c.body ? (
                   <p className="text-xs text-gray-400 truncate mt-0.5">{c.subheading || c.body}</p>
@@ -411,14 +457,106 @@ export default function PagesClient({
                 <label className="text-xs text-gray-500 mb-1 block">Section Type</label>
                 <select
                   value={sectionType}
-                  onChange={(e) => { setSectionType(e.target.value); setContent({}); }}
+                  onChange={(e) => { setSectionType(e.target.value); setContent({}); setCustomFields([]); }}
                   className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
                 >
                   {typesForPage(pageSlug).map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
                 </select>
               </div>
 
-              {currentTypeDef?.fields.map((field) => {
+              {sectionType === "custom" && (
+                <div className="space-y-4">
+                  {/* Admin label */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Section Name (shown in admin list)</label>
+                    <input
+                      value={content._label || ""}
+                      onChange={(e) => setContent((c) => ({ ...c, _label: e.target.value }))}
+                      placeholder="e.g. Our Story, Why Us, Brand Promise…"
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                  </div>
+                  {/* Layout */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Layout</label>
+                    <select
+                      value={content._layout || "centered"}
+                      onChange={(e) => setContent((c) => ({ ...c, _layout: e.target.value }))}
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    >
+                      <option value="centered">Centered — text in the middle</option>
+                      <option value="image-right">Split — image right, text left</option>
+                      <option value="image-left">Split — image left, text right</option>
+                      <option value="full-image">Full-width image with text overlay</option>
+                    </select>
+                  </div>
+                  {/* Added fields */}
+                  {customFields.map((fieldKey) => (
+                    <div key={fieldKey} className="border border-gray-100 rounded-lg p-3 space-y-2 bg-gray-50/50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-700">
+                          {CUSTOM_FIELD_OPTIONS.find((f) => f.key === fieldKey)?.label || fieldKey}
+                        </span>
+                        <button type="button" onClick={() => removeCustomField(fieldKey)} className="text-xs text-red-400 hover:text-red-600">Remove</button>
+                      </div>
+                      {fieldKey === "button" ? (
+                        <div className="space-y-2">
+                          <input value={content.buttonText || ""} onChange={(e) => setContent((c) => ({ ...c, buttonText: e.target.value }))} placeholder="Button text (e.g. Shop Now)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                          <input dir="rtl" value={content.buttonText_ar || ""} onChange={(e) => setContent((c) => ({ ...c, buttonText_ar: e.target.value }))} placeholder="نص الزر بالعربية (optional)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                          <select value={content.buttonUrl || ""} onChange={(e) => setContent((c) => ({ ...c, buttonUrl: e.target.value }))} className="w-full border border-gray-200 rounded px-3 py-2 text-sm">
+                            <option value="">— Select a destination page —</option>
+                            {PAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                        </div>
+                      ) : fieldKey === "image" ? (
+                        <div className="space-y-2">
+                          <input type="text" value={content.image || ""} onChange={(e) => setContent((c) => ({ ...c, image: e.target.value }))} placeholder="Paste image URL…" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            {uploading ? "Uploading…" : "Upload photo"}
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0], "image")} />
+                          </label>
+                          {content.image && <div className="relative h-24 rounded overflow-hidden border border-gray-100"><Image src={content.image} alt="" fill className="object-cover" /></div>}
+                        </div>
+                      ) : fieldKey === "bgColor" || fieldKey === "textColor" ? (
+                        <div className="flex items-center gap-2">
+                          <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(content[fieldKey] || "") ? content[fieldKey] : (fieldKey === "bgColor" ? "#1C1711" : "#F5EFE2")} onChange={(e) => setContent((c) => ({ ...c, [fieldKey]: e.target.value }))} className="w-10 h-9 border border-gray-200 rounded cursor-pointer bg-white p-0.5" />
+                          <input value={content[fieldKey] || ""} onChange={(e) => setContent((c) => ({ ...c, [fieldKey]: e.target.value }))} placeholder="#hex" className="w-32 border border-gray-200 rounded px-3 py-2 text-sm" />
+                          {content[fieldKey] && <button type="button" onClick={() => setContent((c) => { const n = { ...c }; delete n[fieldKey]; return n; })} className="text-xs text-gray-400 hover:underline">Reset</button>}
+                        </div>
+                      ) : TEXTAREA_FIELDS.has(fieldKey) ? (
+                        <div className="space-y-2">
+                          <textarea value={content[fieldKey] || ""} onChange={(e) => setContent((c) => ({ ...c, [fieldKey]: e.target.value }))} rows={4} placeholder={fieldKey === "body" ? "Use \\n\\n to separate paragraphs" : ""} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                          {AR_FIELDS.has(fieldKey) && <textarea dir="rtl" value={content[fieldKey + "_ar"] || ""} onChange={(e) => setContent((c) => ({ ...c, [fieldKey + "_ar"]: e.target.value }))} rows={3} placeholder="بالعربية (optional)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <input value={content[fieldKey] || ""} onChange={(e) => setContent((c) => ({ ...c, [fieldKey]: e.target.value }))} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                          {AR_FIELDS.has(fieldKey) && <input dir="rtl" value={content[fieldKey + "_ar"] || ""} onChange={(e) => setContent((c) => ({ ...c, [fieldKey + "_ar"]: e.target.value }))} placeholder="بالعربية (optional)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {/* Add field buttons */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-2 block">Add a field to this section</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CUSTOM_FIELD_OPTIONS.filter((f) => !customFields.includes(f.key)).map((f) => (
+                        <button
+                          key={f.key}
+                          type="button"
+                          onClick={() => addCustomField(f.key)}
+                          className="text-xs px-3 py-1.5 border border-dashed border-gray-300 rounded-full hover:border-[#A8975E] hover:text-[#A8975E] transition-colors"
+                        >
+                          + {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {sectionType !== "custom" && currentTypeDef?.fields.map((field) => {
                 if (field === "bundleIds" && (content.bundleMode || "all") !== "selected") return null;
                 if (field === "bundleLimit" && (content.bundleMode || "all") === "selected") return null;
                 if (field === "productIds" && (content.productMode || "featured") !== "selected") return null;
