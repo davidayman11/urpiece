@@ -3,6 +3,43 @@
 import { useState } from "react";
 import { useVariantSelection } from "@/components/store/VariantSelection";
 import { parseImgs } from "@/lib/product-images";
+
+// Map common color names (lowercase) → CSS color
+const COLOR_MAP: Record<string, string> = {
+  gold: "#C9A227", golden: "#C9A227", ذهبي: "#C9A227",
+  silver: "#A8A9AD", فضي: "#A8A9AD",
+  "rose gold": "#B76E79", rosegold: "#B76E79", "روز جولد": "#B76E79",
+  rose: "#B76E79",
+  black: "#1a1a1a", أسود: "#1a1a1a",
+  white: "#f0ede6", أبيض: "#f0ede6",
+  red: "#c0392b", أحمر: "#c0392b",
+  blue: "#2980b9", أزرق: "#2980b9",
+  green: "#27ae60", أخضر: "#27ae60",
+  pink: "#e91e8c", وردي: "#e91e8c",
+  purple: "#8e44ad", بنفسجي: "#8e44ad",
+  brown: "#7f5539", بني: "#7f5539",
+  beige: "#c8a882", بيج: "#c8a882",
+  copper: "#b87333", نحاسي: "#b87333",
+  bronze: "#cd7f32",
+  navy: "#1e3a5f",
+  cream: "#f5f0e8",
+  yellow: "#f1c40f", أصفر: "#f1c40f",
+  orange: "#e67e22", برتقالي: "#e67e22",
+  turquoise: "#1abc9c", فيروزي: "#1abc9c",
+  champagne: "#f7e7ce",
+  platinum: "#e5e4e2",
+  maroon: "#800000",
+  gray: "#808080", grey: "#808080", رمادي: "#808080",
+};
+
+function getColor(name: string): string | null {
+  const lower = (name || "").toLowerCase().trim();
+  if (COLOR_MAP[lower]) return COLOR_MAP[lower];
+  for (const [key, val] of Object.entries(COLOR_MAP)) {
+    if (lower.includes(key)) return val;
+  }
+  return null;
+}
 import { useCartStore } from "@/lib/store/cart";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
@@ -74,35 +111,80 @@ export default function AddToCartButton({ product }: Props) {
       </div>
 
       {/* Variant selection */}
-      {product.variants.length > 1 && (
-        <div>
-          <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-3">
-            {selectedVariant ? L(lang, selectedVariant.name, selectedVariant.nameAr) : ""}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {product.variants.map((v) => {
-              const opts = parseJson<Record<string, string>>(v.options, {});
-              const label = (lang === "ar" && v.nameAr?.trim() ? v.nameAr : Object.values(opts).join(" / ")) || v.name;
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => setSelectedVariantId(v.id)}
-                  disabled={v.inventory === 0}
-                  className={`px-4 py-2 text-xs border transition-all ${
-                    v.id === selectedVariantId
-                      ? "border-[#A8975E] bg-[#A8975E] text-[#F5EFE2]"
-                      : v.inventory === 0
-                      ? "border-[#E3DAC3] text-[#B5AA92] line-through cursor-not-allowed"
-                      : "border-[#CFC4A6] bg-white/60 text-[#5A5040] hover:border-[#A8975E]"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+      {product.variants.length > 1 && (() => {
+        const displayName = selectedVariant ? L(lang, selectedVariant.name, selectedVariant.nameAr) : "";
+        // Check if any variant is a color — if so, show circles for all
+        const anyColor = product.variants.some((v) => getColor(v.name) || getColor(v.nameAr || ""));
+        return (
+          <div>
+            <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-3">
+              {displayName}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {product.variants.map((v) => {
+                const opts = parseJson<Record<string, string>>(v.options, {});
+                const label = (lang === "ar" && v.nameAr?.trim() ? v.nameAr : Object.values(opts).join(" / ")) || v.name;
+                const color = anyColor ? (getColor(v.name) || getColor(v.nameAr || "")) : null;
+                const isSelected = v.id === selectedVariantId;
+                const isOOS = v.inventory === 0;
+
+                if (color) {
+                  // Color circle swatch
+                  return (
+                    <div key={v.id} className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => setSelectedVariantId(v.id)}
+                        disabled={isOOS}
+                        title={label}
+                        className={`relative w-9 h-9 rounded-full transition-all border-2 ${
+                          isSelected
+                            ? "border-[#A8975E] scale-110 shadow-md"
+                            : isOOS
+                            ? "border-transparent opacity-40 cursor-not-allowed"
+                            : "border-transparent hover:border-[#A8975E]/50 hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: color }}
+                      >
+                        {isSelected && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
+                              <path d="M1 4l3.5 3.5L11 1" stroke={color === "#f0ede6" || color === "#f5f0e8" || color === "#f7e7ce" || color === "#e5e4e2" ? "#1C1711" : "white"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                        )}
+                        {isOOS && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-[1px] h-full bg-[#8A7E6E]/60 rotate-45 absolute" />
+                          </span>
+                        )}
+                      </button>
+                      <span className="text-[9px] text-[#8A7E6E] text-center leading-tight max-w-10 truncate">{label}</span>
+                    </div>
+                  );
+                }
+
+                // Text pill for non-color variants
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => setSelectedVariantId(v.id)}
+                    disabled={isOOS}
+                    className={`px-4 py-2 text-xs border transition-all ${
+                      isSelected
+                        ? "border-[#A8975E] bg-[#A8975E] text-[#F5EFE2]"
+                        : isOOS
+                        ? "border-[#E3DAC3] text-[#B5AA92] line-through cursor-not-allowed"
+                        : "border-[#CFC4A6] bg-white/60 text-[#5A5040] hover:border-[#A8975E]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Stock status */}
       {!inStock && (

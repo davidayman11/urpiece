@@ -6,9 +6,7 @@ import { useVariantSelection } from "@/components/store/VariantSelection";
 import { galleryImages } from "@/lib/product-images";
 
 interface Props {
-  /** photos shown for every variant */
   images: string[];
-  /** photos that belong to one variant, by variant id */
   variantImages?: Record<string, string[]>;
   name: string;
 }
@@ -16,9 +14,9 @@ interface Props {
 export default function ProductGallery({ images: general, variantImages = {}, name }: Props) {
   const sel = useVariantSelection();
   const variantId = sel?.variantId ?? "";
-  const images = galleryImages(general, variantImages[variantId] || [], Object.values(variantImages));
+  // Only show this variant's photos + general photos — never bleed other variants' photos in
+  const images = galleryImages(general, variantImages[variantId] || []);
 
-  // Picking a different variant starts again from its first photo
   const [pos, setPos] = useState({ v: variantId, i: 0 });
   const current = pos.v === variantId ? Math.min(pos.i, Math.max(0, images.length - 1)) : 0;
   const setCurrent = (next: number | ((p: number) => number)) =>
@@ -26,7 +24,7 @@ export default function ProductGallery({ images: general, variantImages = {}, na
 
   if (images.length === 0) {
     return (
-      <div className="aspect-[3/4] bg-[#EDE6D4] flex items-center justify-center">
+      <div className="aspect-[4/5] bg-[#EDE6D4] flex items-center justify-center rounded-sm">
         <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className="text-[#C4B07A]">
           <circle cx="40" cy="40" r="22" stroke="currentColor" strokeWidth="1.5"/>
           <circle cx="40" cy="40" r="4" fill="currentColor"/>
@@ -46,7 +44,8 @@ export default function ProductGallery({ images: general, variantImages = {}, na
 
   return (
     <div>
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#EDE6D4]">
+      {/* Main image — reduced to 4/5 ratio */}
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#EDE6D4] rounded-sm">
         <Image
           src={images[current]}
           alt={`${name} ${current + 1}`}
@@ -74,15 +73,28 @@ export default function ProductGallery({ images: general, variantImages = {}, na
             </button>
           </>
         )}
+        {/* Dot indicator */}
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? "bg-[#A8975E] w-4" : "bg-white/60"}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Square thumbnails */}
       {images.length > 1 && (
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
           {images.map((img, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`relative w-16 h-20 overflow-hidden transition-all ${
+              className={`relative shrink-0 w-16 h-16 overflow-hidden transition-all rounded-sm ${
                 i === current ? "ring-1 ring-[#A8975E]" : "opacity-50 hover:opacity-80"
               }`}
             >
