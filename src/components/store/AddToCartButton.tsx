@@ -129,36 +129,41 @@ export default function AddToCartButton({ product }: Props) {
                 const isOOS = v.inventory === 0;
 
                 if (color) {
-                  // Color circle swatch
+                  const variantImg = parseImgs(v.images)[0] || images[0] || "";
+                  // Color circle swatch — shows the variant's photo if available, else solid color
                   return (
                     <div key={v.id} className="flex flex-col items-center gap-1">
                       <button
                         onClick={() => setSelectedVariantId(v.id)}
                         disabled={isOOS}
                         title={label}
-                        className={`relative w-9 h-9 rounded-full transition-all border-2 ${
+                        className={`relative w-14 h-14 rounded-full transition-all border-2 overflow-hidden ${
                           isSelected
                             ? "border-[#A8975E] scale-110 shadow-md"
                             : isOOS
                             ? "border-transparent opacity-40 cursor-not-allowed"
                             : "border-transparent hover:border-[#A8975E]/50 hover:scale-105"
                         }`}
-                        style={{ backgroundColor: color }}
+                        style={
+                          variantImg
+                            ? { backgroundImage: `url(${variantImg})`, backgroundSize: "cover", backgroundPosition: "center" }
+                            : { backgroundColor: color }
+                        }
                       >
                         {isSelected && (
-                          <span className="absolute inset-0 flex items-center justify-center">
-                            <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-                              <path d="M1 4l3.5 3.5L11 1" stroke={color === "#f0ede6" || color === "#f5f0e8" || color === "#f7e7ce" || color === "#e5e4e2" ? "#1C1711" : "white"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <svg width="14" height="11" viewBox="0 0 12 9" fill="none">
+                              <path d="M1 4l3.5 3.5L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </span>
                         )}
                         {isOOS && (
                           <span className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-[1px] h-full bg-[#8A7E6E]/60 rotate-45 absolute" />
+                            <div className="w-[1px] h-full bg-white/70 rotate-45 absolute" />
                           </span>
                         )}
                       </button>
-                      <span className="text-[9px] text-[#8A7E6E] text-center leading-tight max-w-10 truncate">{label}</span>
+                      <span className="text-[9px] text-[#8A7E6E] text-center leading-tight max-w-14 truncate">{label}</span>
                     </div>
                   );
                 }
