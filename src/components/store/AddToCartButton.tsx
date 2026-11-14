@@ -5,7 +5,7 @@ import { useVariantSelection } from "@/components/store/VariantSelection";
 import { parseImgs } from "@/lib/product-images";
 
 import { useCartStore } from "@/lib/store/cart";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import { L } from "@/lib/localize";
 import { Txt, useLang } from "@/components/store/TextsProvider";
