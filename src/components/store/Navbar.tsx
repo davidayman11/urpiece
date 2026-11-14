@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
 import LanguageSwitch from "@/components/store/LanguageSwitch";
 import { useT, Txt } from "@/components/store/TextsProvider";
@@ -24,10 +24,21 @@ const COLLECTIONS = [
 
 export default function Navbar({ tagline = "", customerName = "", hasBundles = false }: { tagline?: string; customerName?: string; hasBundles?: boolean }) {
   const t = useT();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
   const cartCount = useCartStore((s) => s.items.reduce((a, i) => a + i.quantity, 0));
+
+  const openSearch = () => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50); };
+  const closeSearch = () => { setSearchOpen(false); setSearchQ(""); };
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQ.trim()) { router.push(`/shop?q=${encodeURIComponent(searchQ.trim())}`); closeSearch(); }
+  };
 
   // Dark hero pages → white logo until scrolled
   const isHeroPage = pathname === "/";
@@ -88,6 +99,17 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
             >
               <Txt k="nav.menu.shop" />
             </Link>
+            {/* Search icon */}
+            <button
+              onClick={openSearch}
+              className={`p-1.5 transition-colors duration-300 ${textColor}`}
+              aria-label="Search"
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+            </button>
             <Link
               href={customerName ? "/account" : "/account/login"}
               className={`p-1.5 transition-colors duration-300 ${textColor}`}
@@ -118,6 +140,41 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
           </div>
         </div>
       </header>
+
+      {/* Search overlay */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[200] flex flex-col" style={{ top: "var(--announce-h, 0px)" }}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-[#1C1711]/60 backdrop-blur-sm" onClick={closeSearch} />
+          {/* Search bar */}
+          <div className="relative bg-[#F5EFE2] border-b border-[#EDE6D4] shadow-lg">
+            <form onSubmit={submitSearch} className="max-w-7xl mx-auto px-5 h-[60px] flex items-center gap-4">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A8975E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+              <input
+                ref={searchRef}
+                type="search"
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder="Search products…"
+                className="flex-1 bg-transparent text-[#1C1711] placeholder-[#8A7E6E] text-sm tracking-wide outline-none"
+              />
+              {searchQ && (
+                <button type="submit" className="text-[10px] tracking-widest uppercase text-[#A8975E] hover:text-[#8A7A4A] transition-colors px-3 py-1 border border-[#A8975E]">
+                  Search
+                </button>
+              )}
+              <button type="button" onClick={closeSearch} className="p-1.5 text-[#5A5040] hover:text-[#1C1711] transition-colors" aria-label="Close search">
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                  <path d="M2 2l14 14M16 2 2 16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Mobile drawer */}
       <div data-font-area="menu"

@@ -67,7 +67,7 @@ export default async function ProductPage({ params }: Props) {
         <VariantSelectionProvider initialVariantId={product.variants[0]?.id || ""}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
           {/* Gallery */}
-          <ProductGallery images={images} variantImages={variantImages} name={L(lang, product.name, product.nameAr)} />
+          <ProductGallery images={images} variantImages={variantImages} name={L(lang, product.name, product.nameAr)} variants={product.variants} />
 
           {/* Info */}
           <div className="md:pt-8">
