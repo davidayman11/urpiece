@@ -63,6 +63,10 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
             : "bg-transparent border-b border-transparent"
         }`}
       >
+        {/* Subtle gradient so icons stay readable over any hero photo */}
+        {!solidNav && (
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
+        )}
         <div className="max-w-7xl mx-auto px-5 h-[60px] flex items-center justify-between">
           {/* Hamburger */}
           <button
@@ -85,9 +89,10 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
           </Link>
 
           {/* Right actions */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3 md:gap-5">
+            {/* Language switch — desktop only; on mobile it lives in the drawer */}
             <LanguageSwitch
-              className={`text-[11px] tracking-[0.15em] transition-colors duration-300 ${
+              className={`hidden md:block text-[11px] tracking-[0.15em] transition-colors duration-300 ${
                 solidNav ? "text-[#5A5040] hover:text-[#A8975E]" : "text-[#F5EFE2]/80 hover:text-[#C4B07A]"
               }`}
             />
@@ -253,6 +258,11 @@ export default function Navbar({ tagline = "", customerName = "", hasBundles = f
                 <Txt k={catKey} />
               </Link>
             ))}
+          </div>
+
+          {/* Language switch — mobile drawer */}
+          <div className="px-6 py-4 border-t border-[#EDE6D4]">
+            <LanguageSwitch className="text-xs tracking-[0.2em] uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors" />
           </div>
 
           {tagline && (
