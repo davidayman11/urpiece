@@ -9,7 +9,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   const body = await req.json();
-  const { name, nameAr, descriptionAr, slug, description, categoryId, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const { name, nameAr, descriptionAr, slug, description, categoryId, categoryIds, isActive, isFeatured, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const catIds = Array.isArray(categoryIds) ? categoryIds : (categoryId ? [categoryId] : []);
+  const primaryCatId = catIds[0] || categoryId || null;
   const nn = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
   const photos = splitPhotos(images);
   const toDate = (v: unknown) => (v ? new Date(v as string) : null);
@@ -25,7 +27,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       description,
       nameAr: nn(nameAr),
       descriptionAr: nn(descriptionAr),
-      categoryId: categoryId || null,
+      categoryId: primaryCatId,
+      categoryIds: JSON.stringify(catIds),
       isActive,
       isFeatured,
       salePercent: saleValue,

@@ -1,0 +1,1 @@
+ALTER TABLE "Product" ADD COLUMN "categoryIds" TEXT NOT NULL DEFAULT '[]';

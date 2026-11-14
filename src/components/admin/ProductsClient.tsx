@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatPrice, parseJson, slugify } from "@/lib/utils";
@@ -53,6 +53,7 @@ interface ProductForm {
   slug: string;
   description: string;
   categoryId: string;
+  categoryIds: string[];
   isActive: boolean;
   isFeatured: boolean;
   salePercent: string;
@@ -71,7 +72,7 @@ const emptyVariant = (): VariantForm => ({
 });
 
 const emptyForm = (): ProductForm => ({
-  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", categoryId: "", isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
+  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", categoryId: "", categoryIds: [], isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
   images: [], variants: [emptyVariant()],
 });
 
@@ -90,6 +91,8 @@ export default function ProductsClient({ products: initial, categories, lowStock
   const [thresholdSaved, setThresholdSaved] = useState(false);
   const [presets] = useState(initialPresets);
   const [exporting, setExporting] = useState(false);
+  const [autocompleteFor, setAutocompleteFor] = useState<number | null>(null);
+  const allPresetValues = useMemo(() => Array.from(new Set(presets.flatMap((p) => p.values))), [presets]);
   const isLow = (p: ProductWithVariants) => p.variants.some((v) => v.isActive && v.inventory <= lowStockThreshold);
 
   const saveThreshold = async () => {
@@ -105,7 +108,9 @@ export default function ProductsClient({ products: initial, categories, lowStock
     setEditId(p.id);
     setForm({
       name: p.name, nameAr: p.nameAr || "", descriptionAr: p.descriptionAr || "", slug: p.slug, description: p.description || "",
-      categoryId: p.categoryId || "", isActive: p.isActive, isFeatured: p.isFeatured,
+      categoryId: p.categoryId || "",
+      categoryIds: (() => { try { const ids = JSON.parse((p as ProductWithVariants & { categoryIds?: string }).categoryIds || "[]"); return Array.isArray(ids) ? ids : (p.categoryId ? [p.categoryId] : []); } catch { return p.categoryId ? [p.categoryId] : []; } })(),
+      isActive: p.isActive, isFeatured: p.isFeatured,
       salePercent: p.salePercent ? String(p.salePercent) : "",
       saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
       saleStartsAt: toLocalInput(p.saleStartsAt),
@@ -178,21 +183,19 @@ export default function ProductsClient({ products: initial, categories, lowStock
       slug: p.slug + "-copy-" + Date.now(),
       description: p.description || "",
       categoryId: p.categoryId || "",
+      categoryIds: p.categoryId ? [p.categoryId] : [],
       isActive: false,
       isFeatured: false,
       salePercent: 0,
       saleType: "PERCENT",
       saleStartsAt: null,
       saleEndsAt: null,
-      images: mergePhotos(
-        parseImgs(p.images).map((url) => ({ url, variantKeys: [] as string[] })),
-        p.variants.flatMap((v) => parseImgs(v.images).map((url) => ({ url, variantKeys: [v.id] }))),
-      ),
+      images: parseImgs(p.images).map((url) => ({ url, variantKeys: [] as string[] })),
       variants: p.variants.map((v) => ({
         key: `new-${Math.random().toString(36).slice(2)}`,
         name: v.name, nameAr: v.nameAr || "",
-        price: String(v.price), costPrice: String(v.costPrice),
-        inventory: String(v.inventory), options: v.options, sku: "",
+        price: v.price, costPrice: v.costPrice,
+        inventory: v.inventory, options: v.options, sku: "",
       })),
     };
     const res = await fetch("/api/admin/products", {
@@ -224,6 +227,8 @@ export default function ProductsClient({ products: initial, categories, lowStock
     const payload = {
       ...form,
       slug: form.slug || slugify(form.name),
+      categoryId: form.categoryIds[0] || form.categoryId || null,
+      categoryIds: form.categoryIds,
       salePercent: parseFloat(form.salePercent) || 0,
       saleType: form.saleType,
       saleStartsAt: form.saleStartsAt ? new Date(form.saleStartsAt).toISOString() : null,
@@ -439,15 +444,29 @@ export default function ProductsClient({ products: initial, categories, lowStock
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Category</label>
-                  <select
-                    value={form.categoryId}
-                    onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]"
-                  >
-                    <option value="">No category</option>
-                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <label className="text-xs text-gray-500 mb-1 block">Categories</label>
+                  <div className="border border-gray-200 rounded px-3 py-2 space-y-1.5 max-h-36 overflow-y-auto">
+                    {categories.map((c) => (
+                      <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.categoryIds.includes(c.id)}
+                          onChange={(e) => setForm((f) => ({
+                            ...f,
+                            categoryIds: e.target.checked
+                              ? [...f.categoryIds, c.id]
+                              : f.categoryIds.filter((id) => id !== c.id),
+                          }))}
+                        />
+                        <span>{c.name}</span>
+                        {form.categoryIds[0] === c.id && <span className="text-[10px] text-[#A8975E]">(primary)</span>}
+                      </label>
+                    ))}
+                    {categories.length === 0 && <p className="text-xs text-gray-400">No categories yet</p>}
+                  </div>
+                  {form.categoryIds.length > 1 && (
+                    <p className="text-[10px] text-gray-400 mt-1">First checked = primary category for display</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-6 pt-5">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -600,14 +619,37 @@ export default function ProductsClient({ products: initial, categories, lowStock
                   {form.variants.map((v, i) => (
                     <div key={i} className="border border-gray-100 rounded p-3 space-y-2">
                       <div className="grid grid-cols-2 gap-2">
-                        <div>
+                        <div className="relative">
                           <label className="text-[10px] text-gray-400">Variant Name</label>
                           <input
                             value={v.name}
                             onChange={(e) => setForm((f) => { const vs = [...f.variants]; vs[i] = { ...vs[i], name: e.target.value }; return { ...f, variants: vs }; })}
+                            onFocus={() => setAutocompleteFor(i)}
+                            onBlur={() => setTimeout(() => setAutocompleteFor(null), 150)}
                             placeholder="e.g. Small / Gold"
                             className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none"
                           />
+                          {autocompleteFor === i && allPresetValues.length > 0 && (() => {
+                            const q = v.name.trim().toLowerCase();
+                            const suggestions = allPresetValues.filter((val) =>
+                              val.toLowerCase().includes(q) && val !== v.name
+                            );
+                            if (suggestions.length === 0) return null;
+                            return (
+                              <div className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded shadow-md mt-0.5 max-h-40 overflow-y-auto">
+                                {suggestions.map((val) => (
+                                  <button
+                                    key={val}
+                                    type="button"
+                                    onMouseDown={() => setForm((f) => { const vs = [...f.variants]; vs[i] = { ...vs[i], name: val }; return { ...f, variants: vs }; })}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#A8975E]/10 hover:text-[#A8975E]"
+                                  >
+                                    {val}
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div>
                           <label className="text-[10px] text-gray-400">Variant Name (Arabic)</label>

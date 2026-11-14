@@ -74,6 +74,7 @@ model Product {
   description String?
   images      String      @default("[]")
   categoryId  String?
+  categoryIds String      @default("[]")
   category    Category?   @relation(fields: [categoryId], references: [id])
   variants    Variant[]
   isActive    Boolean     @default(true)

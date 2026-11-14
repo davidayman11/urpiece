@@ -36,7 +36,12 @@ export default async function ShopPage({ searchParams }: Props) {
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
-      ...(selectedCategory ? { categoryId: selectedCategory.id } : {}),
+      ...(selectedCategory ? {
+        OR: [
+          { categoryId: selectedCategory.id },
+          { categoryIds: { contains: `"${selectedCategory.id}"` } },
+        ],
+      } : {}),
       ...(q ? { name: { contains: q } } : {}),
     },
     include: { variants: { where: { isActive: true } }, category: true },
