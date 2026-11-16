@@ -119,7 +119,7 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
               </span>
             )}
           </div>
-          <div role="radiogroup" className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
+          <div role="radiogroup" className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-stretch">
             {[{ id: "", name: "", nameAr: null, image: null, price: 0 } as PackagingChoice, ...packaging].map((p) => {
               const on = packId === p.id;
               return (
@@ -129,7 +129,7 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
                   aria-checked={on}
                   key={p.id || "none"}
                   onClick={() => setPackId(p.id)}
-                  className={`group relative text-start overflow-hidden bg-white transition-all duration-200 ${
+                  className={`group relative flex flex-col text-start overflow-hidden bg-white transition-all duration-200 ${
                     on ? "ring-2 ring-[#A8975E] shadow-md" : "ring-1 ring-[#E0D6BD] hover:ring-[#A8975E]/60 hover:shadow-sm"
                   }`}
                 >
@@ -152,7 +152,7 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
                       </span>
                     )}
                   </span>
-                  <span className="block px-3 py-2.5">
+                  <span className="block flex-1 px-3 py-2.5">
                     <span className="block text-[13px] leading-snug text-[#1C1711]">
                       {p.id === "" ? <Txt k="product.packaging.none" /> : L(lang, p.name, p.nameAr)}
                     </span>
