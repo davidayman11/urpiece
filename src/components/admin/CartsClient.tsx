@@ -100,19 +100,27 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
   };
 
   // built when clicked (needs the browser), so nothing depends on the template while the page loads
-  // On a computer this opens WhatsApp Web (in the browser). The wa.me link would hand the text to the WhatsApp
-  // Windows app through its command line, which squeezes the text through the PC's old "ANSI" code page:
-  // Arabic letters survive but every emoji turns into a replacement character. WhatsApp Web keeps full UTF-8.
-  // On a phone wa.me opens the WhatsApp app directly and is fine.
+  // WhatsApp's short wa.me link is NOT safe for emoji: its redirect turns every emoji into the replacement
+  // character (verified: wa.me/...?text=%F0%9F%91%8B comes back as ...%EF%BF%BD). The full links below keep the text intact:
+  // WhatsApp Web on a computer, api.whatsapp.com/send on a phone (it then opens the app with the same text).
+  const chatUrl = (phone: string, text: string) => {
+    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    const t = text ? `&text=${encodeURIComponent(text)}` : "";
+    return mobile
+      ? `https://api.whatsapp.com/send?phone=${phone}${t}`
+      : `https://web.whatsapp.com/send?phone=${phone}${t}&type=phone_number&app_absent=0`;
+  };
   const sendWhatsApp = (r: CartRow) => {
     if (!r.phone) return;
-    const phone = normalizePhone(r.phone);
-    const text = encodeURIComponent(toWhatsApp(messageHtml(r)));
-    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    const url = mobile
-      ? `https://wa.me/${phone}?text=${text}`
-      : `https://web.whatsapp.com/send?phone=${phone}&text=${text}&type=phone_number&app_absent=0`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(chatUrl(normalizePhone(r.phone), toWhatsApp(messageHtml(r))), "_blank", "noopener,noreferrer");
+  };
+  // Most reliable: copy the full message, open the chat, and paste it (nothing passes through a link)
+  const copyAndOpenChat = async (r: CartRow) => {
+    if (!r.phone) return;
+    try { await navigator.clipboard.writeText(toWhatsApp(messageHtml(r))); } catch { return; }
+    setCopied(`${r.id}-chat`);
+    setTimeout(() => setCopied(""), 4000);
+    window.open(chatUrl(normalizePhone(r.phone), ""), "_blank", "noopener,noreferrer");
   };
   const sendEmail = (r: CartRow) => {
     window.open(`mailto:${r.email}?subject=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(toPlain(messageHtml(r)))}`, "_self");
@@ -143,7 +151,7 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
         </div>
         <RichEditor value={template} onChange={changeTemplate} placeholders={["{name}", "{items}", "{total}", "{link}"]} />
         <p className="text-[11px] text-gray-400">
-          <b>WhatsApp reminder</b> opens WhatsApp Web on a computer (so emoji arrive correctly) and the WhatsApp app on a phone. You can paste text with its formatting. <b>WhatsApp</b> shows bold, italic and strikethrough. <b>Email</b> opens as plain text, so for a styled email use <b>Copy formatted</b> and paste it into your email.
+          <b>WhatsApp reminder</b> fills the message in for you. <b>Copy + open chat</b> copies it and opens the chat so you paste it (the most reliable way for emoji). You can paste text with its formatting. <b>WhatsApp</b> shows bold, italic and strikethrough. <b>Email</b> opens as plain text, so for a styled email use <b>Copy formatted</b> and paste it into your email.
         </p>
       </div>
 
@@ -196,6 +204,11 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
                   <div className="flex gap-2 flex-wrap lg:justify-end">
                     <button type="button" onClick={() => sendEmail(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>Email reminder</button>
                     <button type="button" onClick={() => sendGmail(r)} className={`${btn} border-gray-200 text-gray-600 hover:bg-gray-50`}>Gmail</button>
+                    {r.phone && (
+                      <button type="button" onClick={() => copyAndOpenChat(r)} className={`${btn} border-gray-200 text-gray-600 hover:bg-gray-50`} title="Copies the full message, then opens the chat. Press Ctrl+V (or Cmd+V) to paste it.">
+                        {copied === `${r.id}-chat` ? "Copied: now paste in the chat" : "Copy + open chat"}
+                      </button>
+                    )}
                     {r.phone && (
                       <button type="button" onClick={() => sendWhatsApp(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>WhatsApp reminder</button>
                     )}
