@@ -79,7 +79,8 @@ const emptyForm = (): ProductForm => ({
 
 export default function ProductsClient({ products: initial, categories, lowStockThreshold = 5, lowStockCount = 0, initialLow = false, presets: initialPresets = [] }: Props) {
   const router = useRouter();
-  const [products, setProducts] = useState(initial);
+  // always the latest data from the server (router.refresh() after a save updates it)
+  const products = initial;
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm());
   const [editId, setEditId] = useState<string | null>(null);

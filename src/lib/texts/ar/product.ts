@@ -5,6 +5,7 @@ export const arProduct: Record<string, string> = {
   "product.viewPlural": "مشاهدات",
   "product.packaging.title": "اختاري التغليف",
   "product.packaging.none": "بدون تغليف",
+  "product.packaging.totalWith": "الإجمالي مع التغليف",
   "product.packaging.free": "مجاناً",
   "product.shipping.title": "الشحن والإرجاع",
   "product.shipping.body": "يتم شحن الطلبات خلال 2–5 أيام عمل. تواصلي معنا للإرجاع خلال 7 أيام من الاستلام.",

@@ -105,39 +105,75 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
 
       {/* Packaging (optional, set per product in the admin) */}
       {packaging.length > 0 && (
-        <div>
-          <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-3"><Txt k="product.packaging.title" /></p>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setPackId("")}
-              aria-pressed={packId === ""}
-              className={`border text-start p-3 transition-colors ${packId === "" ? "border-[#1C1711] ring-1 ring-[#1C1711] bg-white" : "border-[#E0D6BD] bg-[#FBF8F0] hover:border-[#A8975E]"}`}
-            >
-              <span className="block text-sm text-[#1C1711]"><Txt k="product.packaging.none" /></span>
-            </button>
-            {packaging.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                onClick={() => setPackId(p.id)}
-                aria-pressed={packId === p.id}
-                className={`border text-start overflow-hidden transition-colors ${packId === p.id ? "border-[#1C1711] ring-1 ring-[#1C1711] bg-white" : "border-[#E0D6BD] bg-[#FBF8F0] hover:border-[#A8975E]"}`}
-              >
-                {p.image && (
-                  <span className="relative block aspect-square bg-[#EDE6D4]">
-                    <Image src={p.image} alt="" fill sizes="200px" className="object-cover" />
-                  </span>
-                )}
-                <span className="block p-3">
-                  <span className="block text-sm text-[#1C1711]">{L(lang, p.name, p.nameAr)}</span>
-                  <span className="block text-xs text-[#8A7E6E] mt-0.5">
-                    {p.price > 0 ? `+ ${formatPrice(p.price)}` : <Txt k="product.packaging.free" />}
-                  </span>
-                </span>
-              </button>
-            ))}
+        <div className="border border-[#E0D6BD] bg-[#FBF8F0] p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <p className="flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-[#1C1711]">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8975E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 8h18v4H3zM5 12v8h14v-8M12 8v12M12 8c-2.5 0-4-1-4-2.5S9 3 10.5 4 12 8 12 8zm0 0c2.5 0 4-1 4-2.5S15 3 13.5 4 12 8 12 8z" />
+              </svg>
+              <Txt k="product.packaging.title" />
+            </p>
+            {pack && (
+              <span className="text-xs text-[#A8975E]">
+                {pack.price > 0 ? `+ ${formatPrice(pack.price)}` : <Txt k="product.packaging.free" />}
+              </span>
+            )}
           </div>
+          <div role="radiogroup" className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
+            {[{ id: "", name: "", nameAr: null, image: null, price: 0 } as PackagingChoice, ...packaging].map((p) => {
+              const on = packId === p.id;
+              return (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  key={p.id || "none"}
+                  onClick={() => setPackId(p.id)}
+                  className={`group relative text-start overflow-hidden bg-white transition-all duration-200 ${
+                    on ? "ring-2 ring-[#A8975E] shadow-md" : "ring-1 ring-[#E0D6BD] hover:ring-[#A8975E]/60 hover:shadow-sm"
+                  }`}
+                >
+                  <span className="relative block aspect-square bg-[#F1EBDB] overflow-hidden">
+                    {p.id === "" ? (
+                      <span className="absolute inset-0 flex items-center justify-center text-[#B8AC8C]">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 8h18v4H3zM5 12v8h14v-8M12 8v12" />
+                          <path d="M3 3l18 18" />
+                        </svg>
+                      </span>
+                    ) : p.image ? (
+                      <Image src={p.image} alt="" fill sizes="(min-width:640px) 160px, 45vw" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                      <span className="absolute inset-0 flex items-center justify-center text-[#A8975E] text-3xl" aria-hidden="true">🎁</span>
+                    )}
+                    {on && (
+                      <span className="absolute top-2 end-2 w-6 h-6 rounded-full bg-[#A8975E] flex items-center justify-center shadow">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                      </span>
+                    )}
+                  </span>
+                  <span className="block px-3 py-2.5">
+                    <span className="block text-[13px] leading-snug text-[#1C1711]">
+                      {p.id === "" ? <Txt k="product.packaging.none" /> : L(lang, p.name, p.nameAr)}
+                    </span>
+                    {p.id !== "" && (
+                      <span className={`inline-block mt-1 text-[11px] tracking-wide ${p.price > 0 ? "text-[#8A7A4A]" : "text-green-700"}`}>
+                        {p.price > 0 ? `+ ${formatPrice(p.price)}` : <Txt k="product.packaging.free" />}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {pack && pack.price > 0 && selectedVariant && (
+            <p className="mt-4 pt-3 border-t border-[#E0D6BD] flex items-center justify-between text-sm">
+              <span className="text-[#5A5040]"><Txt k="product.packaging.totalWith" /></span>
+              <span className="font-serif text-lg text-[#1C1711]">
+                {formatPrice((salePrice(selectedVariant.price, sale, product.saleType) + pack.price) * qty)}
+              </span>
+            </p>
+          )}
         </div>
       )}
 

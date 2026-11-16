@@ -262,7 +262,7 @@ export default function PagesClient({
   sections: initial, categories = [], products = [], bundleOpts = [],
 }: { sections: SiteSection[]; categories?: Opt[]; products?: Opt[]; bundleOpts?: { id: string; name: string; isActive: boolean }[] }) {
   const router = useRouter();
-  const [sections, setSections] = useState(initial);
+  const sections = initial; // latest data from the server (updates after router.refresh())
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [pageSlug, setPageSlug] = useState("home");
