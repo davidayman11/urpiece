@@ -7,6 +7,14 @@ import type { Lang } from "@/lib/lang";
 import { L } from "@/lib/localize";
 import { TEXT_DEFAULTS, formatText, type TFunction } from "@/lib/texts";
 
+/** A product offers a packaging option when its list is empty (= all) or contains it */
+function packagingOffered(raw: unknown, id: string): boolean {
+  try {
+    const v = JSON.parse(String(raw || "[]"));
+    return !Array.isArray(v) || v.length === 0 || v.includes(id);
+  } catch { return true; }
+}
+
 export class QuoteError extends Error {}
 
 /** A normal product line (variantId) or a bundle (bundleId + the variant chosen for each bundle item). */
@@ -136,7 +144,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
       let pack: Pack | undefined;
       if (i.packagingId) {
         const po = packs.find((x) => x.id === i.packagingId);
-        if (po && v.product.packagingEnabled) pack = { id: po.id, name: L(input.lang ?? "en", po.name, po.nameAr), nameEn: po.name, price: po.price };
+        if (po && v.product.packagingEnabled && packagingOffered(v.product.packagingIds, po.id)) pack = { id: po.id, name: L(input.lang ?? "en", po.name, po.nameAr), nameEn: po.name, price: po.price };
         else if (input.strict) throw new QuoteError(tr("checkout.msg.packagingUnavailable"));
       }
       baseLines.push({ v, quantity, pack });

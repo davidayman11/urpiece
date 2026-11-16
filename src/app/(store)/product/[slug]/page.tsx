@@ -8,6 +8,7 @@ import AddToCartButton from "@/components/store/AddToCartButton";
 import { VariantSelectionProvider } from "@/components/store/VariantSelection";
 import { parseImgs } from "@/lib/product-images";
 import { L } from "@/lib/localize";
+import { parsePackagingIds } from "@/lib/packaging-input";
 import { getLang } from "@/lib/lang-server";
 import { getT, getTexts } from "@/lib/texts/server";
 import { parseSections } from "@/lib/texts";
@@ -40,8 +41,9 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound();
 
+  const chosenPackaging = parsePackagingIds(product.packagingIds);
   const packagingOptions = product.packagingEnabled
-    ? await prisma.packagingOption.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] })
+    ? await prisma.packagingOption.findMany({ where: { isActive: true, ...(chosenPackaging.length ? { id: { in: chosenPackaging } } : {}) }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] })
     : [];
 
   // Increment view count

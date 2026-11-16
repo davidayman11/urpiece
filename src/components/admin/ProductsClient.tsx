@@ -31,6 +31,7 @@ interface Props {
   lowStockCount?: number;
   initialLow?: boolean;
   presets?: VariantPreset[];
+  packagingOptions?: { id: string; name: string; price: number; isActive: boolean }[];
 }
 
 interface VariantForm {
@@ -57,6 +58,7 @@ interface ProductForm {
   isActive: boolean;
   isFeatured: boolean;
   packagingEnabled: boolean;
+  packagingIds: string[];
   salePercent: string;
   saleType: "PERCENT" | "FIXED";
   saleStartsAt: string;
@@ -73,11 +75,11 @@ const emptyVariant = (): VariantForm => ({
 });
 
 const emptyForm = (): ProductForm => ({
-  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", categoryId: "", categoryIds: [], isActive: true, isFeatured: false, packagingEnabled: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
+  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", categoryId: "", categoryIds: [], isActive: true, isFeatured: false, packagingEnabled: false, packagingIds: [], salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
   images: [], variants: [emptyVariant()],
 });
 
-export default function ProductsClient({ products: initial, categories, lowStockThreshold = 5, lowStockCount = 0, initialLow = false, presets: initialPresets = [] }: Props) {
+export default function ProductsClient({ products: initial, categories, lowStockThreshold = 5, lowStockCount = 0, initialLow = false, presets: initialPresets = [], packagingOptions = [] }: Props) {
   const router = useRouter();
   // always the latest data from the server (router.refresh() after a save updates it)
   const products = initial;
@@ -113,6 +115,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
       categoryId: p.categoryId || "",
       categoryIds: (() => { try { const ids = JSON.parse((p as ProductWithVariants & { categoryIds?: string }).categoryIds || "[]"); return Array.isArray(ids) ? ids : (p.categoryId ? [p.categoryId] : []); } catch { return p.categoryId ? [p.categoryId] : []; } })(),
       isActive: p.isActive, isFeatured: p.isFeatured, packagingEnabled: p.packagingEnabled,
+      packagingIds: (() => { try { const v = JSON.parse(p.packagingIds || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } })(),
       salePercent: p.salePercent ? String(p.salePercent) : "",
       saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
       saleStartsAt: toLocalInput(p.saleStartsAt),
@@ -189,6 +192,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
       isActive: false,
       isFeatured: false,
       packagingEnabled: p.packagingEnabled,
+      packagingIds: (() => { try { const v = JSON.parse(p.packagingIds || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } })(),
       salePercent: 0,
       saleType: "PERCENT",
       saleStartsAt: null,
@@ -481,10 +485,44 @@ export default function ProductsClient({ products: initial, categories, lowStock
                     Featured
                   </label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" checked={form.packagingEnabled} onChange={(e) => setForm((f) => ({ ...f, packagingEnabled: e.target.checked }))} />
+                    <input type="checkbox" checked={form.packagingEnabled} onChange={(e) => setForm((f) => ({
+                      ...f,
+                      packagingEnabled: e.target.checked,
+                      // switching it on starts with every packaging selected; untick the ones you do not want
+                      packagingIds: e.target.checked && f.packagingIds.length === 0 ? packagingOptions.filter((o) => o.isActive).map((o) => o.id) : f.packagingIds,
+                    }))} />
                     Offer packaging
                   </label>
                 </div>
+                {form.packagingEnabled && (
+                  <div className="mt-3 border border-gray-100 rounded p-3">
+                    <p className="text-xs text-gray-500 mb-2">Packaging customers can choose for this product</p>
+                    {packagingOptions.length === 0 ? (
+                      <p className="text-xs text-gray-400">No packaging yet. Add some in the Packaging page.</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                        {packagingOptions.map((o) => {
+                          // an empty list means "all of them"
+                          const checked = form.packagingIds.length === 0 ? o.isActive : form.packagingIds.includes(o.id);
+                          return (
+                            <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => setForm((f) => {
+                                  const base = f.packagingIds.length === 0 ? packagingOptions.filter((x) => x.isActive).map((x) => x.id) : f.packagingIds;
+                                  const next = e.target.checked ? [...new Set([...base, o.id])] : base.filter((id) => id !== o.id);
+                                  return { ...f, packagingIds: next };
+                                })}
+                              />
+                              <span className={o.isActive ? "" : "text-gray-400"}>{o.name}{o.price > 0 ? ` (+${o.price} EGP)` : " (free)"}{o.isActive ? "" : " — turned off"}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Sale */}

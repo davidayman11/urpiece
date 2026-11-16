@@ -12,3 +12,13 @@ export function packagingData(d: Record<string, unknown>) {
     sortOrder: Math.floor(Number(d.sortOrder)) || 0,
   };
 }
+
+/** The packaging ids a product offers, from its stored JSON ([] = all active options). */
+export function parsePackagingIds(raw: unknown): string[] {
+  try {
+    const v = JSON.parse(String(raw || "[]"));
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch { return []; }
+}
+
+export const cleanPackagingIds = (v: unknown): string => JSON.stringify(Array.isArray(v) ? v.filter((x) => typeof x === "string") : []);

@@ -93,6 +93,8 @@ model Product {
   nameAr        String?
   descriptionAr String?
   packagingEnabled Boolean @default(false)
+  /// which packaging options this product offers (JSON list of ids; empty = all active ones)
+  packagingIds     String  @default("[]")
 }
 
 model Variant {

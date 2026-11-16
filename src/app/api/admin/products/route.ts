@@ -1,3 +1,4 @@
+import { cleanPackagingIds } from "@/lib/packaging-input";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { name, nameAr, descriptionAr, slug, description, categoryId, categoryIds, isActive, isFeatured, packagingEnabled, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
+  const { name, nameAr, descriptionAr, slug, description, categoryId, categoryIds, isActive, isFeatured, packagingEnabled, packagingIds, images, variants, salePercent, saleType, saleStartsAt, saleEndsAt } = body;
   const catIds = Array.isArray(categoryIds) ? categoryIds : (categoryId ? [categoryId] : []);
   const primaryCatId = catIds[0] || categoryId || null;
   const nn = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
       isActive: isActive ?? true,
       isFeatured: isFeatured ?? false,
       packagingEnabled: !!packagingEnabled,
+      packagingIds: cleanPackagingIds(packagingIds),
       salePercent: saleValue,
       saleType: type,
       saleStartsAt: toDate(saleStartsAt),

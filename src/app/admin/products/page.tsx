@@ -24,6 +24,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     getLowStock(),
     prisma.variantPreset.findMany({ orderBy: { createdAt: "asc" } }),
   ]);
+  const packagingOptions = await prisma.packagingOption.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true, name: true, price: true, isActive: true } });
 
   const presets = rawPresets.map((p) => ({
     id: p.id,
@@ -33,7 +34,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   return (
     <AdminLayout>
-      <ProductsClient products={products as Parameters<typeof ProductsClient>[0]["products"]} categories={categories} lowStockThreshold={lowStock.threshold} lowStockCount={lowStock.count} initialLow={stock === "low"} presets={presets} />
+      <ProductsClient products={products as Parameters<typeof ProductsClient>[0]["products"]} categories={categories} lowStockThreshold={lowStock.threshold} lowStockCount={lowStock.count} initialLow={stock === "low"} presets={presets} packagingOptions={packagingOptions} />
     </AdminLayout>
   );
 }

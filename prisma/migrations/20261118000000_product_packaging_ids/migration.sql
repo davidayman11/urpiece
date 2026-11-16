@@ -1,0 +1,1 @@
+ALTER TABLE "Product" ADD COLUMN "packagingIds" TEXT NOT NULL DEFAULT '[]';
