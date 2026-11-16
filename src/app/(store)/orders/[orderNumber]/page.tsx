@@ -143,6 +143,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
                         </Link>
                         {item.variantName && <p className="text-xs text-[#8A7E6E] mt-0.5">{L(lang, item.variantName, item.variant?.nameAr)}</p>}
                         {item.bundleName && <p className="text-[10px] tracking-[0.15em] uppercase text-[#A8975E] mt-0.5"><Txt k="orders.detail.bundle" vars={{ name: item.bundleName }} /></p>}
+                        {item.packagingName && <p className="text-xs text-[#8A7E6E] mt-0.5"><Txt k="orders.detail.packaging" />: {item.packagingName}</p>}
                         <p className="text-xs text-[#8A7E6E] mt-1">
                           {formatPrice(item.price)} × {item.quantity}
                         </p>
@@ -189,6 +190,12 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
                   <div className="flex justify-between text-green-700">
                     <span><Txt k="orders.detail.discount" />{order.promoCodeUsed ? ` (${order.promoCodeUsed})` : ""}</span>
                     <span>−{formatPrice(order.discount)}</span>
+                  </div>
+                )}
+                {order.packagingTotal > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-[#8A7E6E]"><Txt k="orders.detail.packaging" /></span>
+                    <span>{formatPrice(order.packagingTotal)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">

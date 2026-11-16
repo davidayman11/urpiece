@@ -3,6 +3,7 @@ import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
+import ReviewsSection from "@/components/store/sections/ReviewsSection";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -15,6 +16,10 @@ export default async function AboutPage() {
     where: { pageSlug: "about", type: "about", isVisible: true },
   });
   const lang = await getLang();
+  const reviews = await prisma.siteSection.findMany({
+    where: { pageSlug: "about", type: "reviews", isVisible: true },
+    orderBy: { sortOrder: "asc" },
+  });
   const c = section ? parseJson<Record<string, string>>(section.content, {}) : {};
 
   const eyebrow = cx(c, "eyebrow", lang) || "Our Story";
@@ -40,6 +45,9 @@ export default async function AboutPage() {
           )}
         </div>
       </div>
+      {reviews.map((r) => (
+        <ReviewsSection key={r.id} content={parseJson<Record<string, string>>(r.content, {})} />
+      ))}
     </div>
   );
 }

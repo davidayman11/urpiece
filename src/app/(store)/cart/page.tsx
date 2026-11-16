@@ -9,7 +9,7 @@ import { itemNames } from "@/lib/localize";
 import { Txt, useLang } from "@/components/store/TextsProvider";
 
 export default function CartPage() {
-  const { items, removeItem, updateQty, total } = useCartStore();
+  const { items, removeItem, updateQty, total, packagingTotal } = useCartStore();
   const lang = useLang();
   const [freeMin, setFreeMin] = useState(0);
   useEffect(() => {
@@ -40,6 +40,7 @@ export default function CartPage() {
   }
 
   const cartTotal = total();
+  const packTotal = packagingTotal();
 
   return (
     <div data-font-area="cart" className="pt-28 pb-24 min-h-screen">
@@ -71,6 +72,12 @@ export default function CartPage() {
                     <p className="text-xs text-[#8A7E6E] mt-0.5">{itemNames(item, lang).variant}</p>
                   )}
                   <p className="text-sm text-[#A8975E] mt-1">{formatPrice(item.price)}</p>
+                  {item.packagingName && (
+                    <p className="text-xs text-[#8A7E6E] mt-0.5">
+                      <Txt k="cart.summary.packaging" />: {lang === "ar" && item.packagingNameAr ? item.packagingNameAr : item.packagingName}
+                      {(item.packagingPrice || 0) > 0 && ` (+${formatPrice(item.packagingPrice || 0)})`}
+                    </p>
+                  )}
 
                   <div className="mt-3 flex items-center gap-4">
                     <div className="flex items-center border border-[#CFC4A6] bg-white">
@@ -97,7 +104,7 @@ export default function CartPage() {
                   </div>
                 </div>
                 <div className="text-sm font-medium text-[#1C1711] shrink-0">
-                  {formatPrice(item.price * item.quantity)}
+                  {formatPrice((item.price + (item.packagingPrice || 0)) * item.quantity)}
                 </div>
               </div>
             ))}
@@ -112,6 +119,12 @@ export default function CartPage() {
                   <span className="text-[#5A5040]"><Txt k="cart.summary.subtotal" /></span>
                   <span>{formatPrice(cartTotal)}</span>
                 </div>
+                {packTotal > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-[#5A5040]"><Txt k="cart.summary.packaging" /></span>
+                    <span>{formatPrice(packTotal)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-[#5A5040]"><Txt k="cart.summary.shipping" /></span>
                   <span className="text-[#8A7E6E]">
@@ -128,7 +141,7 @@ export default function CartPage() {
               </div>
               <div className="mt-6 pt-4 border-t border-[#E0D8C4] flex justify-between font-medium">
                 <span><Txt k="cart.summary.total" /></span>
-                <span className="text-[#A8975E]">{formatPrice(cartTotal)}</span>
+                <span className="text-[#A8975E]">{formatPrice(cartTotal + packTotal)}</span>
               </div>
               <Link
                 href="/checkout"

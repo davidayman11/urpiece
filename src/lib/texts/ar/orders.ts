@@ -20,6 +20,7 @@ export const arOrders: Record<string, string> = {
   "orders.detail.summary": "الملخص",
   "orders.detail.subtotal": "المجموع الفرعي",
   "orders.detail.discount": "الخصم",
+  "orders.detail.packaging": "التغليف",
   "orders.detail.shipping": "الشحن",
   "orders.detail.free": "مجاني",
   "orders.detail.total": "الإجمالي",

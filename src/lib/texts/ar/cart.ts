@@ -7,6 +7,7 @@ export const arCart: Record<string, string> = {
   "cart.item.remove": "إزالة",
   "cart.summary.title": "ملخص الطلب",
   "cart.summary.subtotal": "المجموع الفرعي",
+  "cart.summary.packaging": "التغليف",
   "cart.summary.shipping": "الشحن",
   "cart.summary.free": "مجاني",
   "cart.summary.calculatedAtCheckout": "يُحسب عند إتمام الطلب",

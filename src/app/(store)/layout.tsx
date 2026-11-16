@@ -13,6 +13,7 @@ import { getLang } from "@/lib/lang-server";
 import type { Lang } from "@/lib/lang";
 import { cx } from "@/lib/localize";
 import { parseJson } from "@/lib/utils";
+import CartSync from "@/components/store/CartSync";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <main className="min-h-screen" style={{ paddingTop: "var(--announce-h)" }}>{children}</main>
       <Footer />
       <PopupManager />
+      <CartSync signedIn={!!customer} />
     </div>
     </TextsProvider>
   );

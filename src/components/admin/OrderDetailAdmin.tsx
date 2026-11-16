@@ -13,6 +13,8 @@ interface OrderItem {
   productName: string;
   variantName?: string;
   bundleName?: string | null;
+  packagingName?: string | null;
+  packagingPrice?: number;
   price: number;
   costPrice: number;
   quantity: number;
@@ -49,6 +51,7 @@ interface Order {
   subtotal: number;
   discount: number;
   shippingFee: number;
+  packagingTotal?: number;
   paymentType?: string;
   amountDue?: number;
   balanceDue?: number;
@@ -184,6 +187,7 @@ export default function OrderDetailAdmin({ order: initial }: { order: Order }) {
                     <p className="text-sm font-medium text-gray-800">{item.productName}</p>
                     {item.variantName && <p className="text-xs text-gray-500">{item.variantName}</p>}
                     {item.bundleName && <p className="text-[11px] text-[#A8975E]">🎁 Part of bundle: {item.bundleName}</p>}
+                    {item.packagingName && <p className="text-[11px] text-[#A8975E] font-medium">📦 Packaging: {item.packagingName}{(item.packagingPrice || 0) > 0 ? ` (+${formatPrice(item.packagingPrice || 0)} each)` : " (free)"}</p>}
                     <p className="text-xs text-gray-400 mt-1">Qty: {item.quantity}</p>
                   </div>
                   <div className="text-right">
@@ -197,6 +201,7 @@ export default function OrderDetailAdmin({ order: initial }: { order: Order }) {
             <div className="mt-4 pt-4 border-t border-gray-100 space-y-2 text-sm">
               <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{formatPrice(order.subtotal)}</span></div>
               {order.discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>−{formatPrice(order.discount)}</span></div>}
+              {(order.packagingTotal || 0) > 0 && <div className="flex justify-between text-gray-500"><span>Packaging</span><span>{formatPrice(order.packagingTotal || 0)}</span></div>}
               {order.shippingFee > 0 && <div className="flex justify-between text-gray-500"><span>Shipping</span><span>{formatPrice(order.shippingFee)}</span></div>}
               <div className="flex justify-between font-medium text-gray-800 pt-2 border-t"><span>Total</span><span>{formatPrice(order.total)}</span></div>
               <div className="flex justify-between text-xs text-[#A8975E]"><span>COGS</span><span>{formatPrice(totalCOGS)}</span></div>

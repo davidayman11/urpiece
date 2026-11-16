@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Every price, discount and the shipping fee are computed on the server
-    let rawItems: { variantId: string; quantity: number }[] = [];
+    let rawItems: { variantId: string; quantity: number; packagingId?: string; bundleId?: string; selections?: Record<string, string> }[] = [];
     try { rawItems = JSON.parse(itemsJson); } catch { return bad(t("checkout.msg.invalidCart")); }
     const quote = await quoteOrder({ items: rawItems, promoCode, city, governorate, strict: true, signedIn: !!account, lang: await getLang() }, t);
     // Stock is checked per variant across ALL lines (a bundle and a normal purchase can share a variant)
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     for (const w of wanted.values()) {
       if (w.stock < w.qty) return bad(t("checkout.msg.insufficientStock", { name: w.name }));
     }
-    const { subtotal, discount, shippingFee, total } = quote;
+    const { subtotal, discount, shippingFee, total, packagingTotal } = quote;
 
     // Deposit: only when a rule applies, and the customer chose it (or full payment isn't allowed)
     const wantsDeposit = fd.get("paymentOption") === "deposit";
@@ -90,6 +90,8 @@ export async function POST(req: NextRequest) {
       costPrice: l.costPrice,
       quantity: l.quantity,
       bundleName: l.bundleName || null,
+      packagingName: l.packagingNameEn || null,
+      packagingPrice: l.packagingPrice || 0,
     }));
 
     // Handle screenshot upload
@@ -140,6 +142,7 @@ export async function POST(req: NextRequest) {
           subtotal,
           discount,
           shippingFee,
+          packagingTotal,
           customData: JSON.stringify(customData),
           customerNote,
           paymentType,
@@ -161,6 +164,8 @@ export async function POST(req: NextRequest) {
               costPrice: item.costPrice,
               quantity: item.quantity,
               bundleName: item.bundleName,
+              packagingName: item.packagingName,
+              packagingPrice: item.packagingPrice,
             })),
           },
           statusHistory: {

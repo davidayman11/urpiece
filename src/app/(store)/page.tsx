@@ -9,6 +9,7 @@ import { bundleInclude } from "@/lib/bundle-include";
 import type { BundleView } from "@/lib/bundles";
 import MarqueeStrip from "@/components/store/sections/MarqueeStrip";
 import EditorialSection from "@/components/store/sections/EditorialSection";
+import ReviewsSection from "@/components/store/sections/ReviewsSection";
 import CustomSection from "@/components/store/sections/CustomSection";
 import type { Product, Category, Variant, SiteSection } from "@prisma/client";
 
@@ -134,6 +135,12 @@ export default async function HomePage() {
         .filter((s: SiteSection) => s.type === "custom")
         .map((s: SiteSection) => (
           <CustomSection key={s.id} content={JSON.parse(s.content || "{}")} />
+        ))}
+
+      {sections
+        .filter((s: SiteSection) => s.type === "reviews")
+        .map((s: SiteSection) => (
+          <ReviewsSection key={s.id} content={parseJson<Record<string, string>>(s.content, {})} />
         ))}
 
       {strips("bottom")}

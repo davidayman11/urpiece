@@ -56,6 +56,7 @@ interface ProductForm {
   categoryIds: string[];
   isActive: boolean;
   isFeatured: boolean;
+  packagingEnabled: boolean;
   salePercent: string;
   saleType: "PERCENT" | "FIXED";
   saleStartsAt: string;
@@ -72,7 +73,7 @@ const emptyVariant = (): VariantForm => ({
 });
 
 const emptyForm = (): ProductForm => ({
-  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", categoryId: "", categoryIds: [], isActive: true, isFeatured: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
+  name: "", nameAr: "", descriptionAr: "", slug: "", description: "", categoryId: "", categoryIds: [], isActive: true, isFeatured: false, packagingEnabled: false, salePercent: "", saleType: "PERCENT", saleStartsAt: "", saleEndsAt: "",
   images: [], variants: [emptyVariant()],
 });
 
@@ -110,7 +111,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
       name: p.name, nameAr: p.nameAr || "", descriptionAr: p.descriptionAr || "", slug: p.slug, description: p.description || "",
       categoryId: p.categoryId || "",
       categoryIds: (() => { try { const ids = JSON.parse((p as ProductWithVariants & { categoryIds?: string }).categoryIds || "[]"); return Array.isArray(ids) ? ids : (p.categoryId ? [p.categoryId] : []); } catch { return p.categoryId ? [p.categoryId] : []; } })(),
-      isActive: p.isActive, isFeatured: p.isFeatured,
+      isActive: p.isActive, isFeatured: p.isFeatured, packagingEnabled: p.packagingEnabled,
       salePercent: p.salePercent ? String(p.salePercent) : "",
       saleType: p.saleType === "FIXED" ? "FIXED" : "PERCENT",
       saleStartsAt: toLocalInput(p.saleStartsAt),
@@ -186,6 +187,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
       categoryIds: p.categoryId ? [p.categoryId] : [],
       isActive: false,
       isFeatured: false,
+      packagingEnabled: p.packagingEnabled,
       salePercent: 0,
       saleType: "PERCENT",
       saleStartsAt: null,
@@ -476,6 +478,10 @@ export default function ProductsClient({ products: initial, categories, lowStock
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))} />
                     Featured
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={form.packagingEnabled} onChange={(e) => setForm((f) => ({ ...f, packagingEnabled: e.target.checked }))} />
+                    Offer packaging
                   </label>
                 </div>
               </div>

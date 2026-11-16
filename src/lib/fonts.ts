@@ -89,6 +89,7 @@ export const FONT_AREAS: FontArea[] = [
   { key: "banner", label: "Home — wide banner", hint: "" },
   { key: "editorial", label: "Home — picture + text section", hint: "" },
   { key: "strip", label: "Scrolling strip", hint: "The moving line with small icons" },
+  { key: "reviews", label: "Customer reviews photos", hint: "The scrolling strip of review photos" },
   { key: "shop", label: "Shop page", hint: "Product list and filters" },
   { key: "product", label: "Product page", hint: "Title, price, description, boxes below" },
   { key: "cart", label: "Cart", hint: "" },

@@ -15,6 +15,11 @@ export interface CartItem {
   /** set for bundles: the bundle and the option chosen for each of its items */
   bundleId?: string;
   selections?: Record<string, string>;
+  /** optional gift box / wrapping (price is per unit and not discounted) */
+  packagingId?: string;
+  packagingName?: string;
+  packagingNameAr?: string;
+  packagingPrice?: number;
 }
 
 interface CartStore {
@@ -24,6 +29,7 @@ interface CartStore {
   updateQty: (id: string, qty: number) => void;
   clearCart: () => void;
   total: () => number;
+  packagingTotal: () => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -33,14 +39,14 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) => {
         set((state) => {
-          const key = `${item.productId}-${item.variantId}`;
-          const existing = state.items.find(
-            (i) => `${i.productId}-${i.variantId}` === key
-          );
+          const keyOf = (i: { productId: string; variantId: string; packagingId?: string }) =>
+            `${i.productId}-${i.variantId}${i.packagingId ? `-${i.packagingId}` : ""}`;
+          const key = keyOf(item);
+          const existing = state.items.find((i) => keyOf(i) === key);
           if (existing) {
             return {
               items: state.items.map((i) =>
-                `${i.productId}-${i.variantId}` === key
+                keyOf(i) === key
                   ? { ...i, quantity: i.quantity + item.quantity }
                   : i
               ),
@@ -66,6 +72,7 @@ export const useCartStore = create<CartStore>()(
       clearCart: () => set({ items: [] }),
 
       total: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      packagingTotal: () => get().items.reduce((sum, i) => sum + (i.packagingPrice || 0) * i.quantity, 0),
     }),
     { name: "urpiece-cart" }
   )

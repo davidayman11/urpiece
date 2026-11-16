@@ -40,6 +40,10 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound();
 
+  const packagingOptions = product.packagingEnabled
+    ? await prisma.packagingOption.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] })
+    : [];
+
   // Increment view count
   await prisma.product.update({
     where: { id: product.id },
@@ -110,7 +114,7 @@ export default async function ProductPage({ params }: Props) {
               <p className="mt-6 text-sm text-[#5A5040] leading-relaxed">{L(lang, product.description, product.descriptionAr)}</p>
             )}
 
-            <AddToCartButton product={product as Parameters<typeof AddToCartButton>[0]["product"]} />
+            <AddToCartButton product={product as Parameters<typeof AddToCartButton>[0]["product"]} packaging={packagingOptions.map((o) => ({ id: o.id, name: o.name, nameAr: o.nameAr, image: o.image, price: o.price }))} />
 
             {/* Details */}
             <div className="mt-8 pt-8 border-t border-[#EDE6D4] space-y-4">

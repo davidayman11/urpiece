@@ -11,6 +11,7 @@ export const cartTexts: TextDef[] = [
   { key: "cart.item.remove", group: G, label: "Cart — Remove button", default: "Remove" },
   { key: "cart.summary.title", group: G, label: "Cart — Order Summary heading", default: "Order Summary" },
   { key: "cart.summary.subtotal", group: G, label: "Cart — Subtotal label", default: "Subtotal" },
+  { key: "cart.summary.packaging", group: G, label: "Cart — Packaging label (also on each item)", default: "Packaging" },
   { key: "cart.summary.shipping", group: G, label: "Cart — Shipping label", default: "Shipping" },
   { key: "cart.summary.free", group: G, label: "Cart — Free shipping value", default: "Free" },
   { key: "cart.summary.calculatedAtCheckout", group: G, label: "Cart — Shipping calculated at checkout", default: "Calculated at checkout" },

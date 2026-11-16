@@ -33,7 +33,7 @@ interface SavedAddress {
 
 export default function CheckoutPage() {
   const t = useT();
-  const { items, total, clearCart } = useCartStore();
+  const { items, total, packagingTotal, clearCart } = useCartStore();
   const router = useRouter();
   const [step, setStep] = useState<CheckoutStep>("details");
   const [paySettings, setPaySettings] = useState<PaymentSettings>({});
@@ -142,7 +142,7 @@ export default function CheckoutPage() {
             items: items.map((i) =>
               i.bundleId
                 ? { bundleId: i.bundleId, selections: i.selections, quantity: i.quantity }
-                : { variantId: i.variantId, quantity: i.quantity }
+                : { variantId: i.variantId, quantity: i.quantity, packagingId: i.packagingId }
             ),
             promoCode: appliedCode,
             city: form.city,
@@ -166,7 +166,7 @@ export default function CheckoutPage() {
   const freeShippingApplied = !!quote?.freeShippingApplied;
   const cityFee = adminDriven ? govPrice(form.governorate) : shipping.zones.find((z) => z.city === form.city)?.price ?? 0;
   const shippingFee = quote?.shippingFee ?? 0;
-  const finalTotal = quote?.total ?? cartTotal;
+  const finalTotal = quote?.total ?? cartTotal + packagingTotal();
   // Deposit: pay part now, the rest on delivery (rules are set in the admin)
   const dep = quote?.deposit;
   const usingDeposit = !!dep?.enabled && (payOption === "deposit" || !dep.allowFull);
@@ -693,6 +693,12 @@ export default function CheckoutPage() {
                       <span>{formatPrice(unit(i) * i.quantity)}</span>
                     </div>
                   ))}
+                  {quote && quote.packagingTotal > 0 && (
+                    <div className="flex justify-between text-sm text-[#5A5040]">
+                      <span><Txt k="checkout.summary.packaging" /></span>
+                      <span>{formatPrice(quote.packagingTotal)}</span>
+                    </div>
+                  )}
                   {shippingFee > 0 && (
                     <div className="flex justify-between text-sm text-[#5A5040]">
                       <span><Txt k="checkout.confirm.shippingTo" vars={{ city: form.city }} /></span>
@@ -780,6 +786,12 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-green-700">
                   <span><Txt k="checkout.confirm.promo" vars={{ code: promoData.code }} /></span>
                   <span>−{formatPrice(promoData.discount)}</span>
+                </div>
+              )}
+              {quote && quote.packagingTotal > 0 && (
+                <div className="flex justify-between text-[#5A5040]">
+                  <span><Txt k="checkout.summary.packaging" /></span>
+                  <span>{formatPrice(quote.packagingTotal)}</span>
                 </div>
               )}
               <div className="flex justify-between text-[#5A5040]">

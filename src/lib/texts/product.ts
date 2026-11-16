@@ -7,6 +7,9 @@ export const productTexts: TextDef[] = [
   { key: "product.lowStock", group: G, label: "Low stock badge ({count} = pieces left)", default: "Low Stock — only {count} left" },
   { key: "product.viewSingular", group: G, label: "Word after the view count when it is 1", default: "view" },
   { key: "product.viewPlural", group: G, label: "Word after the view count when it is more than 1", default: "views" },
+  { key: "product.packaging.title", group: G, label: "Packaging — heading above the packaging choices", default: "Choose your packaging" },
+  { key: "product.packaging.none", group: G, label: "Packaging — 'no packaging' choice", default: "No packaging" },
+  { key: "product.packaging.free", group: G, label: "Packaging — free option price", default: "Free" },
   { key: "product.shipping.title", group: G, label: "Shipping & Returns — heading", default: "Shipping & Returns" },
   {
     key: "product.shipping.body", group: G, label: "Shipping & Returns — text", multiline: true,

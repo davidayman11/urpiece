@@ -10,6 +10,10 @@ export const homeTexts: TextDef[] = [
   { key: "home.categories.shopNow", group: H, label: "Category cards — Shop Now hover text", default: "Shop Now" },
   { key: "home.marquee.region", group: H, label: "Scrolling strip — screen reader label", default: "Highlights" },
 
+  { key: "reviews.prev", group: H, label: "Reviews photos — previous arrow (screen reader)", default: "Previous" },
+  { key: "reviews.next", group: H, label: "Reviews photos — next arrow (screen reader)", default: "Next" },
+  { key: "reviews.close", group: H, label: "Reviews photos — close enlarged photo (screen reader)", default: "Close" },
+
   { key: "about.metaTitle", group: A, label: "Browser tab title", default: "About" },
 
   { key: "contact.metaTitle", group: C, label: "Browser tab title", default: "Contact" },

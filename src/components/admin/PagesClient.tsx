@@ -71,6 +71,10 @@ const SECTION_TYPES = [
     fields: ["tagline", "brandDescription", "contactEmail", "paymentNote", "shippingNote", "copyright"],
   },
   {
+    type: "reviews", label: "Reviews photos (scrollable)", page: "*",
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "bgColor", "photos"],
+  },
+  {
     type: "custom", label: "Custom Section (fully customizable)", page: "*",
     fields: [],
   },
@@ -124,6 +128,7 @@ const FIELD_LABELS: Record<string, string> = {
   productMode: "Which products to show",
   productLimit: "How many products to show (default 8)",
   productIds: "Choose the products (in the order they appear)",
+  photos: "Review photos (customer screenshots / photos)",
   taglineColor: "Tagline Color",
   eyebrowColor: "Eyebrow Text Color",
   headingColor: "Heading Color",
@@ -165,6 +170,7 @@ const COLOR_DEFAULTS: Record<string, string> = {
   textColor: "#F5EFE2",
   iconColor: "#C4B07A",
 };
+const COLOR_DEFAULTS_BY_TYPE: Record<string, Record<string, string>> = { reviews: { bgColor: "#F5EFE2" } };
 
 const TEXTAREA_FIELDS = new Set(["messages", "body", "subheading", "brandDescription", "paymentNote", "shippingNote", "copyright", "quote"]);
 const AR_FIELDS = new Set(["tagline", "heading", "subheading", "eyebrow", "body", "quote", "buttonText", "secondaryText", "brandDescription", "paymentNote", "shippingNote", "copyright", "linkText", "messages"]);
@@ -179,6 +185,16 @@ const PAGE_SLUG_LABELS: Record<string, string> = {
 
 const parseIds = (raw?: string): string[] => {
   try { const v = JSON.parse(raw || "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []; } catch { return []; }
+};
+
+interface ReviewPhotoDraft { url: string; caption: string; caption_ar: string }
+const parsePhotos = (raw?: string): ReviewPhotoDraft[] => {
+  try {
+    const v = JSON.parse(raw || "[]");
+    return Array.isArray(v)
+      ? v.filter((x) => x && typeof x.url === "string").map((x) => ({ url: x.url, caption: x.caption || "", caption_ar: x.caption_ar || "" }))
+      : [];
+  } catch { return []; }
 };
 
 interface PickItem { id: string; name: string; note?: string }
@@ -271,9 +287,29 @@ export default function PagesClient({
   };
 
   const typesForPage = (slug: string) => [
-    ...SECTION_TYPES.filter((t) => t.page === slug),
+    ...SECTION_TYPES.filter((t) => t.page === slug && t.type !== "custom" && t.type !== "reviews"),
+    ...(["home", "about", "contact"].includes(slug) ? [SECTION_TYPES.find((t) => t.type === "reviews")!] : []),
     SECTION_TYPES.find((t) => t.type === "custom")!,
   ];
+
+  const photos = parsePhotos(content.photos);
+  const setPhotos = (next: ReviewPhotoDraft[]) => setContent((c) => ({ ...c, photos: JSON.stringify(next) }));
+  const uploadPhotos = async (files: FileList) => {
+    setUploading(true);
+    const added: ReviewPhotoDraft[] = [];
+    for (const file of Array.from(files)) {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "sections");
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.url) added.push({ url: data.url, caption: "", caption_ar: "" });
+      } catch { /* skip failed file */ }
+    }
+    setContent((c) => ({ ...c, photos: JSON.stringify([...parsePhotos(c.photos), ...added]) }));
+    setUploading(false);
+  };
 
   const addCustomField = useCallback((key: string) => {
     setCustomFields((prev) => {
@@ -564,7 +600,41 @@ export default function PagesClient({
                 return (
                 <div key={field}>
                   <label className="text-xs text-gray-500 mb-1 block">{FIELD_LABELS[field] || field}</label>
-                  {field === "categoryIds" ? (
+                  {field === "photos" ? (
+                    <div className="space-y-3">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        {uploading ? "Uploading…" : "Upload photos (you can pick several)"}
+                        <input type="file" accept="image/*" multiple className="hidden"
+                          onChange={(e) => { if (e.target.files?.length) uploadPhotos(e.target.files); e.target.value = ""; }} />
+                      </label>
+                      {photos.length === 0 && <p className="text-xs text-gray-400">No photos yet</p>}
+                      {photos.map((p, i) => (
+                        <div key={p.url + i} className="flex gap-3 border border-gray-100 rounded-lg p-2 bg-gray-50/50">
+                          <div className="relative w-16 h-20 rounded overflow-hidden shrink-0">
+                            <Image src={p.url} alt="" fill unoptimized className="object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <input value={p.caption} placeholder="Caption, e.g. customer name (optional)"
+                              onChange={(e) => setPhotos(photos.map((x, j) => (j === i ? { ...x, caption: e.target.value } : x)))}
+                              className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm" />
+                            <input dir="rtl" value={p.caption_ar} placeholder="الاسم بالعربية (optional)"
+                              onChange={(e) => setPhotos(photos.map((x, j) => (j === i ? { ...x, caption_ar: e.target.value } : x)))}
+                              className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm" />
+                          </div>
+                          <div className="flex flex-col items-center justify-between shrink-0">
+                            <button type="button" onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="text-xs text-red-500" aria-label="Remove">×</button>
+                            <div className="flex gap-1">
+                              <button type="button" disabled={i === 0} aria-label="Move left" className="text-xs px-1 text-gray-500 disabled:opacity-25"
+                                onClick={() => { const n = [...photos]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; setPhotos(n); }}>◀</button>
+                              <button type="button" disabled={i === photos.length - 1} aria-label="Move right" className="text-xs px-1 text-gray-500 disabled:opacity-25"
+                                onClick={() => { const n = [...photos]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; setPhotos(n); }}>▶</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : field === "categoryIds" ? (
                     <PickerList
                       items={categories.map((c) => ({ id: c.id, name: c.name, note: c.isActive ? undefined : "hidden" }))}
                       selected={parseIds(content.categoryIds)}
@@ -630,7 +700,7 @@ export default function PagesClient({
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={/^#[0-9a-fA-F]{6}$/.test(content[field] || "") ? content[field] : COLOR_DEFAULTS[field]}
+                        value={/^#[0-9a-fA-F]{6}$/.test(content[field] || "") ? content[field] : COLOR_DEFAULTS_BY_TYPE[sectionType]?.[field] ?? COLOR_DEFAULTS[field]}
                         onChange={(e) => setContent((c) => ({ ...c, [field]: e.target.value }))}
                         className="w-10 h-9 border border-gray-200 rounded cursor-pointer bg-white p-0.5"
                       />

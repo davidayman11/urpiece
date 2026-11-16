@@ -29,6 +29,7 @@ model Customer {
   sessionVersion Int       @default(0)
   addresses Address[]
   orders    Order[]
+  cart      CustomerCart?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -91,6 +92,7 @@ model Product {
   updatedAt   DateTime    @updatedAt
   nameAr        String?
   descriptionAr String?
+  packagingEnabled Boolean @default(false)
 }
 
 model Variant {
@@ -125,6 +127,7 @@ model Order {
   subtotal          Float
   discount          Float               @default(0)
   shippingFee       Float               @default(0)
+  packagingTotal    Float               @default(0)
   total             Float
   promoCodeId       String?
   promoCode         PromoCode?          @relation(fields: [promoCodeId], references: [id])
@@ -160,6 +163,8 @@ model OrderItem {
   costPrice   Float
   quantity    Int
   bundleName  String?
+  packagingName  String?
+  packagingPrice Float @default(0)
 }
 
 model OrderNote {
@@ -267,6 +272,27 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+/// Gift boxes / wrapping a customer can add to a product (managed in Admin > Packaging)
+model PackagingOption {
+  id        String   @id @default(cuid())
+  name      String
+  nameAr    String?
+  image     String?
+  price     Float    @default(0)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+/// The cart of a signed-in customer, synced from the browser so the admin can send reminders
+model CustomerCart {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      String   @default("[]")
+  updatedAt  DateTime @updatedAt
 }
 
 model SiteSetting {

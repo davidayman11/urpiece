@@ -28,6 +28,7 @@ export const ordersTexts: TextDef[] = [
   { key: "orders.detail.summary", group: O, label: "Order page — Summary heading", default: "Summary" },
   { key: "orders.detail.subtotal", group: O, label: "Order page — Subtotal", default: "Subtotal" },
   { key: "orders.detail.discount", group: O, label: "Order page — Discount", default: "Discount" },
+  { key: "orders.detail.packaging", group: O, label: "Order page — Packaging", default: "Packaging" },
   { key: "orders.detail.shipping", group: O, label: "Order page — Shipping", default: "Shipping" },
   { key: "orders.detail.free", group: O, label: "Order page — free shipping", default: "Free" },
   { key: "orders.detail.total", group: O, label: "Order page — Total", default: "Total" },

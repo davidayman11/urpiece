@@ -9,13 +9,17 @@ import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import { L } from "@/lib/localize";
 import { Txt, useLang } from "@/components/store/TextsProvider";
+import Image from "next/image";
 import type { Product, Variant } from "@prisma/client";
+
+export interface PackagingChoice { id: string; name: string; nameAr: string | null; image: string | null; price: number }
 
 interface Props {
   product: Product & { variants: Variant[] };
+  packaging?: PackagingChoice[];
 }
 
-export default function AddToCartButton({ product }: Props) {
+export default function AddToCartButton({ product, packaging = [] }: Props) {
   const lang = useLang();
   const addItem = useCartStore((s) => s.addItem);
   // The chosen variant is shared with the photo gallery (so the right photos show)
@@ -25,6 +29,9 @@ export default function AddToCartButton({ product }: Props) {
   const setSelectedVariantId = (id: string) => { setLocalVariantId(id); shared?.setVariantId(id); };
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  // "" = no packaging
+  const [packId, setPackId] = useState("");
+  const pack = packaging.find((p) => p.id === packId);
 
   const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
   const sale = activeSaleValue(product);
@@ -54,6 +61,7 @@ export default function AddToCartButton({ product }: Props) {
       price: salePrice(selectedVariant.price, sale, product.saleType),
       image: parseImgs(selectedVariant.images)[0] || images[0] || "",
       quantity: qty,
+      ...(pack ? { packagingId: pack.id, packagingName: pack.name, packagingNameAr: pack.nameAr || undefined, packagingPrice: pack.price } : {}),
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
@@ -93,6 +101,44 @@ export default function AddToCartButton({ product }: Props) {
           <span className="w-2 h-2 rounded-full bg-[#C4834A] inline-block" />
           <Txt k="buy.lowStock" vars={{ count: inventory }} />
         </p>
+      )}
+
+      {/* Packaging (optional, set per product in the admin) */}
+      {packaging.length > 0 && (
+        <div>
+          <p className="text-xs tracking-widest uppercase text-[#5A5040] mb-3"><Txt k="product.packaging.title" /></p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setPackId("")}
+              aria-pressed={packId === ""}
+              className={`border text-start p-3 transition-colors ${packId === "" ? "border-[#1C1711] ring-1 ring-[#1C1711] bg-white" : "border-[#E0D6BD] bg-[#FBF8F0] hover:border-[#A8975E]"}`}
+            >
+              <span className="block text-sm text-[#1C1711]"><Txt k="product.packaging.none" /></span>
+            </button>
+            {packaging.map((p) => (
+              <button
+                type="button"
+                key={p.id}
+                onClick={() => setPackId(p.id)}
+                aria-pressed={packId === p.id}
+                className={`border text-start overflow-hidden transition-colors ${packId === p.id ? "border-[#1C1711] ring-1 ring-[#1C1711] bg-white" : "border-[#E0D6BD] bg-[#FBF8F0] hover:border-[#A8975E]"}`}
+              >
+                {p.image && (
+                  <span className="relative block aspect-square bg-[#EDE6D4]">
+                    <Image src={p.image} alt="" fill sizes="200px" className="object-cover" />
+                  </span>
+                )}
+                <span className="block p-3">
+                  <span className="block text-sm text-[#1C1711]">{L(lang, p.name, p.nameAr)}</span>
+                  <span className="block text-xs text-[#8A7E6E] mt-0.5">
+                    {p.price > 0 ? `+ ${formatPrice(p.price)}` : <Txt k="product.packaging.free" />}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Quantity */}

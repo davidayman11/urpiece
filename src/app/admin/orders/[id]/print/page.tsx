@@ -77,7 +77,7 @@ export default async function PrintOrderPage({ params, searchParams }: Props) {
             <strong>Order {order.orderNumber}</strong>
             <ul style={{ margin: "4px 0 0", paddingLeft: 16 }}>
               {order.items.map((i) => (
-                <li key={i.id}>{i.quantity}× {i.productName}{i.variantName ? ` — ${i.variantName}` : ""}</li>
+                <li key={i.id}>{i.quantity}× {i.productName}{i.variantName ? ` — ${i.variantName}` : ""}{i.packagingName ? ` [PACKAGING: ${i.packagingName}]` : ""}</li>
               ))}
             </ul>
           </div>
@@ -129,6 +129,7 @@ export default async function PrintOrderPage({ params, searchParams }: Props) {
                     {i.productName}
                     {i.variantName && <div style={{ color: "#666", fontSize: 11 }}>{i.variantName}</div>}
                     {i.bundleName && <div style={{ color: "#666", fontSize: 11 }}>Bundle: {i.bundleName}</div>}
+                    {i.packagingName && <div style={{ color: "#666", fontSize: 11 }}>Packaging: {i.packagingName}</div>}
                   </td>
                   <td style={{ padding: "8px 4px", textAlign: "right" }}>{formatPrice(i.price)}</td>
                   <td style={{ padding: "8px 4px", textAlign: "right" }}>{i.quantity}</td>
@@ -142,6 +143,7 @@ export default async function PrintOrderPage({ params, searchParams }: Props) {
             {[
               ["Subtotal", formatPrice(order.subtotal)],
               ...(order.discount > 0 ? [["Discount", `−${formatPrice(order.discount)}`]] : []),
+              ...(order.packagingTotal > 0 ? [["Packaging", formatPrice(order.packagingTotal)]] : []),
               ["Shipping", order.shippingFee > 0 ? formatPrice(order.shippingFee) : "Free"],
             ].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}><span>{k}</span><span>{v}</span></div>

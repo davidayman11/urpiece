@@ -15,6 +15,8 @@ export interface QuoteItemInput {
   quantity: number;
   bundleId?: string;
   selections?: Record<string, string>;
+  /** optional gift box / wrapping for a normal product line */
+  packagingId?: string;
 }
 
 export interface QuoteInput {
@@ -42,11 +44,18 @@ export interface QuoteLine {
   inventory: number;
   /** set when this line comes from a bundle */
   bundleName?: string;
+  /** chosen packaging (name shown to the customer, English name for the order, price per unit) */
+  packagingId?: string;
+  packagingName?: string;
+  packagingNameEn?: string;
+  packagingPrice: number;
 }
 
 export interface Quote {
   lines: QuoteLine[];
   subtotal: number;
+  /** packaging for all lines (not discounted, added to the total) */
+  packagingTotal: number;
   saleSavings: number;
   bundleSavings: number;
   ruleName: string | null;
@@ -114,14 +123,23 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     include: { product: true },
   });
   const byId = new Map(variants.map((v) => [v.id, v]));
-  type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string };
+  type Pack = { id: string; name: string; nameEn: string; price: number };
+  type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string; pack?: Pack };
+  const packIds = [...new Set(input.items.filter((i) => !i.bundleId && i.packagingId).map((i) => i.packagingId as string))];
+  const packs = packIds.length ? await prisma.packagingOption.findMany({ where: { id: { in: packIds }, isActive: true } }) : [];
   const baseLines: BaseLine[] = [];
   for (const i of input.items) {
     const quantity = Math.max(1, Math.floor(Number(i.quantity) || 1));
     if (!i.bundleId) {
       const v = byId.get(i.variantId || "");
       if (!v) throw new QuoteError(tr("checkout.msg.itemUnavailable"));
-      baseLines.push({ v, quantity });
+      let pack: Pack | undefined;
+      if (i.packagingId) {
+        const po = packs.find((x) => x.id === i.packagingId);
+        if (po && v.product.packagingEnabled) pack = { id: po.id, name: L(input.lang ?? "en", po.name, po.nameAr), nameEn: po.name, price: po.price };
+        else if (input.strict) throw new QuoteError(tr("checkout.msg.packagingUnavailable"));
+      }
+      baseLines.push({ v, quantity, pack });
       continue;
     }
     const bundle = bundles.find((b) => b.id === i.bundleId);
@@ -176,7 +194,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   );
 
   const build = (o: Opts) => {
-    const lines: QuoteLine[] = baseLines.map(({ v, quantity, fixedUnit, bundleName }) => ({
+    const lines: QuoteLine[] = baseLines.map(({ v, quantity, fixedUnit, bundleName, pack }) => ({
       variantId: v.id,
       productId: v.productId,
       productName: v.product.name,
@@ -187,7 +205,12 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
       costPrice: v.costPrice,
       inventory: v.inventory,
       bundleName,
+      packagingId: pack?.id,
+      packagingName: pack?.name,
+      packagingNameEn: pack?.nameEn,
+      packagingPrice: pack?.price ?? 0,
     }));
+    const packagingTotal = round(lines.reduce((s, l) => s + l.packagingPrice * l.quantity, 0));
     const subtotal = round(lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0));
     const listSubtotal = round(lines.reduce((s, l) => s + l.listPrice * l.quantity, 0));
 
@@ -218,9 +241,9 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     const after = round(subtotal - ruleDiscount - promoDiscount);
     const freeShippingApplied = o.freeShip && freeMin > 0 && after >= freeMin && cityFee > 0;
     const shippingFee = freeShippingApplied ? 0 : cityFee;
-    const total = round(after + shippingFee);
+    const total = round(after + shippingFee + packagingTotal);
     const savings = round(listSubtotal + cityFee - total);
-    return { lines, subtotal, listSubtotal, ruleDiscount, ruleName, ruleNameEn, promoDiscount, promoNote, shippingFee, freeShippingApplied, total, savings };
+    return { lines, subtotal, packagingTotal, listSubtotal, ruleDiscount, ruleName, ruleNameEn, promoDiscount, promoNote, shippingFee, freeShippingApplied, total, savings };
   };
 
   let opts: Opts;
@@ -284,6 +307,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   return {
     lines: r.lines,
     subtotal: r.subtotal,
+    packagingTotal: r.packagingTotal,
     saleSavings,
     bundleSavings,
     ruleName: r.ruleDiscount > 0 ? r.ruleName : null,
