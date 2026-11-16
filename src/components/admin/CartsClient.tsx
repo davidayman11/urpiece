@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import RichEditor from "@/components/admin/RichEditor";
+import { fillTemplate, toPlain, toWhatsApp, sanitizeHtml } from "@/lib/rich-message";
 import { formatDistanceToNow } from "date-fns";
 import { formatPrice } from "@/lib/utils";
 
@@ -14,15 +16,9 @@ export interface CartRow {
   items: { name: string; variant: string; image: string; price: number; quantity: number; packagingName: string; packagingPrice: number }[];
 }
 
-const DEFAULT_TEMPLATE = `Hi {name},
-
-You left some items in your cart at urpiece:
-
-{items}
-
-Total: {total}
-
-Complete your order here: {link}`;
+const DEFAULT_TEMPLATE =
+  "<p>Hi {name},</p><p>You left some items in your cart at <b>UrPiece</b>:</p><p>{items}</p><p><b>Total: {total}</b></p><p>Complete your order here: {link}</p>";
+const TEMPLATE_KEY = "urpiece-cart-reminder-template";
 
 const HOUR = 3600_000;
 
@@ -40,6 +36,18 @@ function normalizePhone(p: string) {
 
 export default function CartsClient({ rows, now }: { rows: CartRow[]; now: number }) {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
+
+  // the message you write is remembered in this browser
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      try { const saved = localStorage.getItem(TEMPLATE_KEY); if (saved) setTemplate(saved); } catch { /* storage unavailable */ }
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const changeTemplate = (html: string) => {
+    setTemplate(html);
+    try { localStorage.setItem(TEMPLATE_KEY, html); } catch { /* storage unavailable */ }
+  };
   const [q, setQ] = useState("");
   const [age, setAge] = useState("all");
   const [copied, setCopied] = useState("");
@@ -56,26 +64,45 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
 
   const totalValue = filtered.reduce((s, r) => s + cartValue(r), 0);
 
-  const message = (r: CartRow) => {
+  /** The template filled in for one customer, as clean HTML */
+  const messageHtml = (r: CartRow) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const lines = r.items
-      .map((i) => `- ${i.name}${i.variant ? ` (${i.variant})` : ""}${i.packagingName ? ` + ${i.packagingName}` : ""} x${i.quantity}`)
-      .join("\n");
-    return template
-      .replaceAll("{name}", r.name)
-      .replaceAll("{items}", lines)
-      .replaceAll("{total}", formatPrice(cartValue(r)))
-      .replaceAll("{link}", `${origin}/cart`);
+    return sanitizeHtml(
+      fillTemplate(template, {
+        name: r.name,
+        total: formatPrice(cartValue(r)),
+        link: `${origin}/cart`,
+        items: r.items.map((i) => ({
+          text: `${i.name}${i.variant ? ` (${i.variant})` : ""}${i.packagingName ? ` + ${i.packagingName}` : ""} x${i.quantity}`,
+        })),
+      })
+    );
   };
 
-  const copy = async (r: CartRow) => {
+  // WhatsApp keeps bold / italic / strikethrough; the email link can only carry plain text
+  const copyFormatted = async (r: CartRow) => {
+    const html = messageHtml(r);
     try {
-      await navigator.clipboard.writeText(message(r));
-      setCopied(r.id);
-      setTimeout(() => setCopied(""), 1500);
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([toWhatsApp(html)], { type: "text/plain" }),
+        }),
+      ]);
     } catch {
-      /* clipboard unavailable */
+      try { await navigator.clipboard.writeText(toWhatsApp(html)); } catch { return; }
     }
+    setCopied(r.id);
+    setTimeout(() => setCopied(""), 1500);
+  };
+
+  // built when clicked (needs the browser), so nothing depends on the template while the page loads
+  const sendWhatsApp = (r: CartRow) => {
+    if (!r.phone) return;
+    window.open(`https://wa.me/${normalizePhone(r.phone)}?text=${encodeURIComponent(toWhatsApp(messageHtml(r)))}`, "_blank", "noopener,noreferrer");
+  };
+  const sendEmail = (r: CartRow) => {
+    window.location.href = `mailto:${r.email}?subject=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(toPlain(messageHtml(r)))}`;
   };
 
   const btn = "px-3 py-1.5 rounded text-xs font-medium border";
@@ -90,10 +117,16 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 space-y-2">
-        <label className="text-xs font-medium text-gray-500">
-          Reminder message template — use {"{name}"}, {"{items}"}, {"{total}"}, {"{link}"}
-        </label>
-        <textarea value={template} onChange={(e) => setTemplate(e.target.value)} rows={7} className="w-full border border-gray-200 rounded p-2 text-sm text-gray-700" />
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <label className="text-xs font-medium text-gray-500">
+            Reminder message. The buttons add the customer&apos;s name, cart items, total and link.
+          </label>
+          <button type="button" onClick={() => changeTemplate(DEFAULT_TEMPLATE)} className="text-xs text-gray-500 hover:underline">Reset to default</button>
+        </div>
+        <RichEditor value={template} onChange={changeTemplate} placeholders={["{name}", "{items}", "{total}", "{link}"]} />
+        <p className="text-[11px] text-gray-400">
+          You can paste text with its formatting. <b>WhatsApp</b> shows bold, italic and strikethrough. <b>Email</b> opens as plain text, so for a styled email use <b>Copy formatted</b> and paste it into your email.
+        </p>
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -110,9 +143,6 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => {
-            const msg = message(r);
-            const wa = r.phone ? `https://wa.me/${normalizePhone(r.phone)}?text=${encodeURIComponent(msg)}` : "";
-            const mail = `mailto:${r.email}?subject=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(msg)}`;
             return (
               <div key={r.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex flex-col lg:flex-row gap-4 lg:items-start">
                 <div className="lg:w-64 shrink-0 text-sm space-y-0.5">
@@ -146,12 +176,12 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
                 <div className="lg:w-48 shrink-0 space-y-2 lg:text-right">
                   <p className="font-semibold text-gray-800">{formatPrice(cartValue(r))}</p>
                   <div className="flex gap-2 flex-wrap lg:justify-end">
-                    <a href={mail} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>Email reminder</a>
-                    {wa && (
-                      <a href={wa} target="_blank" rel="noopener noreferrer" className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>WhatsApp reminder</a>
+                    <button type="button" onClick={() => sendEmail(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>Email reminder</button>
+                    {r.phone && (
+                      <button type="button" onClick={() => sendWhatsApp(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>WhatsApp reminder</button>
                     )}
-                    <button type="button" onClick={() => copy(r)} className={`${btn} border-gray-200 text-gray-600 hover:bg-gray-50`}>
-                      {copied === r.id ? "Copied" : "Copy message"}
+                    <button type="button" onClick={() => copyFormatted(r)} className={`${btn} border-gray-200 text-gray-600 hover:bg-gray-50`}>
+                      {copied === r.id ? "Copied" : "Copy formatted"}
                     </button>
                   </div>
                 </div>
