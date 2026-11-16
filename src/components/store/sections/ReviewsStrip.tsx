@@ -42,7 +42,7 @@ export default function ReviewsStrip({ photos, alt }: { photos: ReviewPhoto[]; a
     <div className="max-w-7xl mx-auto">
       <div
         ref={row}
-        className="flex gap-4 overflow-x-auto snap-x snap-mandatory px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory px-6 scroll-px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {photos.map((p, i) => (
