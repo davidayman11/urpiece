@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCustomer } from "@/lib/customer-auth";
 import { parseJson } from "@/lib/utils";
+import { truncateChars } from "@/lib/text-safe";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ function sanitize(raw: unknown) {
     const item: Record<string, string | number> = {};
     for (const k of STR_FIELDS) {
       const v = o[k];
-      if (typeof v === "string" && v.trim()) item[k] = v.trim().slice(0, k === "image" ? 1000 : 200);
+      if (typeof v === "string" && v.trim()) item[k] = truncateChars(v.trim(), k === "image" ? 1000 : 200);
     }
     const price = Number(o.price);
     const qty = Math.floor(Number(o.quantity));

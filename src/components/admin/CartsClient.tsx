@@ -17,7 +17,9 @@ export interface CartRow {
 }
 
 const DEFAULT_TEMPLATE =
-  "<p>Hi {name},</p><p>You left some items in your cart at <b>UrPiece</b>:</p><p>{items}</p><p><b>Total: {total}</b></p><p>Complete your order here: {link}</p>";
+  "<p>Hi {name}! 👋✨</p><p>Oops! You left something lovely behind! 💛</p><p>Your favorites are still waiting for you at urpiece. Don't let them slip away! 🛍️</p>" +
+  "<p>🛒 <b>Your Cart:</b></p><p>{items}</p><p>💰 <b>Total: {total}</b></p><p>Ready to make them yours? Complete your order now! 💫</p>" +
+  "<p>👇 Complete your order here:</p><p>{link}</p><p>Thank you for choosing urpiece! ❤️</p>";
 const TEMPLATE_KEY = "urpiece-cart-reminder-template";
 
 const HOUR = 3600_000;
@@ -73,7 +75,7 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
         total: formatPrice(cartValue(r)),
         link: `${origin}/cart`,
         items: r.items.map((i) => ({
-          text: `${i.name}${i.variant ? ` (${i.variant})` : ""}${i.packagingName ? ` + ${i.packagingName}` : ""} x${i.quantity}`,
+          text: `${i.name}${i.variant ? ` (${i.variant})` : ""}${i.packagingName ? ` + ${i.packagingName}` : ""} x${i.quantity} - ${formatPrice((i.price + i.packagingPrice) * i.quantity)}`,
         })),
       })
     );
@@ -85,7 +87,8 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
     try {
       await navigator.clipboard.write([
         new ClipboardItem({
-          "text/html": new Blob([html], { type: "text/html" }),
+          // the charset line stops Gmail / Outlook / Word reading the emoji as Windows-1252 (which shows garbage)
+          "text/html": new Blob([`<meta charset="utf-8">${html}`], { type: "text/html;charset=utf-8" }),
           "text/plain": new Blob([toWhatsApp(html)], { type: "text/plain" }),
         }),
       ]);
@@ -103,6 +106,11 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
   };
   const sendEmail = (r: CartRow) => {
     window.open(`mailto:${r.email}?subject=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(toPlain(messageHtml(r)))}`, "_self");
+  };
+
+  // Gmail in the browser: the address is plain UTF-8, so emoji and Arabic arrive intact (some desktop mail apps garble mailto: links)
+  const sendGmail = (r: CartRow) => {
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(r.email)}&su=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(toPlain(messageHtml(r)))}`, "_blank", "noopener,noreferrer");
   };
 
   const btn = "px-3 py-1.5 rounded text-xs font-medium border";
@@ -177,6 +185,7 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
                   <p className="font-semibold text-gray-800">{formatPrice(cartValue(r))}</p>
                   <div className="flex gap-2 flex-wrap lg:justify-end">
                     <button type="button" onClick={() => sendEmail(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>Email reminder</button>
+                    <button type="button" onClick={() => sendGmail(r)} className={`${btn} border-gray-200 text-gray-600 hover:bg-gray-50`}>Gmail</button>
                     {r.phone && (
                       <button type="button" onClick={() => sendWhatsApp(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>WhatsApp reminder</button>
                     )}

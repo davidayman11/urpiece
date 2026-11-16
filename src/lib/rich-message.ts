@@ -6,7 +6,7 @@
  *  - plain text: for a mailto: link (it cannot carry styles)
  */
 
-const BLOCK = new Set(["p", "div", "h1", "h2", "h3", "li", "ul", "ol"]);
+import { wellFormed, hasArabic, LRM } from "@/lib/text-safe";
 
 export const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -64,7 +64,7 @@ export function sanitizeHtml(html: string): string {
     if (l.bold) inner = `<b>${inner}</b>`;
     return inner;
   };
-  return Array.from(parse(html).childNodes).map(walk).join("");
+  return wellFormed(Array.from(parse(html).childNodes).map(walk).join(""));
 }
 
 /** Convert to text. With marks = true uses WhatsApp styling characters. */
@@ -98,7 +98,7 @@ function toText(html: string, marks: boolean): string {
     }
     return inner;
   };
-  return Array.from(parse(html).childNodes).map(walk).join("").replace(/\n{3,}/g, "\n\n").trim();
+  return wellFormed(Array.from(parse(html).childNodes).map(walk).join("").replace(/\n{3,}/g, "\n\n").trim());
 }
 
 export const toWhatsApp = (html: string) => toText(html, true);
@@ -113,7 +113,8 @@ export interface CartFill {
 
 /** Put the customer's details into the template */
 export function fillTemplate(html: string, f: CartFill): string {
-  const list = `<ul>${f.items.map((i) => `<li>${escapeHtml(i.text)}</li>`).join("")}</ul>`;
+  // an item line that starts with Arabic would otherwise be laid out right-to-left, scrambling "x2 - EGP 450"
+  const list = `<ul>${f.items.map((i) => `<li>${hasArabic(i.text) ? LRM : ""}${escapeHtml(i.text)}</li>`).join("")}</ul>`;
   return html
     .replaceAll("{name}", escapeHtml(f.name))
     .replaceAll("{items}", list)
