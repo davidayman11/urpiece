@@ -72,7 +72,7 @@ const SECTION_TYPES = [
   },
   {
     type: "reviews", label: "Reviews photos (scrollable)", page: "*",
-    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "bgColor", "photos"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "bgColor", "autoScroll", "scrollSeconds", "photos"],
   },
   {
     type: "custom", label: "Custom Section (fully customizable)", page: "*",
@@ -118,6 +118,8 @@ const FIELD_LABELS: Record<string, string> = {
   position: "Where on the home page",
   bgColor: "Background Color",
   textColor: "Text Color",
+  autoScroll: "Auto-scroll the photos",
+  scrollSeconds: "Seconds each photo stays before moving to the next (default 3)",
   speed: "Scroll time in seconds for one loop (lower = faster, default 30)",
   barUrl: "Link when clicked (optional)",
   height: "Banner height",
@@ -667,6 +669,22 @@ export default function PagesClient({
                       type="number" min="1" max="48" placeholder="8"
                       value={content.productLimit || ""}
                       onChange={(e) => setContent((c) => ({ ...c, productLimit: e.target.value }))}
+                      className="w-28 border border-gray-200 rounded px-3 py-2 text-sm"
+                    />
+                  ) : field === "autoScroll" ? (
+                    <select
+                      value={content.autoScroll === "off" ? "off" : "on"}
+                      onChange={(e) => setContent((c) => ({ ...c, autoScroll: e.target.value }))}
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                    >
+                      <option value="on">On: moves by itself (pauses when touched or hovered)</option>
+                      <option value="off">Off: visitors scroll themselves</option>
+                    </select>
+                  ) : field === "scrollSeconds" ? (
+                    <input
+                      type="number" min="1" max="30" step="0.5" placeholder="3"
+                      value={content.scrollSeconds || ""}
+                      onChange={(e) => setContent((c) => ({ ...c, scrollSeconds: e.target.value }))}
                       className="w-28 border border-gray-200 rounded px-3 py-2 text-sm"
                     />
                   ) : field === "image" ? (

@@ -38,7 +38,7 @@ export default async function ReviewsSection({ content }: Props) {
           )}
         </div>
       )}
-      <ReviewsStrip photos={photos} alt={heading} />
+      <ReviewsStrip photos={photos} alt={heading} autoScroll={content.autoScroll !== "off"} seconds={Math.min(30, Math.max(1, Number(content.scrollSeconds) || 3))} />
     </section>
   );
 }

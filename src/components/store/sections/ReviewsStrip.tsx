@@ -14,11 +14,31 @@ const Arrow = ({ dir }: { dir: "prev" | "next" }) => (
   </svg>
 );
 
-export default function ReviewsStrip({ photos, alt }: { photos: ReviewPhoto[]; alt: string }) {
+export default function ReviewsStrip({ photos, alt, autoScroll = true, seconds = 3 }: { photos: ReviewPhoto[]; alt: string; autoScroll?: boolean; seconds?: number }) {
   const t = useT();
   const rtl = useLang() === "ar";
   const row = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<number | null>(null);
+  // auto-scroll pauses while the visitor hovers, touches or has a photo open
+  const paused = useRef(false);
+
+  useEffect(() => {
+    if (!autoScroll || photos.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => {
+      const el = row.current;
+      if (!el || paused.current || open !== null || document.hidden) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 4) return;
+      const card = el.querySelector<HTMLElement>("[data-card]");
+      const step = (card?.offsetWidth ?? 240) + 16;
+      const pos = Math.abs(el.scrollLeft);
+      // back to the start once the last photo has been reached
+      if (max - pos < step * 0.6) el.scrollTo({ left: 0, behavior: "smooth" });
+      else el.scrollBy({ left: step * (rtl ? -1 : 1), behavior: "smooth" });
+    }, Math.max(1, seconds) * 1000);
+    return () => clearInterval(id);
+  }, [autoScroll, seconds, photos.length, rtl, open]);
 
   useEffect(() => {
     if (open === null) return;
@@ -42,6 +62,10 @@ export default function ReviewsStrip({ photos, alt }: { photos: ReviewPhoto[]; a
     <div className="max-w-7xl mx-auto">
       <div
         ref={row}
+        onMouseEnter={() => { paused.current = true; }}
+        onMouseLeave={() => { paused.current = false; }}
+        onTouchStart={() => { paused.current = true; }}
+        onTouchEnd={() => { setTimeout(() => { paused.current = false; }, 4000); }}
         className="flex gap-4 overflow-x-auto snap-x snap-mandatory px-6 scroll-px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
