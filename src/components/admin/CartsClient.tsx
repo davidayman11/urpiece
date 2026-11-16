@@ -102,7 +102,7 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
     window.open(`https://wa.me/${normalizePhone(r.phone)}?text=${encodeURIComponent(toWhatsApp(messageHtml(r)))}`, "_blank", "noopener,noreferrer");
   };
   const sendEmail = (r: CartRow) => {
-    window.location.href = `mailto:${r.email}?subject=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(toPlain(messageHtml(r)))}`;
+    window.open(`mailto:${r.email}?subject=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(toPlain(messageHtml(r)))}`, "_self");
   };
 
   const btn = "px-3 py-1.5 rounded text-xs font-medium border";
