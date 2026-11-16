@@ -101,26 +101,21 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
 
   // built when clicked (needs the browser), so nothing depends on the template while the page loads
   // WhatsApp's short wa.me link is NOT safe for emoji: its redirect turns every emoji into the replacement
-  // character (verified: wa.me/...?text=%F0%9F%91%8B comes back as ...%EF%BF%BD). The full links below keep the text intact:
-  // WhatsApp Web on a computer, api.whatsapp.com/send on a phone (it then opens the app with the same text).
-  const chatUrl = (phone: string, text: string) => {
-    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    const t = text ? `&text=${encodeURIComponent(text)}` : "";
-    return mobile
-      ? `https://api.whatsapp.com/send?phone=${phone}${t}`
-      : `https://web.whatsapp.com/send?phone=${phone}${t}&type=phone_number&app_absent=0`;
-  };
-  const sendWhatsApp = (r: CartRow) => {
+  // character (verified: wa.me/...?text=%F0%9F%91%8B comes back as ...%EF%BF%BD). The full api.whatsapp.com link keeps the text intact.
+  const [qr, setQr] = useState<{ row: CartRow; url: string; img: string } | null>(null);
+  const waUrl = (phone: string, text: string) => `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+
+  const sendWhatsApp = async (r: CartRow) => {
     if (!r.phone) return;
-    window.open(chatUrl(normalizePhone(r.phone), toWhatsApp(messageHtml(r))), "_blank", "noopener,noreferrer");
-  };
-  // Most reliable: copy the full message, open the chat, and paste it (nothing passes through a link)
-  const copyAndOpenChat = async (r: CartRow) => {
-    if (!r.phone) return;
-    try { await navigator.clipboard.writeText(toWhatsApp(messageHtml(r))); } catch { return; }
-    setCopied(`${r.id}-chat`);
-    setTimeout(() => setCopied(""), 4000);
-    window.open(chatUrl(normalizePhone(r.phone), ""), "_blank", "noopener,noreferrer");
+    const url = waUrl(normalizePhone(r.phone), toWhatsApp(messageHtml(r)));
+    // On a phone the link opens the WhatsApp app. On a computer a QR code lets you open it on your phone (no WhatsApp Web login).
+    if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const QR = await import("qrcode");
+    const img = await QR.toDataURL(url, { errorCorrectionLevel: "L", margin: 2, width: 630 });
+    setQr({ row: r, url, img });
   };
   const sendEmail = (r: CartRow) => {
     window.open(`mailto:${r.email}?subject=${encodeURIComponent("You left something in your cart")}&body=${encodeURIComponent(toPlain(messageHtml(r)))}`, "_self");
@@ -151,7 +146,7 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
         </div>
         <RichEditor value={template} onChange={changeTemplate} placeholders={["{name}", "{items}", "{total}", "{link}"]} />
         <p className="text-[11px] text-gray-400">
-          <b>WhatsApp reminder</b> fills the message in for you. <b>Copy + open chat</b> copies it and opens the chat so you paste it (the most reliable way for emoji). You can paste text with its formatting. <b>WhatsApp</b> shows bold, italic and strikethrough. <b>Email</b> opens as plain text, so for a styled email use <b>Copy formatted</b> and paste it into your email.
+          <b>WhatsApp reminder</b> fills the message in for you. On a computer it shows a QR code: scan it with your phone and WhatsApp opens there with the whole message, no login. You can also use <b>Copy formatted</b> and paste it anywhere. You can paste text with its formatting. <b>WhatsApp</b> shows bold, italic and strikethrough. <b>Email</b> opens as plain text, so for a styled email use <b>Copy formatted</b> and paste it into your email.
         </p>
       </div>
 
@@ -163,6 +158,22 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
           <option value="24h">Older than 24 hours</option>
         </select>
       </div>
+
+      {qr && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setQr(null)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 text-center space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-semibold text-gray-800">Send to {qr.row.name} from your phone</h2>
+            <p className="text-sm text-gray-500">Open your phone camera, scan this code and tap the link. WhatsApp opens on your phone with the chat and the full message (emoji included). No login needed.</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qr.img} alt="QR code" className="mx-auto w-[22rem] max-w-full aspect-square border border-gray-100 [image-rendering:pixelated]" />
+            <div className="flex flex-wrap gap-2 justify-center text-xs">
+              <a href={qr.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 border border-gray-200 rounded text-gray-600 hover:bg-gray-50">Open on this computer</a>
+              <button type="button" onClick={() => copyFormatted(qr.row)} className="px-3 py-1.5 border border-gray-200 rounded text-gray-600 hover:bg-gray-50">{copied === qr.row.id ? "Copied" : "Copy message"}</button>
+              <button type="button" onClick={() => setQr(null)} className="px-3 py-1.5 rounded text-white" style={{ backgroundColor: "#A8975E" }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="bg-white rounded-lg border border-gray-100 p-8 text-center text-gray-400">No carts found</div>
@@ -204,11 +215,6 @@ export default function CartsClient({ rows, now }: { rows: CartRow[]; now: numbe
                   <div className="flex gap-2 flex-wrap lg:justify-end">
                     <button type="button" onClick={() => sendEmail(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>Email reminder</button>
                     <button type="button" onClick={() => sendGmail(r)} className={`${btn} border-gray-200 text-gray-600 hover:bg-gray-50`}>Gmail</button>
-                    {r.phone && (
-                      <button type="button" onClick={() => copyAndOpenChat(r)} className={`${btn} border-gray-200 text-gray-600 hover:bg-gray-50`} title="Copies the full message, then opens the chat. Press Ctrl+V (or Cmd+V) to paste it.">
-                        {copied === `${r.id}-chat` ? "Copied: now paste in the chat" : "Copy + open chat"}
-                      </button>
-                    )}
                     {r.phone && (
                       <button type="button" onClick={() => sendWhatsApp(r)} className={`${btn} text-white border-transparent`} style={{ backgroundColor: "#A8975E" }}>WhatsApp reminder</button>
                     )}
