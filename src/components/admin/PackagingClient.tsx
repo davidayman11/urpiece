@@ -6,20 +6,27 @@ import { useRouter } from "next/navigation";
 import type { PackagingOption } from "@prisma/client";
 import { formatPrice } from "@/lib/utils";
 
-interface Form { name: string; nameAr: string; image: string; price: string; sortOrder: string; isActive: boolean }
-const empty = (): Form => ({ name: "", nameAr: "", image: "", price: "0", sortOrder: "0", isActive: true });
+interface Form { name: string; nameAr: string; image: string; price: string; freeAbove: string; sortOrder: string; isActive: boolean }
+const empty = (): Form => ({ name: "", nameAr: "", image: "", price: "0", freeAbove: "", sortOrder: "0", isActive: true });
 
-export default function PackagingClient({ options, enabledCount }: { options: PackagingOption[]; enabledCount: number }) {
+export default function PackagingClient({ options, enabledCount, oneFree: initialOneFree }: { options: PackagingOption[]; enabledCount: number; oneFree: boolean }) {
   const router = useRouter();
   const [modal, setModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Form>(empty());
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [oneFree, setOneFree] = useState(initialOneFree);
+
+  const saveOneFree = async (on: boolean) => {
+    setOneFree(on);
+    const res = await fetch("/api/admin/packaging/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oneFree: on }) });
+    if (!res.ok) { setOneFree(!on); alert("Could not save"); }
+  };
 
   const openCreate = () => { setForm(empty()); setEditId(null); setModal(true); };
   const openEdit = (o: PackagingOption) => {
-    setForm({ name: o.name, nameAr: o.nameAr || "", image: o.image || "", price: String(o.price), sortOrder: String(o.sortOrder), isActive: o.isActive });
+    setForm({ name: o.name, nameAr: o.nameAr || "", image: o.image || "", price: String(o.price), freeAbove: o.freeAbove ? String(o.freeAbove) : "", sortOrder: String(o.sortOrder), isActive: o.isActive });
     setEditId(o.id);
     setModal(true);
   };
@@ -80,6 +87,14 @@ export default function PackagingClient({ options, enabledCount }: { options: Pa
         <button onClick={openCreate} className="bg-[#A8975E] text-white px-4 py-2 text-sm rounded-md hover:bg-[#8A7A4A]">+ Add packaging</button>
       </div>
 
+      <label className="flex items-start gap-3 bg-white rounded-lg border border-gray-100 p-4 cursor-pointer">
+        <input type="checkbox" className="mt-1" checked={oneFree} onChange={(e) => saveOneFree(e.target.checked)} />
+        <span className="text-sm text-gray-700">
+          <b>One free package</b> when a customer chooses more than one for the same item.
+          <span className="block text-xs text-gray-500 mt-0.5">The customer picks which one is free and the others keep their price. Packages that are already free (by the &quot;free when the item costs at least&quot; rule) do not use up the free one. Saved when you tick it.</span>
+        </span>
+      </label>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {options.length === 0 && <p className="text-gray-400 col-span-full text-center py-10">No packaging yet</p>}
         {options.map((o) => (
@@ -91,6 +106,7 @@ export default function PackagingClient({ options, enabledCount }: { options: Pa
               <p className="font-medium text-gray-800">{o.name}</p>
               {o.nameAr && <p dir="rtl" className="text-sm text-gray-500">{o.nameAr}</p>}
               <p className="text-sm text-[#A8975E] mt-1">{o.price > 0 ? `+ ${formatPrice(o.price)}` : "Free"}</p>
+              {o.freeAbove ? <p className="text-xs text-green-700 mt-0.5">Free when the item costs {formatPrice(o.freeAbove)} or more</p> : null}
               <div className="flex items-center gap-4 mt-3 text-xs">
                 <button onClick={() => openEdit(o)} className="text-[#A8975E] hover:underline">Edit</button>
                 <button onClick={() => toggle(o)} className="text-gray-500 hover:underline">{o.isActive ? "Turn off" : "Turn on"}</button>
@@ -137,6 +153,11 @@ export default function PackagingClient({ options, enabledCount }: { options: Pa
                   <label className="text-xs text-gray-500 mb-1 block">Order (small first)</label>
                   <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} className={input} />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Free when the item costs at least (EGP) — optional</label>
+                <input type="number" min="0" value={form.freeAbove} onChange={(e) => setForm({ ...form, freeAbove: e.target.value })} className={input} placeholder="e.g. 300 (leave empty = never free)" />
+                <p className="text-[11px] text-gray-400 mt-1">Example: extra price 100 and 300 here means this packaging costs 100 on cheaper items and is free on items that cost 300 or more.</p>
               </div>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />

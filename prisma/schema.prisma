@@ -283,6 +283,8 @@ model PackagingOption {
   nameAr    String?
   image     String?
   price     Float    @default(0)
+  /// free when the item costs at least this much (empty = never free)
+  freeAbove Float?
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())

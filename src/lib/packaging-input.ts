@@ -8,6 +8,8 @@ export function packagingData(d: Record<string, unknown>) {
     nameAr: String(d.nameAr || "").trim() || null,
     image: String(d.image || "").trim() || null,
     price: Number.isFinite(price) && price > 0 ? Math.round(price * 100) / 100 : 0,
+    // free when the item costs at least this much (empty / 0 = never free)
+    freeAbove: (() => { const f = Number(d.freeAbove); return d.freeAbove !== "" && d.freeAbove != null && Number.isFinite(f) && f > 0 ? Math.round(f * 100) / 100 : null; })(),
     isActive: d.isActive !== false,
     sortOrder: Math.floor(Number(d.sortOrder)) || 0,
   };

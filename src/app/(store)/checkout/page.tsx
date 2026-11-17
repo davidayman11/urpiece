@@ -142,7 +142,7 @@ export default function CheckoutPage() {
             items: items.map((i) =>
               i.bundleId
                 ? { bundleId: i.bundleId, selections: i.selections, quantity: i.quantity }
-                : { variantId: i.variantId, quantity: i.quantity, packagingId: i.packagingId }
+                : { variantId: i.variantId, quantity: i.quantity, packagingIds: i.packagingIds ?? (i.packagingId ? [i.packagingId] : []), freePackagingId: i.freePackagingId }
             ),
             promoCode: appliedCode,
             city: form.city,

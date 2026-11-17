@@ -16,7 +16,12 @@ export interface CartItem {
   bundleId?: string;
   selections?: Record<string, string>;
   /** optional gift box / wrapping (price is per unit and not discounted) */
+  /** chosen packaging (one or more). packagingId is how older carts stored a single choice */
+  packagingIds?: string[];
+  /** with 2+ packages, the one the customer chose to get free */
+  freePackagingId?: string;
   packagingId?: string;
+  /** names joined with ", " and the price per unit with each package's free rule applied */
   packagingName?: string;
   packagingNameAr?: string;
   packagingPrice?: number;
@@ -39,8 +44,10 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) => {
         set((state) => {
-          const keyOf = (i: { productId: string; variantId: string; packagingId?: string }) =>
-            `${i.productId}-${i.variantId}${i.packagingId ? `-${i.packagingId}` : ""}`;
+          const keyOf = (i: { productId: string; variantId: string; packagingIds?: string[]; packagingId?: string; freePackagingId?: string }) => {
+            const ids = [...(i.packagingIds ?? (i.packagingId ? [i.packagingId] : []))].sort();
+            return `${i.productId}-${i.variantId}${ids.length ? `-${ids.join("+")}${i.freePackagingId && ids.length > 1 ? `~${i.freePackagingId}` : ""}` : ""}`;
+          };
           const key = keyOf(item);
           const existing = state.items.find((i) => keyOf(i) === key);
           if (existing) {

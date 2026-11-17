@@ -5,6 +5,7 @@ import { bundlePrice, allocateBundle } from "@/lib/bundles";
 import type { PromoCode } from "@prisma/client";
 import type { Lang } from "@/lib/lang";
 import { L } from "@/lib/localize";
+import { priceChosenPackaging } from "@/lib/packaging-price";
 import { TEXT_DEFAULTS, formatText, type TFunction } from "@/lib/texts";
 
 /** A product offers a packaging option when its list is empty (= all) or contains it */
@@ -23,7 +24,11 @@ export interface QuoteItemInput {
   quantity: number;
   bundleId?: string;
   selections?: Record<string, string>;
-  /** optional gift box / wrapping for a normal product line */
+  /** optional gift boxes / wrapping for a normal product line (one or more) */
+  packagingIds?: string[];
+  /** when more than one package is chosen, the one the customer wants for free (optional) */
+  freePackagingId?: string;
+  /** older carts stored a single choice */
   packagingId?: string;
 }
 
@@ -52,8 +57,9 @@ export interface QuoteLine {
   inventory: number;
   /** set when this line comes from a bundle */
   bundleName?: string;
-  /** chosen packaging (name shown to the customer, English name for the order, price per unit) */
-  packagingId?: string;
+  /** chosen packaging: each with the price that applies to this item (0 when its free-above rule is met) */
+  packaging: { id: string; name: string; price: number; free: boolean }[];
+  /** names joined for the customer / in English for the order, and the total per unit */
   packagingName?: string;
   packagingNameEn?: string;
   packagingPrice: number;
@@ -131,23 +137,31 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     include: { product: true },
   });
   const byId = new Map(variants.map((v) => [v.id, v]));
-  type Pack = { id: string; name: string; nameEn: string; price: number };
-  type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string; pack?: Pack };
-  const packIds = [...new Set(input.items.filter((i) => !i.bundleId && i.packagingId).map((i) => i.packagingId as string))];
+  type Pack = { id: string; name: string; nameEn: string; price: number; freeAbove: number | null };
+  type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string; packs: Pack[]; freeId?: string };
+  const idsOf = (i: QuoteItemInput) => [...new Set((i.packagingIds ?? (i.packagingId ? [i.packagingId] : [])).filter((x) => typeof x === "string" && x))];
+  const packIds = [...new Set(input.items.filter((i) => !i.bundleId).flatMap(idsOf))];
   const packs = packIds.length ? await prisma.packagingOption.findMany({ where: { id: { in: packIds }, isActive: true } }) : [];
+  // store-wide switch (Admin > Packaging): with 2+ packages on an item, one of them is free
+  let oneFree = false;
+  if (input.items.some((i) => !i.bundleId && idsOf(i).length >= 2)) {
+    const row = await prisma.siteSetting.findUnique({ where: { key: "packaging" } });
+    try { oneFree = row ? JSON.parse(row.value).oneFree !== false : true; } catch { oneFree = true; }
+  }
   const baseLines: BaseLine[] = [];
   for (const i of input.items) {
     const quantity = Math.max(1, Math.floor(Number(i.quantity) || 1));
     if (!i.bundleId) {
       const v = byId.get(i.variantId || "");
       if (!v) throw new QuoteError(tr("checkout.msg.itemUnavailable"));
-      let pack: Pack | undefined;
-      if (i.packagingId) {
-        const po = packs.find((x) => x.id === i.packagingId);
-        if (po && v.product.packagingEnabled && packagingOffered(v.product.packagingIds, po.id)) pack = { id: po.id, name: L(input.lang ?? "en", po.name, po.nameAr), nameEn: po.name, price: po.price };
-        else if (input.strict) throw new QuoteError(tr("checkout.msg.packagingUnavailable"));
+      const chosen: Pack[] = [];
+      for (const pid of idsOf(i)) {
+        const po = packs.find((x) => x.id === pid);
+        if (po && v.product.packagingEnabled && packagingOffered(v.product.packagingIds, po.id)) {
+          chosen.push({ id: po.id, name: L(input.lang ?? "en", po.name, po.nameAr), nameEn: po.name, price: po.price, freeAbove: po.freeAbove ?? null });
+        } else if (input.strict) throw new QuoteError(tr("checkout.msg.packagingUnavailable"));
       }
-      baseLines.push({ v, quantity, pack });
+      baseLines.push({ v, quantity, packs: chosen, freeId: i.freePackagingId });
       continue;
     }
     const bundle = bundles.find((b) => b.id === i.bundleId);
@@ -162,7 +176,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     const listTotal = parts.reduce((s2, v) => s2 + v.price, 0);
     const total = bundlePrice(bundle.priceType, bundle.priceValue, listTotal);
     const alloc = allocateBundle(parts.map((v) => v.price), total);
-    parts.forEach((v, idx) => baseLines.push({ v, quantity, fixedUnit: alloc[idx], bundleName: bundle.name }));
+    parts.forEach((v, idx) => baseLines.push({ v, quantity, fixedUnit: alloc[idx], bundleName: bundle.name, packs: [] }));
   }
 
   // ---- shipping city
@@ -202,22 +216,31 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   );
 
   const build = (o: Opts) => {
-    const lines: QuoteLine[] = baseLines.map(({ v, quantity, fixedUnit, bundleName, pack }) => ({
+    const lines: QuoteLine[] = baseLines.map(({ v, quantity, fixedUnit, bundleName, packs: chosenPacks, freeId }) => {
+      const unitPrice = fixedUnit !== undefined ? fixedUnit : o.sale ? productSalePrice(v.price, v.product) : v.price;
+      // free-above rule, then "one free" when 2+ are chosen (same function the product page uses)
+      const priced = priceChosenPackaging(chosenPacks, unitPrice, oneFree, freeId);
+      const packaging = chosenPacks.map((pk) => {
+        const pr = priced.items.find((x) => x.id === pk.id)!;
+        return { id: pk.id, name: pk.name, nameEn: pk.nameEn, price: pr.price, free: pr.free };
+      });
+      return {
       variantId: v.id,
       productId: v.productId,
       productName: v.product.name,
       variantName: v.name,
       quantity,
       listPrice: v.price,
-      unitPrice: fixedUnit !== undefined ? fixedUnit : o.sale ? productSalePrice(v.price, v.product) : v.price,
+      unitPrice,
       costPrice: v.costPrice,
       inventory: v.inventory,
       bundleName,
-      packagingId: pack?.id,
-      packagingName: pack?.name,
-      packagingNameEn: pack?.nameEn,
-      packagingPrice: pack?.price ?? 0,
-    }));
+      packaging: packaging.map((x) => ({ id: x.id, name: x.name, price: x.price, free: x.free })),
+      packagingName: packaging.length ? packaging.map((x) => x.name).join(", ") : undefined,
+      packagingNameEn: packaging.length ? packaging.map((x) => (x.free ? `${x.nameEn} (free)` : x.nameEn)).join(", ") : undefined,
+      packagingPrice: priced.total,
+      };
+    });
     const packagingTotal = round(lines.reduce((s, l) => s + l.packagingPrice * l.quantity, 0));
     const subtotal = round(lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0));
     const listSubtotal = round(lines.reduce((s, l) => s + l.listPrice * l.quantity, 0));

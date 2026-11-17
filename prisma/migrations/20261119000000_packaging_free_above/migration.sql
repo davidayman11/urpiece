@@ -1,0 +1,1 @@
+ALTER TABLE "PackagingOption" ADD COLUMN "freeAbove" DOUBLE PRECISION;

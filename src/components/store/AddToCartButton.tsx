@@ -10,16 +10,19 @@ import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import { L } from "@/lib/localize";
 import { Txt, useLang } from "@/components/store/TextsProvider";
 import Image from "next/image";
+import { priceChosenPackaging } from "@/lib/packaging-price";
 import type { Product, Variant } from "@prisma/client";
 
-export interface PackagingChoice { id: string; name: string; nameAr: string | null; image: string | null; price: number }
+export interface PackagingChoice { id: string; name: string; nameAr: string | null; image: string | null; price: number; freeAbove: number | null }
 
 interface Props {
   product: Product & { variants: Variant[] };
   packaging?: PackagingChoice[];
+  /** store setting: with 2+ packages one is free */
+  oneFree?: boolean;
 }
 
-export default function AddToCartButton({ product, packaging = [] }: Props) {
+export default function AddToCartButton({ product, packaging = [], oneFree = false }: Props) {
   const lang = useLang();
   const addItem = useCartStore((s) => s.addItem);
   // The chosen variant is shared with the photo gallery (so the right photos show)
@@ -29,9 +32,11 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
   const setSelectedVariantId = (id: string) => { setLocalVariantId(id); shared?.setVariantId(id); };
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  // "" = no packaging
-  const [packId, setPackId] = useState("");
-  const pack = packaging.find((p) => p.id === packId);
+  // any number of packages can be chosen (none = no packaging)
+  const [packIds, setPackIds] = useState<string[]>([]);
+  const [freeId, setFreeId] = useState("");
+  const chosen = packaging.filter((p) => packIds.includes(p.id));
+  const togglePack = (id: string) => setPackIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
   const sale = activeSaleValue(product);
@@ -49,6 +54,16 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
   const inStock = inventory > 0;
   const isLowStock = inStock && inventory <= 5;
 
+  // price of one package for this item: free when the item costs at least the package's "free above" amount
+  const unitNow = selectedVariant ? salePrice(selectedVariant.price, sale, product.saleType) : 0;
+  const asChoice = (p: PackagingChoice) => ({ id: p.id, price: p.price, freeAbove: p.freeAbove });
+  const priced = priceChosenPackaging(chosen.map(asChoice), unitNow, oneFree, freeId);
+  const packTotal = priced.total;
+  // how a card is priced: its price once chosen (with the free rules), otherwise its own price / free-above rule
+  const priceOf = (p: PackagingChoice) => priced.items.find((x) => x.id === p.id) ?? priceChosenPackaging([asChoice(p)], unitNow, false).items[0];
+  // packages that still cost something on their own: candidates for "the free one"
+  const freeChoices = chosen.filter((p) => !(p.freeAbove && p.freeAbove > 0 && unitNow >= p.freeAbove) && p.price > 0);
+
   const handleAdd = () => {
     if (!selectedVariant || !inStock) return;
     addItem({
@@ -61,7 +76,15 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
       price: salePrice(selectedVariant.price, sale, product.saleType),
       image: parseImgs(selectedVariant.images)[0] || images[0] || "",
       quantity: qty,
-      ...(pack ? { packagingId: pack.id, packagingName: pack.name, packagingNameAr: pack.nameAr || undefined, packagingPrice: pack.price } : {}),
+      ...(chosen.length
+        ? {
+            packagingIds: chosen.map((p) => p.id),
+            ...(oneFree && priced.pickedId ? { freePackagingId: priced.pickedId } : {}),
+            packagingName: chosen.map((p) => p.name).join(", "),
+            packagingNameAr: chosen.map((p) => p.nameAr || p.name).join("، "),
+            packagingPrice: packTotal,
+          }
+        : {}),
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
@@ -103,62 +126,67 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
         </p>
       )}
 
-      {/* Packaging (optional, set per product in the admin) */}
+      {/* Packaging (optional, set per product in the admin). Choose any number of packages. */}
       {packaging.length > 0 && (
         <div className="border border-[#E0D6BD] bg-[#FBF8F0] p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-1">
             <p className="flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-[#1C1711]">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8975E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 8h18v4H3zM5 12v8h14v-8M12 8v12M12 8c-2.5 0-4-1-4-2.5S9 3 10.5 4 12 8 12 8zm0 0c2.5 0 4-1 4-2.5S15 3 13.5 4 12 8 12 8z" />
               </svg>
               <Txt k="product.packaging.title" />
             </p>
-            {pack && (
-              <span className="text-xs text-[#A8975E]">
-                {pack.price > 0 ? `+ ${formatPrice(pack.price)}` : <Txt k="product.packaging.free" />}
+            {chosen.length > 0 && (
+              <span className="text-xs text-[#A8975E] whitespace-nowrap shrink-0">
+                {packTotal > 0 ? `+ ${formatPrice(packTotal)}` : <Txt k="product.packaging.free" />}
               </span>
             )}
           </div>
-          <div role="radiogroup" className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-stretch">
-            {[{ id: "", name: "", nameAr: null, image: null, price: 0 } as PackagingChoice, ...packaging].map((p) => {
-              const on = packId === p.id;
+          <p className="text-[11px] text-[#8A7E6E] mb-4"><Txt k="product.packaging.hint" /></p>
+          <div role="group" className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-stretch">
+            {packaging.map((p) => {
+              const on = packIds.includes(p.id);
+              const pr = priceOf(p);
+              const free = pr.free;
               return (
                 <button
                   type="button"
-                  role="radio"
-                  aria-checked={on}
-                  key={p.id || "none"}
-                  onClick={() => setPackId(p.id)}
+                  key={p.id}
+                  aria-pressed={on}
+                  onClick={() => togglePack(p.id)}
                   className={`group relative flex flex-col text-start overflow-hidden bg-white transition-all duration-200 ${
                     on ? "ring-2 ring-[#A8975E] shadow-md" : "ring-1 ring-[#E0D6BD] hover:ring-[#A8975E]/60 hover:shadow-sm"
                   }`}
                 >
                   <span className="relative block aspect-square bg-[#F1EBDB] overflow-hidden">
-                    {p.id === "" ? (
-                      <span className="absolute inset-0 flex items-center justify-center text-[#B8AC8C]">
-                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M3 8h18v4H3zM5 12v8h14v-8M12 8v12" />
-                          <path d="M3 3l18 18" />
-                        </svg>
-                      </span>
-                    ) : p.image ? (
+                    {p.image ? (
                       <Image src={p.image} alt="" fill sizes="(min-width:640px) 160px, 45vw" className="object-cover transition-transform duration-500 group-hover:scale-105" />
                     ) : (
                       <span className="absolute inset-0 flex items-center justify-center text-[#A8975E] text-3xl" aria-hidden="true">🎁</span>
                     )}
-                    {on && (
-                      <span className="absolute top-2 end-2 w-6 h-6 rounded-full bg-[#A8975E] flex items-center justify-center shadow">
+                    <span className={`absolute top-2 end-2 w-6 h-6 flex items-center justify-center shadow transition-colors ${on ? "bg-[#A8975E]" : "bg-white/90 ring-1 ring-[#CFC4A6]"}`}>
+                      {on && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F5EFE2" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                      </span>
-                    )}
+                      )}
+                    </span>
                   </span>
                   <span className="block flex-1 px-3 py-2.5">
-                    <span className="block text-[13px] leading-snug text-[#1C1711]">
-                      {p.id === "" ? <Txt k="product.packaging.none" /> : L(lang, p.name, p.nameAr)}
+                    <span className="block text-[13px] leading-snug text-[#1C1711]">{L(lang, p.name, p.nameAr)}</span>
+                    <span className="mt-1 flex items-baseline gap-1.5 text-[11px] tracking-wide">
+                      {free ? (
+                        <>
+                          <span className="text-green-700"><Txt k="product.packaging.free" /></span>
+                          {p.price > 0 && <span className="text-[#8A7E6E] line-through">{formatPrice(p.price)}</span>}
+                        </>
+                      ) : pr.price > 0 ? (
+                        <span className="text-[#8A7A4A]">+ {formatPrice(pr.price)}</span>
+                      ) : (
+                        <span className="text-green-700"><Txt k="product.packaging.free" /></span>
+                      )}
                     </span>
-                    {p.id !== "" && (
-                      <span className={`inline-block mt-1 text-[11px] tracking-wide ${p.price > 0 ? "text-[#8A7A4A]" : "text-green-700"}`}>
-                        {p.price > 0 ? `+ ${formatPrice(p.price)}` : <Txt k="product.packaging.free" />}
+                    {!free && p.freeAbove && p.price > 0 && !on && (
+                      <span className="mt-1 block text-[10px] leading-snug text-[#8A7E6E]">
+                        <Txt k="product.packaging.freeAbove" vars={{ amount: formatPrice(p.freeAbove) }} />
                       </span>
                     )}
                   </span>
@@ -166,11 +194,33 @@ export default function AddToCartButton({ product, packaging = [] }: Props) {
               );
             })}
           </div>
-          {pack && pack.price > 0 && selectedVariant && (
+          {oneFree && chosen.length >= 2 && freeChoices.length >= 1 && (
+            <div className="mt-4 pt-3 border-t border-[#E0D6BD]">
+              <p className="text-xs text-[#1C1711] mb-2"><Txt k="product.packaging.oneFree" /></p>
+              <div role="radiogroup" className="flex flex-wrap gap-2">
+                {freeChoices.map((p) => {
+                  const on = priced.pickedId === p.id;
+                  return (
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      key={p.id}
+                      onClick={() => setFreeId(p.id)}
+                      className={`px-3 py-1.5 text-xs transition-colors ${on ? "bg-[#A8975E] text-[#F5EFE2]" : "bg-white text-[#5A5040] ring-1 ring-[#E0D6BD] hover:ring-[#A8975E]"}`}
+                    >
+                      {L(lang, p.name, p.nameAr)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {chosen.length > 0 && selectedVariant && packTotal > 0 && (
             <p className="mt-4 pt-3 border-t border-[#E0D6BD] flex items-center justify-between text-sm">
               <span className="text-[#5A5040]"><Txt k="product.packaging.totalWith" /></span>
               <span className="font-serif text-lg text-[#1C1711]">
-                {formatPrice((salePrice(selectedVariant.price, sale, product.saleType) + pack.price) * qty)}
+                {formatPrice((unitNow + packTotal) * qty)}
               </span>
             </p>
           )}
