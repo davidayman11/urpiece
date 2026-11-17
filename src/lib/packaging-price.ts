@@ -5,7 +5,9 @@
  * Rules, in order:
  *  1. A package is free when the item costs at least its "free above" amount (the price the customer pays).
  *  2. When "one free" is on and the customer chose 2 or more packages, ONE of them is free: the one the
- *     customer picked (freeId), otherwise the most expensive one that still costs something. The rest keep their price.
+ *     customer picked (freeId), otherwise the most expensive one. The rest keep their price.
+ *     If one of the chosen packages is ALREADY free (its price is 0, or rule 1 made it free), that is the free one:
+ *     nothing else becomes free.
  */
 export interface PackChoice { id: string; price: number; freeAbove: number | null }
 export interface PackPriced { id: string; price: number; free: boolean }
@@ -23,7 +25,7 @@ export function priceChosenPackaging(
     return { id: p.id, price: free ? 0 : p.price, free };
   });
   let pickedId: string | undefined;
-  if (oneFree && chosen.length >= 2) {
+  if (oneFree && chosen.length >= 2 && !items.some((x) => x.price === 0)) {
     const paying = items.filter((x) => x.price > 0);
     const pick = paying.find((x) => x.id === freeId) ?? [...paying].sort((a, b) => b.price - a.price)[0];
     if (pick) {

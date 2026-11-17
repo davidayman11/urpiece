@@ -91,7 +91,7 @@ export default function PackagingClient({ options, enabledCount, oneFree: initia
         <input type="checkbox" className="mt-1" checked={oneFree} onChange={(e) => saveOneFree(e.target.checked)} />
         <span className="text-sm text-gray-700">
           <b>One free package</b> when a customer chooses more than one for the same item.
-          <span className="block text-xs text-gray-500 mt-0.5">The customer picks which one is free and the others keep their price. Packages that are already free (by the &quot;free when the item costs at least&quot; rule) do not use up the free one. Saved when you tick it.</span>
+          <span className="block text-xs text-gray-500 mt-0.5">The customer picks which one is free and the others keep their price. If one of the chosen packages is already free (price 0, or free by the &quot;free when the item costs at least&quot; rule), that is the free one and no other package becomes free. Saved when you tick it.</span>
         </span>
       </label>
 

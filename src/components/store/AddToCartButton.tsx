@@ -196,7 +196,7 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
               );
             })}
           </div>
-          {oneFree && chosen.length >= 2 && freeChoices.length >= 1 && (
+          {oneFree && chosen.length >= 2 && priced.pickedId && freeChoices.length >= 1 && (
             <div className="mt-4 pt-3 border-t border-[#E0D6BD]">
               <p className="text-xs text-[#1C1711] mb-2"><Txt k="product.packaging.oneFree" /></p>
               <div role="radiogroup" className="flex flex-wrap gap-2">
