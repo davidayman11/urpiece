@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
@@ -7,6 +8,7 @@ import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import { parseImgs } from "@/lib/product-images";
 import { L } from "@/lib/localize";
 import { Txt, useLang } from "@/components/store/TextsProvider";
+import { useCartStore } from "@/lib/store/cart";
 import type { Product, Variant, Category } from "@prisma/client";
 
 interface Props {
@@ -31,8 +33,35 @@ export default function ProductCard({ product }: Props) {
   const inStock = totalInventory > 0;
   const isLowStock = inStock && totalInventory <= 5;
 
+  // quick add: one option adds straight away, several options ask which one first
+  const addItem = useCartStore((s) => s.addItem);
+  const [picking, setPicking] = useState(false);
+  const [added, setAdded] = useState(false);
+  const available = product.variants.filter((v) => v.isActive !== false && v.inventory > 0);
+  const addVariant = (v: Variant) => {
+    addItem({
+      productId: product.id,
+      variantId: v.id,
+      productName: product.name,
+      variantName: v.name,
+      productNameAr: product.nameAr || undefined,
+      variantNameAr: v.nameAr || undefined,
+      price: salePrice(v.price, sale, product.saleType),
+      image: parseImgs(v.images)[0] || images[0] || "",
+      quantity: 1,
+    });
+    setPicking(false);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+  const onAdd = () => {
+    if (available.length === 1) addVariant(available[0]);
+    else if (available.length > 1) setPicking((p) => !p);
+  };
+
   return (
-    <Link href={`/product/${product.slug}`} className="group block">
+    <div className="group block">
+      <Link href={`/product/${product.slug}`} className="block">
       {/* Image container */}
       <div className="relative aspect-[3/4] overflow-hidden bg-[#EDE6D4]">
         {firstImage ? (
@@ -136,6 +165,39 @@ export default function ProductCard({ product }: Props) {
           })()}
         </p>
       </div>
-    </Link>
+      </Link>
+
+      {/* Add to cart */}
+      <div className="mt-3">
+        {picking && available.length > 1 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {available.map((v) => (
+              <button
+                type="button"
+                key={v.id}
+                onClick={() => addVariant(v)}
+                className="px-2.5 py-1 text-[11px] bg-white text-[#5A5040] ring-1 ring-[#E0D6BD] hover:ring-[#A8975E] hover:text-[#1C1711] transition-colors"
+              >
+                {L(lang, v.name, v.nameAr)}
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={available.length === 0}
+          className={`w-full py-2.5 text-[10px] tracking-[0.2em] uppercase transition-colors ${
+            available.length === 0
+              ? "bg-[#EDE6D4] text-[#8A7E6E] cursor-not-allowed"
+              : added
+              ? "bg-[#8A7A4A] text-[#F5EFE2]"
+              : "border border-[#A8975E] text-[#8A7A4A] hover:bg-[#A8975E] hover:text-[#F5EFE2]"
+          }`}
+        >
+          {available.length === 0 ? <Txt k="card.soldOut" /> : added ? <Txt k="card.added" /> : picking ? <Txt k="card.chooseOption" /> : <Txt k="card.addToCart" />}
+        </button>
+      </div>
+    </div>
   );
 }

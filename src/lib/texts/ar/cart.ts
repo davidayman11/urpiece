@@ -4,6 +4,8 @@ export const arCart: Record<string, string> = {
   "cart.empty.shopNow": "تسوّقي الآن",
   "cart.title": "سلتك",
   "cart.item.bundle": "عرض مجمّع",
+  "cart.clear": "إفراغ السلة",
+  "cart.clearConfirm": "هل تريدين إزالة كل المنتجات من سلتك؟",
   "cart.item.remove": "إزالة",
   "cart.summary.title": "ملخص الطلب",
   "cart.summary.subtotal": "المجموع الفرعي",

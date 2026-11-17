@@ -8,6 +8,8 @@ export const cartTexts: TextDef[] = [
   { key: "cart.empty.shopNow", group: G, label: "Cart (empty) — Shop Now button", default: "Shop Now" },
   { key: "cart.title", group: G, label: "Cart — page heading", default: "Your Cart" },
   { key: "cart.item.bundle", group: G, label: "Cart — Bundle tag on an item", default: "Bundle" },
+  { key: "cart.clear", group: G, label: "Cart — Clear cart button", default: "Clear cart" },
+  { key: "cart.clearConfirm", group: G, label: "Cart — Clear cart confirmation question", default: "Remove all items from your cart?" },
   { key: "cart.item.remove", group: G, label: "Cart — Remove button", default: "Remove" },
   { key: "cart.summary.title", group: G, label: "Cart — Order Summary heading", default: "Order Summary" },
   { key: "cart.summary.subtotal", group: G, label: "Cart — Subtotal label", default: "Subtotal" },

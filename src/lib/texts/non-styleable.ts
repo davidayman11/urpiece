@@ -72,6 +72,7 @@ export const NON_STYLEABLE_KEYS: string[] = [
   "checkout.msg.buildingRequired",
   "checkout.msg.bundleChooseOption",
   "checkout.msg.bundleUnavailable",
+  "cart.clearConfirm",
   "checkout.msg.cartEmpty",
   "checkout.msg.packagingUnavailable",
   "checkout.msg.cityRequired",

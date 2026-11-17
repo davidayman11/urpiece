@@ -17,6 +17,10 @@ export const catalogTexts: TextDef[] = [
   { key: "shop.filters.sortPriceAsc", group: S, label: "Shop filters — Sort: price low to high", default: "Price: Low–High" },
   { key: "shop.filters.sortPriceDesc", group: S, label: "Shop filters — Sort: price high to low", default: "Price: High–Low" },
 
+  { key: "card.addToCart", group: C, label: "Product card — Add to cart button", default: "Add to cart" },
+  { key: "card.added", group: C, label: "Product card — shown after adding", default: "Added" },
+  { key: "card.chooseOption", group: C, label: "Product card — pick an option before adding", default: "Choose an option" },
+  { key: "card.soldOut", group: C, label: "Product card — sold out button", default: "Sold out" },
   { key: "card.viewPiece", group: C, label: "Product card — Hover label", default: "View Piece" },
   { key: "card.outOfStock", group: C, label: "Product card — Out of stock badge", default: "Out of Stock" },
   { key: "card.lowStock", group: C, label: "Product card — Low stock badge", default: "Low Stock" },

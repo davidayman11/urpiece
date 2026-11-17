@@ -6,10 +6,11 @@ import { formatPrice } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { itemNames } from "@/lib/localize";
-import { Txt, useLang } from "@/components/store/TextsProvider";
+import { Txt, useLang, useT } from "@/components/store/TextsProvider";
 
 export default function CartPage() {
-  const { items, removeItem, updateQty, total, packagingTotal } = useCartStore();
+  const { items, removeItem, updateQty, clearCart, total, packagingTotal } = useCartStore();
+  const t = useT();
   const lang = useLang();
   const [freeMin, setFreeMin] = useState(0);
   useEffect(() => {
@@ -45,7 +46,16 @@ export default function CartPage() {
   return (
     <div data-font-area="cart" className="pt-28 pb-24 min-h-screen">
       <div className="max-w-5xl mx-auto px-6">
-        <h1 className="font-serif text-4xl font-light text-[#1C1711] mb-10"><Txt k="cart.title" /></h1>
+        <div className="flex items-end justify-between gap-4 mb-10">
+          <h1 className="font-serif text-4xl font-light text-[#1C1711]"><Txt k="cart.title" /></h1>
+          <button
+            type="button"
+            onClick={() => { if (window.confirm(t("cart.clearConfirm"))) clearCart(); }}
+            className="text-xs tracking-wider text-[#8A7E6E] hover:text-red-600 underline underline-offset-4 transition-colors pb-1"
+          >
+            <Txt k="cart.clear" />
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Items */}
