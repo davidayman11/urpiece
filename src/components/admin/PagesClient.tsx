@@ -40,7 +40,7 @@ const SECTION_TYPES = [
   },
   {
     type: "categories", label: "Shop by Category Section", page: "home",
-    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText", "categoryIds"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "linkText", "layoutMode", "scrollSeconds", "categoryIds"],
   },
   {
     type: "featured", label: "Featured Products Section", page: "home",
@@ -124,6 +124,7 @@ const FIELD_LABELS: Record<string, string> = {
   barUrl: "Link when clicked (optional)",
   height: "Banner height",
   categoryIds: "Which categories to show",
+  layoutMode: "How the categories are laid out",
   bundleMode: "Which bundles to show",
   bundleLimit: "How many bundles to show (default 4)",
   bundleIds: "Choose the bundles (in the order they appear)",
@@ -159,6 +160,11 @@ const SELECT_FIELDS: Record<string, { value: string; label: string }[]> = {
     { value: "diamond", label: "Diamond" }, { value: "none", label: "No icon" },
   ],
   direction: [{ value: "left", label: "Right to left (default)" }, { value: "right", label: "Left to right" }],
+  layoutMode: [
+    { value: "grid", label: "Grid: all categories shown together (default)" },
+    { value: "scroll", label: "Scrolling: visitors swipe or use the arrows" },
+    { value: "auto", label: "Auto-scrolling: moves by itself (pauses when touched)" },
+  ],
   position: [
     { value: "hero", label: "Under the hero image" }, { value: "categories", label: "Under Shop by Category" },
     { value: "featured", label: "Under Featured Products" }, { value: "bottom", label: "Bottom of the page" },
@@ -595,6 +601,7 @@ export default function PagesClient({
               )}
 
               {sectionType !== "custom" && currentTypeDef?.fields.map((field) => {
+                if (field === "scrollSeconds" && sectionType === "categories" && content.layoutMode !== "auto") return null;
                 if (field === "bundleIds" && (content.bundleMode || "all") !== "selected") return null;
                 if (field === "bundleLimit" && (content.bundleMode || "all") === "selected") return null;
                 if (field === "productIds" && (content.productMode || "featured") !== "selected") return null;

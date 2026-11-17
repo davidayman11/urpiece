@@ -6,6 +6,7 @@ import type { Category } from "@prisma/client";
 import { Txt } from "@/components/store/TextsProvider";
 import { getLang } from "@/lib/lang-server";
 import { cx, L } from "@/lib/localize";
+import ScrollRow from "@/components/store/sections/ScrollRow";
 interface Props {
   categories: Category[];
   content?: Record<string, string>;
@@ -17,6 +18,9 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
   const eyebrow = cx(content, "eyebrow", lang) || "Collections";
   const heading = cx(content, "heading", lang) || "Shop by Category";
   const linkText = cx(content, "linkText", lang) || "All Pieces";
+  // "grid" = all categories shown together, "scroll" = swipe / arrows, "auto" = also moves by itself
+  const mode = content.layoutMode === "scroll" || content.layoutMode === "auto" ? content.layoutMode : "grid";
+  const seconds = Math.min(30, Math.max(1, Number(content.scrollSeconds) || 4));
 
   return (
     <section data-font-area="categories" className="bg-[#F5EFE2] py-20">
@@ -47,7 +51,8 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
           )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {mode === "grid" ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {categories.map((cat, idx) => (
             <Link
               key={cat.id}
@@ -92,7 +97,55 @@ export default async function CategoryGrid({ categories, content = {} }: Props) 
               </div>
             </Link>
           ))}
-        </div>
+          </div>
+        ) : (
+          <ScrollRow auto={mode === "auto"} seconds={seconds}>
+          {categories.map((cat, idx) => (
+            <Link
+              key={cat.id}
+              href={`/shop?category=${cat.slug}`}
+              className="group relative overflow-hidden bg-[#EDE6D4] snap-start shrink-0 w-[62%] sm:w-[40%] md:w-[calc(25%-12px)]"
+              style={{ aspectRatio: "3/4" }}
+            >
+              {/* Image */}
+              {cat.image ? (
+                <Image
+                  src={cat.image}
+                  alt={L(lang, cat.name, cat.nameAr)}
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#EDE6D4] to-[#C4B07A]/30" />
+              )}
+
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1C1711]/80 via-[#1C1711]/20 to-transparent" />
+
+              {/* Gold border on hover */}
+              <div className="absolute inset-0 ring-1 ring-inset ring-[#A8975E]/0 group-hover:ring-[#A8975E]/60 transition-all duration-500" />
+
+              {/* Text */}
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <p className="font-serif text-xl md:text-2xl font-light text-[#F5EFE2] group-hover:text-[#C4B07A] transition-colors duration-300">
+                  {L(lang, cat.name, cat.nameAr)}
+                </p>
+                {cat.description && (
+                  <p className="text-[10px] text-[#C4B07A]/70 mt-1 tracking-wide line-clamp-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {L(lang, cat.description, cat.descriptionAr)}
+                  </p>
+                )}
+                <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-1 group-hover:translate-y-0">
+                  <span className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E]"><Txt k="home.categories.shopNow" /></span>
+                  <svg className="flip-rtl" width="10" height="7" viewBox="0 0 10 7" fill="none">
+                    <path d="M1 3.5h8M6 1l3 2.5L6 6" stroke="#A8975E" strokeWidth="1" strokeLinecap="round" />
+                  </svg>
+                </div>
+              </div>
+            </Link>
+          ))}
+          </ScrollRow>
+        )}
       </div>
     </section>
   );
