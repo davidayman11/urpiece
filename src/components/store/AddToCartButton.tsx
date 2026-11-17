@@ -13,7 +13,7 @@ import Image from "next/image";
 import { priceChosenPackaging } from "@/lib/packaging-price";
 import type { Product, Variant } from "@prisma/client";
 
-export interface PackagingChoice { id: string; name: string; nameAr: string | null; image: string | null; price: number; freeAbove: number | null }
+export interface PackagingChoice { id: string; name: string; nameAr: string | null; image: string | null; price: number; freeAbove: number | null; minItemPrice: number | null }
 
 interface Props {
   product: Product & { variants: Variant[] };
@@ -35,7 +35,6 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
   // any number of packages can be chosen (none = no packaging)
   const [packIds, setPackIds] = useState<string[]>([]);
   const [freeId, setFreeId] = useState("");
-  const chosen = packaging.filter((p) => packIds.includes(p.id));
   const togglePack = (id: string) => setPackIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
@@ -56,6 +55,9 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
 
   // price of one package for this item: free when the item costs at least the package's "free above" amount
   const unitNow = selectedVariant ? salePrice(selectedVariant.price, sale, product.saleType) : 0;
+  // a package can have a minimum item price: cheaper items do not show it (and a hidden one is never kept in the choice)
+  const visiblePackaging = packaging.filter((p) => !p.minItemPrice || unitNow >= p.minItemPrice);
+  const chosen = visiblePackaging.filter((p) => packIds.includes(p.id));
   const asChoice = (p: PackagingChoice) => ({ id: p.id, price: p.price, freeAbove: p.freeAbove });
   const priced = priceChosenPackaging(chosen.map(asChoice), unitNow, oneFree, freeId);
   const packTotal = priced.total;
@@ -127,7 +129,7 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
       )}
 
       {/* Packaging (optional, set per product in the admin). Choose any number of packages. */}
-      {packaging.length > 0 && (
+      {visiblePackaging.length > 0 && (
         <div className="border border-[#E0D6BD] bg-[#FBF8F0] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-3 mb-1">
             <p className="flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-[#1C1711]">
@@ -144,7 +146,7 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
           </div>
           <p className="text-[11px] text-[#8A7E6E] mb-4"><Txt k="product.packaging.hint" /></p>
           <div role="group" className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-stretch">
-            {packaging.map((p) => {
+            {visiblePackaging.map((p) => {
               const on = packIds.includes(p.id);
               const pr = priceOf(p);
               const free = pr.free;

@@ -285,6 +285,8 @@ model PackagingOption {
   price     Float    @default(0)
   /// free when the item costs at least this much (empty = never free)
   freeAbove Float?
+  /// only offered on items that cost at least this much (empty = on every item)
+  minItemPrice Float?
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())

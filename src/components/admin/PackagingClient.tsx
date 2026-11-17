@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import type { PackagingOption } from "@prisma/client";
 import { formatPrice } from "@/lib/utils";
 
-interface Form { name: string; nameAr: string; image: string; price: string; freeAbove: string; sortOrder: string; isActive: boolean }
-const empty = (): Form => ({ name: "", nameAr: "", image: "", price: "0", freeAbove: "", sortOrder: "0", isActive: true });
+interface Form { name: string; nameAr: string; image: string; price: string; freeAbove: string; minItemPrice: string; sortOrder: string; isActive: boolean }
+const empty = (): Form => ({ name: "", nameAr: "", image: "", price: "0", freeAbove: "", minItemPrice: "", sortOrder: "0", isActive: true });
 
 export default function PackagingClient({ options, enabledCount, oneFree: initialOneFree }: { options: PackagingOption[]; enabledCount: number; oneFree: boolean }) {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function PackagingClient({ options, enabledCount, oneFree: initia
 
   const openCreate = () => { setForm(empty()); setEditId(null); setModal(true); };
   const openEdit = (o: PackagingOption) => {
-    setForm({ name: o.name, nameAr: o.nameAr || "", image: o.image || "", price: String(o.price), freeAbove: o.freeAbove ? String(o.freeAbove) : "", sortOrder: String(o.sortOrder), isActive: o.isActive });
+    setForm({ name: o.name, nameAr: o.nameAr || "", image: o.image || "", price: String(o.price), freeAbove: o.freeAbove ? String(o.freeAbove) : "", minItemPrice: o.minItemPrice ? String(o.minItemPrice) : "", sortOrder: String(o.sortOrder), isActive: o.isActive });
     setEditId(o.id);
     setModal(true);
   };
@@ -106,6 +106,7 @@ export default function PackagingClient({ options, enabledCount, oneFree: initia
               <p className="font-medium text-gray-800">{o.name}</p>
               {o.nameAr && <p dir="rtl" className="text-sm text-gray-500">{o.nameAr}</p>}
               <p className="text-sm text-[#A8975E] mt-1">{o.price > 0 ? `+ ${formatPrice(o.price)}` : "Free"}</p>
+              {o.minItemPrice ? <p className="text-xs text-gray-500 mt-0.5">Only offered on items that cost {formatPrice(o.minItemPrice)} or more</p> : null}
               {o.freeAbove ? <p className="text-xs text-green-700 mt-0.5">Free when the item costs {formatPrice(o.freeAbove)} or more</p> : null}
               <div className="flex items-center gap-4 mt-3 text-xs">
                 <button onClick={() => openEdit(o)} className="text-[#A8975E] hover:underline">Edit</button>
@@ -153,6 +154,11 @@ export default function PackagingClient({ options, enabledCount, oneFree: initia
                   <label className="text-xs text-gray-500 mb-1 block">Order (small first)</label>
                   <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} className={input} />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Only offer on items that cost at least (EGP) — optional</label>
+                <input type="number" min="0" value={form.minItemPrice} onChange={(e) => setForm({ ...form, minItemPrice: e.target.value })} className={input} placeholder="e.g. 200 (leave empty = offered on every item)" />
+                <p className="text-[11px] text-gray-400 mt-1">Cheaper items will not show this package.</p>
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Free when the item costs at least (EGP) — optional</label>

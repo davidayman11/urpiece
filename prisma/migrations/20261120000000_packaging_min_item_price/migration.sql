@@ -1,0 +1,1 @@
+ALTER TABLE "PackagingOption" ADD COLUMN "minItemPrice" DOUBLE PRECISION;

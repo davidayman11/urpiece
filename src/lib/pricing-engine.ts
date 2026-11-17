@@ -154,10 +154,12 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     if (!i.bundleId) {
       const v = byId.get(i.variantId || "");
       if (!v) throw new QuoteError(tr("checkout.msg.itemUnavailable"));
+      // the price the customer sees on the product page (used for the "only on items that cost at least" rule)
+      const shownPrice = salesEnabled ? productSalePrice(v.price, v.product) : v.price;
       const chosen: Pack[] = [];
       for (const pid of idsOf(i)) {
         const po = packs.find((x) => x.id === pid);
-        if (po && v.product.packagingEnabled && packagingOffered(v.product.packagingIds, po.id)) {
+        if (po && v.product.packagingEnabled && packagingOffered(v.product.packagingIds, po.id) && (!po.minItemPrice || shownPrice >= po.minItemPrice)) {
           chosen.push({ id: po.id, name: L(input.lang ?? "en", po.name, po.nameAr), nameEn: po.name, price: po.price, freeAbove: po.freeAbove ?? null });
         } else if (input.strict) throw new QuoteError(tr("checkout.msg.packagingUnavailable"));
       }
