@@ -51,8 +51,9 @@ export default function CartPage() {
           <button
             type="button"
             onClick={() => { if (window.confirm(t("cart.clearConfirm"))) clearCart(); }}
-            className="text-xs tracking-wider text-[#8A7E6E] hover:text-red-600 underline underline-offset-4 transition-colors pb-1"
+            className="group inline-flex items-center gap-2 px-4 py-2 text-[10px] tracking-[0.2em] uppercase text-[#8A7E6E] ring-1 ring-[#E0D6BD] bg-[#FBF8F0] hover:text-[#B23A3A] hover:ring-[#B23A3A]/50 hover:bg-white active:scale-95 transition-all"
           >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3" /></svg>
             <Txt k="cart.clear" />
           </button>
         </div>

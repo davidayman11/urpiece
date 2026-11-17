@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, parseJson } from "@/lib/utils";
 import { salePrice, saleLabel, activeSaleValue } from "@/lib/pricing";
 import { parseImgs } from "@/lib/product-images";
 import { L } from "@/lib/localize";
-import { Txt, useLang } from "@/components/store/TextsProvider";
+import { Txt, useLang, useT } from "@/components/store/TextsProvider";
 import { useCartStore } from "@/lib/store/cart";
 import type { Product, Variant, Category } from "@prisma/client";
 
@@ -17,6 +17,7 @@ interface Props {
 
 export default function ProductCard({ product }: Props) {
   const lang = useLang();
+  const t = useT();
   const general = parseImgs(product.images);
   // a product whose photos are all assigned to variants still needs a card picture
   const images = general.length > 0 ? general : [...new Set(product.variants.flatMap((v) => parseImgs(v.images)))];
@@ -37,6 +38,17 @@ export default function ProductCard({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const [picking, setPicking] = useState(false);
   const [added, setAdded] = useState(false);
+  const addArea = useRef<HTMLDivElement>(null);
+  // the option picker closes when you click anywhere else or press Escape
+  useEffect(() => {
+    if (!picking) return;
+    const away = (e: MouseEvent | TouchEvent) => { if (addArea.current && !addArea.current.contains(e.target as Node)) setPicking(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setPicking(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("touchstart", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("touchstart", away); document.removeEventListener("keydown", esc); };
+  }, [picking]);
   const available = product.variants.filter((v) => v.isActive !== false && v.inventory > 0);
   const addVariant = (v: Variant) => {
     addItem({
@@ -168,33 +180,51 @@ export default function ProductCard({ product }: Props) {
       </Link>
 
       {/* Add to cart */}
-      <div className="mt-3">
+      <div ref={addArea} className="relative mt-3">
         {picking && available.length > 1 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {available.map((v) => (
-              <button
-                type="button"
-                key={v.id}
-                onClick={() => addVariant(v)}
-                className="px-2.5 py-1 text-[11px] bg-white text-[#5A5040] ring-1 ring-[#E0D6BD] hover:ring-[#A8975E] hover:text-[#1C1711] transition-colors"
-              >
-                {L(lang, v.name, v.nameAr)}
+          <div role="dialog" className="absolute bottom-full inset-x-0 mb-2 z-20 bg-white shadow-[0_12px_32px_-8px_rgba(28,23,17,0.35)] ring-1 ring-[#E0D6BD] p-3 animate-fade-up">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[10px] tracking-[0.22em] uppercase text-[#8A7E6E]"><Txt k="card.chooseOption" /></span>
+              <button type="button" onClick={() => setPicking(false)} aria-label={t("popup.close")} className="w-6 h-6 flex items-center justify-center text-[#8A7E6E] hover:text-[#1C1711]">
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2 2 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
               </button>
-            ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {available.map((v) => (
+                <button
+                  type="button"
+                  key={v.id}
+                  onClick={() => addVariant(v)}
+                  className="px-3 py-1.5 text-xs bg-[#FBF8F0] text-[#3A3228] ring-1 ring-[#E0D6BD] hover:bg-[#A8975E] hover:text-[#F5EFE2] hover:ring-[#A8975E] active:scale-95 transition-all"
+                >
+                  {L(lang, v.name, v.nameAr)}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         <button
           type="button"
           onClick={onAdd}
           disabled={available.length === 0}
-          className={`w-full py-2.5 text-[10px] tracking-[0.2em] uppercase transition-colors ${
+          aria-expanded={picking}
+          className={`w-full flex items-center justify-center gap-2 py-3 text-[10px] tracking-[0.22em] uppercase transition-all duration-300 active:scale-[0.98] ${
             available.length === 0
               ? "bg-[#EDE6D4] text-[#8A7E6E] cursor-not-allowed"
               : added
-              ? "bg-[#8A7A4A] text-[#F5EFE2]"
-              : "border border-[#A8975E] text-[#8A7A4A] hover:bg-[#A8975E] hover:text-[#F5EFE2]"
+              ? "bg-[#6B7A4A] text-[#F5EFE2]"
+              : picking
+              ? "bg-[#1C1711] text-[#F5EFE2]"
+              : "bg-transparent text-[#6F5F2E] ring-1 ring-[#A8975E] hover:bg-[#A8975E] hover:text-[#F5EFE2]"
           }`}
         >
+          {added ? (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+          ) : available.length === 0 ? null : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 8h14l-1 12H6L5 8z" /><path d="M9 8V6a3 3 0 016 0v2" /><path d="M12 12v4M10 14h4" />
+            </svg>
+          )}
           {available.length === 0 ? <Txt k="card.soldOut" /> : added ? <Txt k="card.added" /> : picking ? <Txt k="card.chooseOption" /> : <Txt k="card.addToCart" />}
         </button>
       </div>
