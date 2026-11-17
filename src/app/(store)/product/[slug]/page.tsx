@@ -9,7 +9,6 @@ import { VariantSelectionProvider } from "@/components/store/VariantSelection";
 import { parseImgs } from "@/lib/product-images";
 import { L } from "@/lib/localize";
 import { parsePackagingIds } from "@/lib/packaging-input";
-import { getPackagingSettings } from "@/lib/packaging-settings";
 import { getLang } from "@/lib/lang-server";
 import { getT, getTexts } from "@/lib/texts/server";
 import { parseSections } from "@/lib/texts";
@@ -117,7 +116,7 @@ export default async function ProductPage({ params }: Props) {
               <p className="mt-6 text-sm text-[#5A5040] leading-relaxed">{L(lang, product.description, product.descriptionAr)}</p>
             )}
 
-            <AddToCartButton product={product as Parameters<typeof AddToCartButton>[0]["product"]} oneFree={packagingOptions.length > 1 ? (await getPackagingSettings()).oneFree : false} packaging={packagingOptions.map((o) => ({ id: o.id, name: o.name, nameAr: o.nameAr, image: o.image, price: o.price, freeAbove: o.freeAbove, minItemPrice: o.minItemPrice }))} />
+            <AddToCartButton product={product as Parameters<typeof AddToCartButton>[0]["product"]} packaging={packagingOptions.map((o) => ({ id: o.id, name: o.name, nameAr: o.nameAr, image: o.image, price: o.price, freeAbove: o.freeAbove, minItemPrice: o.minItemPrice }))} />
 
             {/* Details */}
             <div className="mt-8 pt-8 border-t border-[#EDE6D4] space-y-4">

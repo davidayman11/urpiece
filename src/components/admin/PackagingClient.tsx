@@ -9,20 +9,13 @@ import { formatPrice } from "@/lib/utils";
 interface Form { name: string; nameAr: string; image: string; price: string; freeAbove: string; minItemPrice: string; sortOrder: string; isActive: boolean }
 const empty = (): Form => ({ name: "", nameAr: "", image: "", price: "0", freeAbove: "", minItemPrice: "", sortOrder: "0", isActive: true });
 
-export default function PackagingClient({ options, enabledCount, oneFree: initialOneFree }: { options: PackagingOption[]; enabledCount: number; oneFree: boolean }) {
+export default function PackagingClient({ options, enabledCount }: { options: PackagingOption[]; enabledCount: number }) {
   const router = useRouter();
   const [modal, setModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Form>(empty());
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [oneFree, setOneFree] = useState(initialOneFree);
-
-  const saveOneFree = async (on: boolean) => {
-    setOneFree(on);
-    const res = await fetch("/api/admin/packaging/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oneFree: on }) });
-    if (!res.ok) { setOneFree(!on); alert("Could not save"); }
-  };
 
   const openCreate = () => { setForm(empty()); setEditId(null); setModal(true); };
   const openEdit = (o: PackagingOption) => {
@@ -87,13 +80,6 @@ export default function PackagingClient({ options, enabledCount, oneFree: initia
         <button onClick={openCreate} className="bg-[#A8975E] text-white px-4 py-2 text-sm rounded-md hover:bg-[#8A7A4A]">+ Add packaging</button>
       </div>
 
-      <label className="flex items-start gap-3 bg-white rounded-lg border border-gray-100 p-4 cursor-pointer">
-        <input type="checkbox" className="mt-1" checked={oneFree} onChange={(e) => saveOneFree(e.target.checked)} />
-        <span className="text-sm text-gray-700">
-          <b>One free package</b> when a customer chooses more than one for the same item.
-          <span className="block text-xs text-gray-500 mt-0.5">The customer picks which one is free and the others keep their price. If one of the chosen packages is already free (price 0, or free by the &quot;free when the item costs at least&quot; rule), that is the free one and no other package becomes free. Saved when you tick it.</span>
-        </span>
-      </label>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {options.length === 0 && <p className="text-gray-400 col-span-full text-center py-10">No packaging yet</p>}

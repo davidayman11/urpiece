@@ -26,8 +26,6 @@ export interface QuoteItemInput {
   selections?: Record<string, string>;
   /** optional gift boxes / wrapping for a normal product line (one or more) */
   packagingIds?: string[];
-  /** when more than one package is chosen, the one the customer wants for free (optional) */
-  freePackagingId?: string;
   /** older carts stored a single choice */
   packagingId?: string;
 }
@@ -138,16 +136,10 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   });
   const byId = new Map(variants.map((v) => [v.id, v]));
   type Pack = { id: string; name: string; nameEn: string; price: number; freeAbove: number | null };
-  type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string; packs: Pack[]; freeId?: string };
+  type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string; packs: Pack[] };
   const idsOf = (i: QuoteItemInput) => [...new Set((i.packagingIds ?? (i.packagingId ? [i.packagingId] : [])).filter((x) => typeof x === "string" && x))];
   const packIds = [...new Set(input.items.filter((i) => !i.bundleId).flatMap(idsOf))];
   const packs = packIds.length ? await prisma.packagingOption.findMany({ where: { id: { in: packIds }, isActive: true } }) : [];
-  // store-wide switch (Admin > Packaging): with 2+ packages on an item, one of them is free
-  let oneFree = false;
-  if (input.items.some((i) => !i.bundleId && idsOf(i).length >= 2)) {
-    const row = await prisma.siteSetting.findUnique({ where: { key: "packaging" } });
-    try { oneFree = row ? JSON.parse(row.value).oneFree !== false : true; } catch { oneFree = true; }
-  }
   const baseLines: BaseLine[] = [];
   for (const i of input.items) {
     const quantity = Math.max(1, Math.floor(Number(i.quantity) || 1));
@@ -163,7 +155,7 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
           chosen.push({ id: po.id, name: L(input.lang ?? "en", po.name, po.nameAr), nameEn: po.name, price: po.price, freeAbove: po.freeAbove ?? null });
         } else if (input.strict) throw new QuoteError(tr("checkout.msg.packagingUnavailable"));
       }
-      baseLines.push({ v, quantity, packs: chosen, freeId: i.freePackagingId });
+      baseLines.push({ v, quantity, packs: chosen });
       continue;
     }
     const bundle = bundles.find((b) => b.id === i.bundleId);
@@ -218,10 +210,10 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   );
 
   const build = (o: Opts) => {
-    const lines: QuoteLine[] = baseLines.map(({ v, quantity, fixedUnit, bundleName, packs: chosenPacks, freeId }) => {
+    const lines: QuoteLine[] = baseLines.map(({ v, quantity, fixedUnit, bundleName, packs: chosenPacks }) => {
       const unitPrice = fixedUnit !== undefined ? fixedUnit : o.sale ? productSalePrice(v.price, v.product) : v.price;
-      // free-above rule, then "one free" when 2+ are chosen (same function the product page uses)
-      const priced = priceChosenPackaging(chosenPacks, unitPrice, oneFree, freeId);
+      // free-above rule (same function the product page uses)
+      const priced = priceChosenPackaging(chosenPacks, unitPrice);
       const packaging = chosenPacks.map((pk) => {
         const pr = priced.items.find((x) => x.id === pk.id)!;
         return { id: pk.id, name: pk.name, nameEn: pk.nameEn, price: pr.price, free: pr.free };

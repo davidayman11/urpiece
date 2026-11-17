@@ -7,7 +7,6 @@ export const arProduct: Record<string, string> = {
   "product.packaging.totalWith": "الإجمالي مع التغليف",
   "product.packaging.hint": "اختاري واحداً أو أكثر، أو لا شيء.",
   "product.packaging.freeAbove": "مجاناً على القطع بسعر {amount} أو أكثر",
-  "product.packaging.oneFree": "تغليف واحد مجاني. اختاري أيهما:",
   "product.packaging.free": "مجاناً",
   "product.shipping.title": "الشحن والإرجاع",
   "product.shipping.body": "يتم شحن الطلبات خلال 2–5 أيام عمل. تواصلي معنا للإرجاع خلال 7 أيام من الاستلام.",

@@ -11,7 +11,6 @@ export const productTexts: TextDef[] = [
   { key: "product.packaging.totalWith", group: G, label: "Packaging — total line (price + packaging)", default: "Total with packaging" },
   { key: "product.packaging.hint", group: G, label: "Packaging — hint under the heading", default: "Choose one or more, or none." },
   { key: "product.packaging.freeAbove", group: G, label: "Packaging — note when it is free on bigger items ({amount})", default: "Free on items {amount} or more" },
-  { key: "product.packaging.oneFree", group: G, label: "Packaging — pick which package is free (shown when 2+ are chosen)", default: "One package is free. Choose which one:" },
   { key: "product.packaging.free", group: G, label: "Packaging — free option price", default: "Free" },
   { key: "product.shipping.title", group: G, label: "Shipping & Returns — heading", default: "Shipping & Returns" },
   {

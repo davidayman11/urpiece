@@ -18,11 +18,9 @@ export interface PackagingChoice { id: string; name: string; nameAr: string | nu
 interface Props {
   product: Product & { variants: Variant[] };
   packaging?: PackagingChoice[];
-  /** store setting: with 2+ packages one is free */
-  oneFree?: boolean;
 }
 
-export default function AddToCartButton({ product, packaging = [], oneFree = false }: Props) {
+export default function AddToCartButton({ product, packaging = [] }: Props) {
   const lang = useLang();
   const addItem = useCartStore((s) => s.addItem);
   // The chosen variant is shared with the photo gallery (so the right photos show)
@@ -34,7 +32,6 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
   const [added, setAdded] = useState(false);
   // any number of packages can be chosen (none = no packaging)
   const [packIds, setPackIds] = useState<string[]>([]);
-  const [freeId, setFreeId] = useState("");
   const togglePack = (id: string) => setPackIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
@@ -59,12 +56,10 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
   const visiblePackaging = packaging.filter((p) => !p.minItemPrice || unitNow >= p.minItemPrice);
   const chosen = visiblePackaging.filter((p) => packIds.includes(p.id));
   const asChoice = (p: PackagingChoice) => ({ id: p.id, price: p.price, freeAbove: p.freeAbove });
-  const priced = priceChosenPackaging(chosen.map(asChoice), unitNow, oneFree, freeId);
+  const priced = priceChosenPackaging(chosen.map(asChoice), unitNow);
   const packTotal = priced.total;
   // how a card is priced: its price once chosen (with the free rules), otherwise its own price / free-above rule
-  const priceOf = (p: PackagingChoice) => priced.items.find((x) => x.id === p.id) ?? priceChosenPackaging([asChoice(p)], unitNow, false).items[0];
-  // packages that still cost something on their own: candidates for "the free one"
-  const freeChoices = chosen.filter((p) => !(p.freeAbove && p.freeAbove > 0 && unitNow >= p.freeAbove) && p.price > 0);
+  const priceOf = (p: PackagingChoice) => priced.items.find((x) => x.id === p.id) ?? priceChosenPackaging([asChoice(p)], unitNow).items[0];
 
   const handleAdd = () => {
     if (!selectedVariant || !inStock) return;
@@ -81,7 +76,6 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
       ...(chosen.length
         ? {
             packagingIds: chosen.map((p) => p.id),
-            ...(oneFree && priced.pickedId ? { freePackagingId: priced.pickedId } : {}),
             packagingName: chosen.map((p) => p.name).join(", "),
             packagingNameAr: chosen.map((p) => p.nameAr || p.name).join("، "),
             packagingPrice: packTotal,
@@ -196,28 +190,6 @@ export default function AddToCartButton({ product, packaging = [], oneFree = fal
               );
             })}
           </div>
-          {oneFree && chosen.length >= 2 && priced.pickedId && freeChoices.length >= 1 && (
-            <div className="mt-4 pt-3 border-t border-[#E0D6BD]">
-              <p className="text-xs text-[#1C1711] mb-2"><Txt k="product.packaging.oneFree" /></p>
-              <div role="radiogroup" className="flex flex-wrap gap-2">
-                {freeChoices.map((p) => {
-                  const on = priced.pickedId === p.id;
-                  return (
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      key={p.id}
-                      onClick={() => setFreeId(p.id)}
-                      className={`px-3 py-1.5 text-xs transition-colors ${on ? "bg-[#A8975E] text-[#F5EFE2]" : "bg-white text-[#5A5040] ring-1 ring-[#E0D6BD] hover:ring-[#A8975E]"}`}
-                    >
-                      {L(lang, p.name, p.nameAr)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
           {chosen.length > 0 && selectedVariant && packTotal > 0 && (
             <p className="mt-4 pt-3 border-t border-[#E0D6BD] flex items-center justify-between text-sm">
               <span className="text-[#5A5040]"><Txt k="product.packaging.totalWith" /></span>
