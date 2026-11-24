@@ -1,5 +1,6 @@
 "use client";
 
+import { LINK_TYPES, parseContactLinks, type ContactLink } from "@/lib/contact-links";
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -60,7 +61,7 @@ const SECTION_TYPES = [
   },
   {
     type: "contact", label: "Contact Page Content", page: "contact",
-    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "supportEmail", "paymentNote", "shippingNote"],
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "contactLinks", "supportEmail", "paymentNote", "shippingNote"],
   },
   {
     type: "announcement", label: "Announcement Bar (scrolling, top of site)", page: "site",
@@ -124,6 +125,7 @@ const FIELD_LABELS: Record<string, string> = {
   barUrl: "Link when clicked (optional)",
   height: "Banner height",
   categoryIds: "Which categories to show",
+  contactLinks: "Contact links (Instagram, WhatsApp, phone, email, any social)",
   layoutMode: "How the categories are laid out",
   bundleMode: "Which bundles to show",
   bundleLimit: "How many bundles to show (default 4)",
@@ -204,6 +206,15 @@ const parsePhotos = (raw?: string): ReviewPhotoDraft[] => {
       : [];
   } catch { return []; }
 };
+
+/** like parseContactLinks, but keeps rows that are still being typed (empty value) */
+function parseContactLinksDraft(raw?: string): ContactLink[] {
+  try {
+    const v = JSON.parse(raw || "[]");
+    return Array.isArray(v) ? v.map((x) => ({ type: String(x?.type || "instagram"), value: String(x?.value || ""), label: String(x?.label || ""), label_ar: String(x?.label_ar || "") })) : [];
+  } catch { return []; }
+}
+void parseContactLinks;
 
 interface PickItem { id: string; name: string; note?: string }
 
@@ -320,6 +331,15 @@ export default function PagesClient({
     SECTION_TYPES.find((t) => t.type === "custom")!,
   ];
 
+  const contactLinks: ContactLink[] = parseContactLinksDraft(content.contactLinks);
+  const setContactLinks = (next: ContactLink[]) => setContent((c) => ({ ...c, contactLinks: JSON.stringify(next) }));
+  const moveLink = (i: number, d: -1 | 1) => {
+    const j = i + d;
+    if (j < 0 || j >= contactLinks.length) return;
+    const n = [...contactLinks];
+    [n[i], n[j]] = [n[j], n[i]];
+    setContactLinks(n);
+  };
   const photos = parsePhotos(content.photos);
   const setPhotos = (next: ReviewPhotoDraft[]) => setContent((c) => ({ ...c, photos: JSON.stringify(next) }));
   const uploadPhotos = async (files: FileList) => {
@@ -650,7 +670,36 @@ export default function PagesClient({
                 return (
                 <div key={field}>
                   <label className="text-xs text-gray-500 mb-1 block">{FIELD_LABELS[field] || field}</label>
-                  {field === "photos" ? (
+                  {field === "contactLinks" ? (
+                    <div className="space-y-3">
+                      {contactLinks.map((l, i) => (
+                        <div key={i} className="border border-gray-200 rounded p-3 space-y-2 bg-gray-50/50">
+                          <div className="flex gap-2">
+                            <select value={l.type} onChange={(e) => setContactLinks(contactLinks.map((x, j) => (j === i ? { ...x, type: e.target.value } : x)))} className="border border-gray-200 rounded px-2 py-2 text-sm bg-white">
+                              {LINK_TYPES.map((t) => <option key={t.type} value={t.type}>{t.name}</option>)}
+                            </select>
+                            <input
+                              value={l.value}
+                              onChange={(e) => setContactLinks(contactLinks.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}
+                              placeholder={LINK_TYPES.find((t) => t.type === l.type)?.placeholder}
+                              className="flex-1 min-w-0 border border-gray-200 rounded px-3 py-2 text-sm bg-white"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input value={l.label} onChange={(e) => setContactLinks(contactLinks.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Button text (optional)" className="border border-gray-200 rounded px-3 py-1.5 text-xs bg-white" />
+                            <input dir="rtl" value={l.label_ar} onChange={(e) => setContactLinks(contactLinks.map((x, j) => (j === i ? { ...x, label_ar: e.target.value } : x)))} placeholder="النص بالعربية (optional)" className="border border-gray-200 rounded px-3 py-1.5 text-xs bg-white" />
+                          </div>
+                          <div className="flex items-center gap-3 text-xs">
+                            <button type="button" onClick={() => moveLink(i, -1)} disabled={i === 0} className="text-gray-500 hover:text-gray-800 disabled:opacity-30">↑ Up</button>
+                            <button type="button" onClick={() => moveLink(i, 1)} disabled={i === contactLinks.length - 1} className="text-gray-500 hover:text-gray-800 disabled:opacity-30">↓ Down</button>
+                            <button type="button" onClick={() => setContactLinks(contactLinks.filter((_, j) => j !== i))} className="text-red-500 hover:underline ml-auto">Remove</button>
+                          </div>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setContactLinks([...contactLinks, { type: "instagram", value: "", label: "", label_ar: "" }])} className="px-3 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50">+ Add a link</button>
+                      <p className="text-[11px] text-gray-400">Type just the number or @handle. WhatsApp and phone numbers can start with 0. Customers see these as buttons on the Contact page.</p>
+                    </div>
+                  ) : field === "photos" ? (
                     <div className="space-y-3">
                       <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded hover:bg-gray-50">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>

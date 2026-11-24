@@ -8,6 +8,7 @@ export const arHome: Record<string, string> = {
   "reviews.close": "إغلاق",
   "about.metaTitle": "من نحن",
   "contact.metaTitle": "تواصل معنا",
+  "contact.links.title": "تواصلي معنا مباشرة",
   "contact.support.title": "دعم الطلبات",
   "contact.support.body": "للاستفسار عن الطلبات أو تتبّعها أو الإرجاع، راسلينا على:",
   "contact.payment.title": "الدفع",
