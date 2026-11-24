@@ -59,7 +59,7 @@ export default async function EditorialSection({ content }: Props) {
               href={content.buttonUrl}
               className="self-start inline-flex items-center gap-3 border border-[#A8975E] text-[#A8975E] px-7 py-3 text-xs tracking-widest uppercase hover:bg-[#A8975E] hover:text-[#1C1711] transition-all duration-300"
             >
-              {buttonText}
+              <RichText text={buttonText} style={fieldSizeStyle(content, "buttonText")} />
               <svg className="flip-rtl" width="12" height="8" viewBox="0 0 12 8" fill="none">
                 <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>

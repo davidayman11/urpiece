@@ -31,7 +31,7 @@ export default async function BundlesSection({ bundles, content = {} }: { bundle
           </div>
           {linkText && (
             <Link href="/bundles" className="hidden md:flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors border-b border-[#5A5040]/30 pb-0.5 hover:border-[#A8975E]">
-              {linkText}
+              <RichText text={linkText} style={fieldSizeStyle(content, "linkText")} />
             </Link>
           )}
         </div>

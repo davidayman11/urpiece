@@ -100,6 +100,7 @@ const CUSTOM_FIELD_OPTIONS: { key: string; label: string }[] = [
   { key: "listBundles", label: "Bundles list (choose which)" },
   { key: "listCategories", label: "Categories list (choose which)" },
   { key: "font", label: "Font" },
+  { key: "fontSize", label: "Text size (whole section)" },
   { key: "bgColor", label: "Background Color" },
   { key: "textColor", label: "Text Color" },
 ];
@@ -294,7 +295,7 @@ type Opt = { id: string; name: string; isActive: boolean; isFeatured?: boolean }
 
 
 /** Text fields that can have formatted words and a size (shown through RichText on the site) */
-const RICH_FIELDS = new Set(["tagline", "heading", "subheading", "eyebrow", "body", "quote", "paymentNote", "shippingNote"]);
+const RICH_FIELDS = new Set(["tagline", "heading", "subheading", "eyebrow", "body", "quote", "paymentNote", "shippingNote", "buttonText", "secondaryText", "linkText", "brandDescription", "copyright", "messages"]);
 
 /** A text box with buttons to format the selected words (bold, italic, underline, strikethrough, 4 sizes) */
 function RichBox({
@@ -325,7 +326,8 @@ function RichBox({
 }
 
 /** Size of a whole text field (English and Arabic): saved as "<field>_size" */
-function FieldSize({ field, content, setContent }: { field: string; content: Record<string, string>; setContent: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+function FieldSize({ field, content, setContent, hidden }: { hidden?: boolean; field: string; content: Record<string, string>; setContent: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  if (hidden) return null;
   return (
     <label className="flex items-center gap-2 text-xs text-gray-500">
       Size of this whole text
@@ -341,6 +343,24 @@ function FieldSize({ field, content, setContent }: { field: string; content: Rec
   );
 }
 
+
+/** Text size for the whole section (every text in it, unless a text has its own size) */
+function SectionSize({ content, setContent }: { content: Record<string, string>; setContent: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  return (
+    <div className="space-y-1">
+      <select
+        value={content.fontSize || ""}
+        onChange={(e) => setContent((c) => { const n = { ...c }; if (e.target.value) n.fontSize = e.target.value; else delete n.fontSize; return n; })}
+        aria-label="Text size for this section"
+        className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white"
+      >
+        <option value="">Normal size</option>
+        {TEXT_SIZES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
+      </select>
+      <p className="text-[11px] text-gray-400">Makes all the text of this section bigger or smaller. A text can still have its own size, and single words can be changed with the A− A+ buttons.</p>
+    </div>
+  );
+}
 
 const FONT_GROUPS: FontCategory[] = ["serif", "sans", "script", "arabic"];
 
@@ -756,6 +776,8 @@ export default function PagesClient({
                         <ListBlock fieldKey={fieldKey} content={content} setContent={setContent} products={products} bundleOpts={bundleOpts} categories={categories} />
                       ) : fieldKey === "font" ? (
                         <FontSelect content={content} setContent={setContent} />
+                      ) : fieldKey === "fontSize" ? (
+                        <SectionSize content={content} setContent={setContent} />
                       ) : fieldKey === "button" ? (
                         <div className="space-y-2">
                           <input value={content.buttonText || ""} onChange={(e) => setContent((c) => ({ ...c, buttonText: e.target.value }))} placeholder="Button text (e.g. Shop Now)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
@@ -1033,10 +1055,10 @@ export default function PagesClient({
                         value={content[field] || ""}
                         onChange={(v) => setContent((c) => ({ ...c, [field]: v }))}
                         multiline={TEXTAREA_FIELDS.has(field)}
-                        rows={field === "body" ? 5 : 3}
-                        placeholder={field === "body" ? "Use \\n\\n to separate paragraphs" : ""}
+                        rows={field === "body" ? 5 : field === "messages" ? 4 : 3}
+                        placeholder={field === "body" ? "Use \\n\\n to separate paragraphs" : field === "messages" ? "Free shipping over 1000 EGP\nNew arrivals every week" : ""}
                       />
-                      {!AR_FIELDS.has(field) && <FieldSize field={field} content={content} setContent={setContent} />}
+                      {!AR_FIELDS.has(field) && <FieldSize hidden={sectionType === "announcement"} field={field} content={content} setContent={setContent} />}
                     </div>
                   ) : TEXTAREA_FIELDS.has(field) ? (
                     <textarea
@@ -1066,7 +1088,7 @@ export default function PagesClient({
                             rows={field === "body" ? 5 : 3}
                             placeholder="بالعربية (optional — English is shown if empty)"
                           />
-                          <FieldSize field={field} content={content} setContent={setContent} />
+                          <FieldSize hidden={sectionType === "announcement"} field={field} content={content} setContent={setContent} />
                         </div>
                       ) : TEXTAREA_FIELDS.has(field) ? (
                         <textarea
@@ -1097,6 +1119,8 @@ export default function PagesClient({
                 <div className="border-t border-gray-100 pt-4 space-y-2">
                   <p className="text-xs font-medium text-gray-700">Font for this section (optional)</p>
                   <FontSelect content={content} setContent={setContent} />
+                  <p className="text-xs font-medium text-gray-700 pt-2">Text size for this section (optional)</p>
+                  <SectionSize content={content} setContent={setContent} />
                 </div>
               )}
 

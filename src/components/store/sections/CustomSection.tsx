@@ -77,7 +77,7 @@ async function CustomBody({ content }: Props) {
           href={content.buttonUrl}
           className="inline-flex items-center gap-3 text-xs tracking-widest uppercase px-8 py-4 bg-[#A8975E] text-[#F5EFE2] hover:bg-[#8A7A4A] transition-colors"
         >
-          {L(lang, content.buttonText, content.buttonText_ar)}
+          <RichText text={L(lang, content.buttonText, content.buttonText_ar)} style={fieldSizeStyle(content, "buttonText")} />
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M1 6h10M6 1l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

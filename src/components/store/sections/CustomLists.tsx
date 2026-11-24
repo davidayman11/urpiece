@@ -1,3 +1,4 @@
+import RichText from "@/components/RichText";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
@@ -39,7 +40,7 @@ export default async function CustomLists({ content, fields, fg }: { content: Re
   const title = (key: string) => L(lang, content[key], content[`${key}_ar`]);
   const heading = (key: string) => {
     const t = title(key);
-    return t ? <h3 className="font-serif text-2xl md:text-3xl font-light mb-6" style={{ color: fg }}>{t}</h3> : null;
+    return t ? <h3 className="font-serif text-2xl md:text-3xl font-light mb-6" style={{ color: fg }}><RichText text={t} /></h3> : null;
   };
 
   if (fields.includes("listProducts")) {

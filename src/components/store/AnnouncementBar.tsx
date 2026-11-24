@@ -1,3 +1,4 @@
+import RichText from "@/components/RichText";
 import Link from "next/link";
 import { getT } from "@/lib/texts/server";
 
@@ -22,7 +23,7 @@ export default async function AnnouncementBar({ messages, bgColor, textColor, sp
       {Array.from({ length: 3 }).flatMap((_, r) =>
         messages.map((m, i) => (
           <span key={`${r}-${i}`} className="flex items-center whitespace-nowrap">
-            <span dir="auto" className="px-8 text-[11px] tracking-[0.2em] uppercase">{m}</span>
+            <span dir="auto" className="px-8 text-[11px] tracking-[0.2em] uppercase"><RichText text={m} /></span>
             <span className="text-[8px] opacity-60">✦</span>
           </span>
         ))

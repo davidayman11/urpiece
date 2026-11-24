@@ -1,3 +1,5 @@
+import RichText from "@/components/RichText";
+import { fieldSizeStyle } from "@/lib/rich";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
@@ -32,8 +34,8 @@ export default async function Footer() {
           {/* Brand */}
           <div>
             <span className="font-serif text-2xl text-[#A8975E] tracking-[0.2em] uppercase"><Txt k="footer.brand" /></span>
-            <p className="mt-3 text-sm text-[#8A7E6E] font-serif italic">{s.tagline ? cx(s, "tagline", lang) : <Txt k="footer.tagline" />}</p>
-            <p className="mt-4 text-xs text-[#8A7E6E] leading-relaxed">{s.brandDescription ? cx(s, "brandDescription", lang) : <Txt k="footer.brandDescription" />}</p>
+            <p className="mt-3 text-sm text-[#8A7E6E] font-serif italic">{s.tagline ? <RichText text={cx(s, "tagline", lang)} style={fieldSizeStyle(s, "tagline")} /> : <Txt k="footer.tagline" />}</p>
+            <p className="mt-4 text-xs text-[#8A7E6E] leading-relaxed">{s.brandDescription ? <RichText text={cx(s, "brandDescription", lang)} style={fieldSizeStyle(s, "brandDescription")} /> : <Txt k="footer.brandDescription" />}</p>
           </div>
 
           {/* Links */}
@@ -56,8 +58,8 @@ export default async function Footer() {
           <div>
             <h4 className="text-xs tracking-widest uppercase text-[#A8975E] mb-4"><Txt k="footer.contact" /></h4>
             <ul className="space-y-3 text-sm text-[#8A7E6E]">
-              {paymentNote && <li>{s.paymentNote ? cx(s, "paymentNote", lang) : <Txt k="footer.paymentNote" />}</li>}
-              {shippingNote && <li>{s.shippingNote ? cx(s, "shippingNote", lang) : <Txt k="footer.shippingNote" />}</li>}
+              {paymentNote && <li>{s.paymentNote ? <RichText text={cx(s, "paymentNote", lang)} style={fieldSizeStyle(s, "paymentNote")} /> : <Txt k="footer.paymentNote" />}</li>}
+              {shippingNote && <li>{s.shippingNote ? <RichText text={cx(s, "shippingNote", lang)} style={fieldSizeStyle(s, "shippingNote")} /> : <Txt k="footer.shippingNote" />}</li>}
               {contactEmail && (
                 <li className="pt-2">
                   <a href={`mailto:${contactEmail}`} className="hover:text-[#C4B07A] transition-colors">
@@ -70,7 +72,7 @@ export default async function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-[#2C2416] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#5A5040]">
-          <p>{s.copyright ? cx(s, "copyright", lang) : <Txt k="footer.copyright" vars={{ year: new Date().getFullYear() }} />}</p>
+          <p>{s.copyright ? <RichText text={cx(s, "copyright", lang)} style={fieldSizeStyle(s, "copyright")} /> : <Txt k="footer.copyright" vars={{ year: new Date().getFullYear() }} />}</p>
           <div className="flex gap-6">
             <Link href="/about" className="hover:text-[#8A7E6E] transition-colors"><Txt k="footer.link.about" /></Link>
             <Link href="/contact" className="hover:text-[#8A7E6E] transition-colors"><Txt k="footer.link.contact" /></Link>

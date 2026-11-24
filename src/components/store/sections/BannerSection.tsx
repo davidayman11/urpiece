@@ -48,7 +48,7 @@ export default async function BannerSection({ content }: Props) {
             href={content.buttonUrl}
             className="inline-flex items-center gap-3 bg-[#A8975E] text-[#F5EFE2] px-10 py-4 text-xs tracking-widest uppercase hover:bg-[#C4B07A] transition-colors"
           >
-            {buttonText}
+            <RichText text={buttonText} style={fieldSizeStyle(content, "buttonText")} />
             <svg className="flip-rtl" width="12" height="8" viewBox="0 0 12 8" fill="none">
               <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>

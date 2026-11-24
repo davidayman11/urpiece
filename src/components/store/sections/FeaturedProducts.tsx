@@ -39,7 +39,7 @@ export default async function FeaturedProducts({ products, content = {} }: Props
               href="/shop"
               className="hidden md:flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[#5A5040] hover:text-[#A8975E] transition-colors border-b border-[#5A5040]/30 pb-0.5 hover:border-[#A8975E]"
             >
-              {linkText}
+              <RichText text={linkText} style={fieldSizeStyle(content, "linkText")} />
               <svg className="flip-rtl" width="12" height="8" viewBox="0 0 12 8" fill="none">
                 <path d="M1 4h10M7 1l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
               </svg>
@@ -60,7 +60,7 @@ export default async function FeaturedProducts({ products, content = {} }: Props
               href="/shop"
               className="inline-flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[#A8975E] border-b border-[#A8975E]/40 pb-0.5"
             >
-              {linkText}
+              <RichText text={linkText} style={fieldSizeStyle(content, "linkText")} />
             </Link>
           </div>
         )}

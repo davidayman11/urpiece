@@ -111,7 +111,7 @@ export default function HeroSection({ content }: Props) {
                   href={buttonUrl}
                   className="group inline-flex items-center gap-3 bg-[#A8975E] text-[#F5EFE2] px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase hover:bg-[#C4B07A] transition-all duration-300"
                 >
-                  {buttonText}
+                  <RichText text={buttonText} style={fieldSizeStyle(content, "buttonText")} />
                   <svg width="14" height="10" viewBox="0 0 14 10" fill="none"
                     className="flip-rtl transition-transform group-hover:translate-x-1 duration-300">
                     <path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -123,7 +123,7 @@ export default function HeroSection({ content }: Props) {
                   href={secondaryUrl}
                   className="inline-flex items-center gap-2 text-[#F5EFE2]/70 text-[11px] tracking-[0.2em] uppercase hover:text-[#A8975E] transition-colors duration-300"
                 >
-                  {secondaryText}
+                  <RichText text={secondaryText} style={fieldSizeStyle(content, "secondaryText")} />
                 </Link>
               )}
             </div>

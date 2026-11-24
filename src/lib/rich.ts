@@ -17,9 +17,12 @@ export const RICH_SIZE_EM: Record<RichSize, string> = { sm: "0.85em", lg: "1.25e
 
 export interface RichSegment { text: string; bold?: boolean; underline?: boolean; italic?: boolean; strike?: boolean; size?: RichSize }
 
-/** Whole-field size chosen in Admin > Pages ("<field>_size" in a section) as CSS, or undefined for normal size. */
+/**
+ * Size chosen in Admin > Pages as CSS, or undefined for normal size.
+ * A text's own size ("<field>_size") wins; otherwise the size set for the whole section ("fontSize") is used.
+ */
 export function fieldSizeStyle(content: Record<string, string> | undefined, field: string): { fontSize: string } | undefined {
-  const v = content?.[`${field}_size`] as RichSize | undefined;
+  const v = (content?.[`${field}_size`] || content?.fontSize) as RichSize | undefined;
   return v && RICH_SIZE_EM[v] ? { fontSize: RICH_SIZE_EM[v] } : undefined;
 }
 

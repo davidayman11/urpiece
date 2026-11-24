@@ -1,3 +1,5 @@
+import RichText from "@/components/RichText";
+import { fieldSizeStyle } from "@/lib/rich";
 import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
@@ -58,7 +60,7 @@ export default async function MarqueeStrip({ content }: Props) {
       {Array.from({ length: 3 }).flatMap((_, r) =>
         messages.map((m, i) => (
           <span key={`${r}-${i}`} className="flex items-center whitespace-nowrap">
-            <span dir="auto" className="px-8 text-sm md:text-base font-medium">{m}</span>
+            <span dir="auto" className="px-8 text-sm md:text-base font-medium"><RichText text={m} style={fieldSizeStyle(content, "messages")} /></span>
             {icon && (
               <svg
                 width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={iconColor}
