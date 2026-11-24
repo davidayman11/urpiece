@@ -18,6 +18,8 @@ export const homeTexts: TextDef[] = [
 
   { key: "contact.metaTitle", group: C, label: "Browser tab title", default: "Contact" },
   { key: "contact.links.title", group: C, label: "Contact page — heading above the social / phone buttons", default: "Reach us directly" },
+  { key: "contact.intro", group: C, label: "Contact page — short welcome text under the heading (empty = hidden)", multiline: true, default: "We would love to hear from you. Pick the way that suits you best and we will get back to you." },
+  { key: "contact.support.button", group: C, label: "Order Support box — email button", default: "Email us" },
   { key: "contact.support.title", group: C, label: "Order Support box — heading", default: "Order Support" },
   { key: "contact.support.body", group: C, label: "Order Support box — text (email shown below)", multiline: true, default: "For order inquiries, tracking, or returns, email us at:" },
   { key: "contact.payment.title", group: C, label: "Payment box — heading", default: "Payment" },

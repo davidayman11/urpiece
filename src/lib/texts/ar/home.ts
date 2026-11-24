@@ -9,6 +9,8 @@ export const arHome: Record<string, string> = {
   "about.metaTitle": "من نحن",
   "contact.metaTitle": "تواصل معنا",
   "contact.links.title": "تواصلي معنا مباشرة",
+  "contact.intro": "يسعدنا سماعك. اختاري الطريقة المناسبة لك وسنرد عليكِ في أقرب وقت.",
+  "contact.support.button": "راسلينا",
   "contact.support.title": "دعم الطلبات",
   "contact.support.body": "للاستفسار عن الطلبات أو تتبّعها أو الإرجاع، راسلينا على:",
   "contact.payment.title": "الدفع",

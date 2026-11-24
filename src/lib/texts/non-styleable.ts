@@ -106,6 +106,7 @@ export const NON_STYLEABLE_KEYS: string[] = [
   "checkout.payment.qrAlt",
   "checkout.payment.screenshotAlt",
   "checkout.promo.placeholder",
+  "contact.intro",
   "contact.metaTitle",
   "footer.contactEmail",
   "home.hero.imageAlt",
