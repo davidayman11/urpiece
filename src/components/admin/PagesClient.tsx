@@ -89,6 +89,9 @@ const CUSTOM_FIELD_OPTIONS: { key: string; label: string }[] = [
   { key: "image", label: "Image / Photo" },
   { key: "button", label: "Button / CTA" },
   { key: "quote", label: "Quote (italic)" },
+  { key: "listProducts", label: "Products list (choose which)" },
+  { key: "listBundles", label: "Bundles list (choose which)" },
+  { key: "listCategories", label: "Categories list (choose which)" },
   { key: "bgColor", label: "Background Color" },
   { key: "textColor", label: "Text Color" },
 ];
@@ -604,7 +607,32 @@ export default function PagesClient({
                         </span>
                         <button type="button" onClick={() => removeCustomField(fieldKey)} className="text-xs text-red-400 hover:text-red-600">Remove</button>
                       </div>
-                      {fieldKey === "button" ? (
+                      {fieldKey === "listProducts" || fieldKey === "listBundles" || fieldKey === "listCategories" ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <input value={content[`${fieldKey}Title`] || ""} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Title`]: e.target.value }))} placeholder="List title (optional)" className="border border-gray-200 rounded px-3 py-2 text-sm" />
+                            <input dir="rtl" value={content[`${fieldKey}Title_ar`] || ""} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Title_ar`]: e.target.value }))} placeholder="العنوان بالعربية (optional)" className="border border-gray-200 rounded px-3 py-2 text-sm" />
+                          </div>
+                          <PickerList
+                            ordered
+                            items={
+                              fieldKey === "listProducts"
+                                ? products.map((p) => ({ id: p.id, name: p.name, note: p.isActive ? undefined : "hidden" }))
+                                : fieldKey === "listBundles"
+                                ? bundleOpts.map((b) => ({ id: b.id, name: b.name, note: b.isActive ? undefined : "hidden" }))
+                                : categories.map((cat) => ({ id: cat.id, name: cat.name, note: cat.isActive ? undefined : "hidden" }))
+                            }
+                            selected={parseIds(content[fieldKey])}
+                            onChange={(picked) => setContent((c) => ({ ...c, [fieldKey]: JSON.stringify(picked) }))}
+                            emptyNote="Tick the ones to show. Nothing ticked = this list is not shown."
+                          />
+                          <select value={content[`${fieldKey}Layout`] || "grid"} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Layout`]: e.target.value }))} className="w-full border border-gray-200 rounded px-3 py-2 text-sm">
+                            <option value="grid">Grid: all shown together</option>
+                            <option value="scroll">Scrolling: swipe or arrows</option>
+                            <option value="auto">Auto-scrolling: moves by itself</option>
+                          </select>
+                        </div>
+                      ) : fieldKey === "button" ? (
                         <div className="space-y-2">
                           <input value={content.buttonText || ""} onChange={(e) => setContent((c) => ({ ...c, buttonText: e.target.value }))} placeholder="Button text (e.g. Shop Now)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
                           <input dir="rtl" value={content.buttonText_ar || ""} onChange={(e) => setContent((c) => ({ ...c, buttonText_ar: e.target.value }))} placeholder="نص الزر بالعربية (optional)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />

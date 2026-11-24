@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { L } from "@/lib/localize";
 import { getLang } from "@/lib/lang-server";
+import CustomLists from "@/components/store/sections/CustomLists";
 
 interface Props {
   content: Record<string, string>;
@@ -12,6 +13,18 @@ function parseFields(raw?: string): string[] {
 }
 
 export default async function CustomSection({ content }: Props) {
+  const lists = await CustomLists({ content, fields: parseFields(content._fields), fg: content.textColor || "#1C1711" });
+  const body = await CustomBody({ content });
+  if (!lists) return body;
+  return (
+    <>
+      {body}
+      <section style={{ background: content.bgColor || "#F5EFE2" }} className="pb-20 md:pb-28 -mt-8 md:-mt-12">{lists}</section>
+    </>
+  );
+}
+
+async function CustomBody({ content }: Props) {
   const lang = await getLang();
   const fields = parseFields(content._fields);
   const layout = content._layout || "centered";
