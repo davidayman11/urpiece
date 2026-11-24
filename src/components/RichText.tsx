@@ -1,18 +1,19 @@
 import type { CSSProperties } from "react";
-import { parseRich, type RichSegment } from "@/lib/rich";
+import { parseRich, RICH_SIZE_EM, type RichSegment } from "@/lib/rich";
 import { formatText, type TextVars } from "@/lib/texts/types";
 
 const segCss = (s: RichSegment): CSSProperties | undefined => {
   const css: CSSProperties = {};
   if (s.bold) css.fontWeight = 700;
   if (s.italic) css.fontStyle = "italic";
+  if (s.size) css.fontSize = RICH_SIZE_EM[s.size];
   const deco = [s.underline && "underline", s.strike && "line-through"].filter(Boolean).join(" ");
   if (deco) { css.textDecoration = deco; if (s.underline) css.textUnderlineOffset = "0.2em"; }
   return Object.keys(css).length ? css : undefined;
 };
 
 /**
- * Draws a text that may contain formatting markers (**bold** __underline__ ''italic'' ~~strike~~),
+ * Draws a text that may contain formatting markers (**bold** __underline__ ''italic'' ~~strike~~ and sizes ,,small,, ^^large^^ %%larger%% @@huge@@),
  * and wraps all of it in `style` (font / size / colour / ...) if given.
  * Plain text with no formatting is drawn as plain text: no extra tags.
  */

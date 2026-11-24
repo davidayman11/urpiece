@@ -1,3 +1,5 @@
+import RichText from "@/components/RichText";
+import { fieldSizeStyle } from "@/lib/rich";
 import Link from "next/link";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
@@ -18,12 +20,12 @@ export default async function BundlesSection({ bundles, content = {} }: { bundle
           <div>
             {eyebrow && (
               <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-2 flex items-center gap-3" style={{ color: content.eyebrowColor || undefined }}>
-                <span className="w-6 h-px bg-[#A8975E]" style={{ backgroundColor: content.eyebrowColor || undefined }} /> {eyebrow}
+                <span className="w-6 h-px bg-[#A8975E]" style={{ backgroundColor: content.eyebrowColor || undefined }} /> <RichText text={eyebrow} style={fieldSizeStyle(content, "eyebrow")} />
               </p>
             )}
             {heading && (
               <h2 className="font-serif text-4xl md:text-5xl font-light text-[#1C1711]" style={{ color: content.headingColor || undefined }}>
-                {heading}
+                <RichText text={heading} style={fieldSizeStyle(content, "heading")} />
               </h2>
             )}
           </div>

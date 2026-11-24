@@ -1,7 +1,10 @@
 "use client";
 
+import RichToolbar from "@/components/admin/RichToolbar";
+import { toggleMarker, type RichKind } from "@/lib/rich";
+import { TEXT_SIZES } from "@/lib/fonts";
 import { LINK_TYPES, parseContactLinks, type ContactLink } from "@/lib/contact-links";
-import { useState, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { parseJson } from "@/lib/utils";
@@ -287,6 +290,55 @@ function PickerList({
 }
 
 type Opt = { id: string; name: string; isActive: boolean; isFeatured?: boolean };
+
+
+/** Text fields that can have formatted words and a size (shown through RichText on the site) */
+const RICH_FIELDS = new Set(["tagline", "heading", "subheading", "eyebrow", "body", "quote", "paymentNote", "shippingNote"]);
+
+/** A text box with buttons to format the selected words (bold, italic, underline, strikethrough, 4 sizes) */
+function RichBox({
+  value, onChange, multiline, rows = 3, dir, placeholder,
+}: { value: string; onChange: (v: string) => void; multiline?: boolean; rows?: number; dir?: "rtl"; placeholder?: string }) {
+  const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  const format = (kind: RichKind) => {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    if (start === end) { alert("First select some words in the box (drag over them), then click the button."); return; }
+    const r = toggleMarker(el.value, start, end, kind);
+    onChange(r.value);
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(r.start, r.end); });
+  };
+  const cls = "w-full border border-gray-200 rounded px-3 py-2 text-sm";
+  return (
+    <div className="space-y-1.5">
+      <RichToolbar onFormat={format} />
+      {multiline ? (
+        <textarea ref={ref as React.RefObject<HTMLTextAreaElement>} dir={dir} value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className={cls} />
+      ) : (
+        <input ref={ref as React.RefObject<HTMLInputElement>} dir={dir} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={cls} />
+      )}
+    </div>
+  );
+}
+
+/** Size of a whole text field (English and Arabic): saved as "<field>_size" */
+function FieldSize({ field, content, setContent }: { field: string; content: Record<string, string>; setContent: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  return (
+    <label className="flex items-center gap-2 text-xs text-gray-500">
+      Size of this whole text
+      <select
+        value={content[`${field}_size`] || ""}
+        onChange={(e) => setContent((c) => { const n = { ...c }; if (e.target.value) n[`${field}_size`] = e.target.value; else delete n[`${field}_size`]; return n; })}
+        className="border border-gray-200 rounded px-2 py-1 text-xs bg-white"
+      >
+        <option value="">Normal</option>
+        {TEXT_SIZES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
+      </select>
+    </label>
+  );
+}
 
 type ListKey = "listProducts" | "listBundles" | "listCategories";
 const LIST_KEYS: { key: ListKey; label: string }[] = [
@@ -701,6 +753,27 @@ export default function PagesClient({
                           <input value={content[fieldKey] || ""} onChange={(e) => setContent((c) => ({ ...c, [fieldKey]: e.target.value }))} placeholder="#hex" className="w-32 border border-gray-200 rounded px-3 py-2 text-sm" />
                           {content[fieldKey] && <button type="button" onClick={() => setContent((c) => { const n = { ...c }; delete n[fieldKey]; return n; })} className="text-xs text-gray-400 hover:underline">Reset</button>}
                         </div>
+                      ) : RICH_FIELDS.has(fieldKey) ? (
+                        <div className="space-y-2">
+                          <RichBox
+                            value={content[fieldKey] || ""}
+                            onChange={(v) => setContent((c) => ({ ...c, [fieldKey]: v }))}
+                            multiline={TEXTAREA_FIELDS.has(fieldKey)}
+                            rows={4}
+                            placeholder={fieldKey === "body" ? "Use \\n\\n to separate paragraphs" : ""}
+                          />
+                          {AR_FIELDS.has(fieldKey) && (
+                            <RichBox
+                              dir="rtl"
+                              value={content[fieldKey + "_ar"] || ""}
+                              onChange={(v) => setContent((c) => ({ ...c, [fieldKey + "_ar"]: v }))}
+                              multiline={TEXTAREA_FIELDS.has(fieldKey)}
+                              rows={3}
+                              placeholder="بالعربية (optional)"
+                            />
+                          )}
+                          <FieldSize field={fieldKey} content={content} setContent={setContent} />
+                        </div>
                       ) : TEXTAREA_FIELDS.has(fieldKey) ? (
                         <div className="space-y-2">
                           <textarea value={content[fieldKey] || ""} onChange={(e) => setContent((c) => ({ ...c, [fieldKey]: e.target.value }))} rows={4} placeholder={fieldKey === "body" ? "Use \\n\\n to separate paragraphs" : ""} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
@@ -926,6 +999,17 @@ export default function PagesClient({
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
+                  ) : RICH_FIELDS.has(field) ? (
+                    <div className="space-y-2">
+                      <RichBox
+                        value={content[field] || ""}
+                        onChange={(v) => setContent((c) => ({ ...c, [field]: v }))}
+                        multiline={TEXTAREA_FIELDS.has(field)}
+                        rows={field === "body" ? 5 : 3}
+                        placeholder={field === "body" ? "Use \\n\\n to separate paragraphs" : ""}
+                      />
+                      {!AR_FIELDS.has(field) && <FieldSize field={field} content={content} setContent={setContent} />}
+                    </div>
                   ) : TEXTAREA_FIELDS.has(field) ? (
                     <textarea
                       value={content[field] || ""}
@@ -944,7 +1028,19 @@ export default function PagesClient({
                   {AR_FIELDS.has(field) && (
                     <div className="mt-2">
                       <label className="text-xs text-gray-500 mb-1 block">{FIELD_LABELS[field] || field} — Arabic</label>
-                      {TEXTAREA_FIELDS.has(field) ? (
+                      {RICH_FIELDS.has(field) ? (
+                        <div className="space-y-2">
+                          <RichBox
+                            dir="rtl"
+                            value={content[field + "_ar"] || ""}
+                            onChange={(v) => setContent((c) => ({ ...c, [field + "_ar"]: v }))}
+                            multiline={TEXTAREA_FIELDS.has(field)}
+                            rows={field === "body" ? 5 : 3}
+                            placeholder="بالعربية (optional — English is shown if empty)"
+                          />
+                          <FieldSize field={field} content={content} setContent={setContent} />
+                        </div>
+                      ) : TEXTAREA_FIELDS.has(field) ? (
                         <textarea
                           dir="rtl"
                           value={content[field + "_ar"] || ""}

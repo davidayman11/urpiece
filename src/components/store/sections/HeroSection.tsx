@@ -1,5 +1,7 @@
 "use client";
 
+import RichText from "@/components/RichText";
+import { fieldSizeStyle } from "@/lib/rich";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -85,21 +87,21 @@ export default function HeroSection({ content }: Props) {
           {tagline && (
             <p className="text-[10px] tracking-[0.4em] uppercase text-[#A8975E] mb-7 flex items-center gap-3" style={{ color: content.taglineColor || undefined }}>
               <span className="w-8 h-px bg-[#A8975E]" style={{ backgroundColor: content.taglineColor || undefined }} />
-              {tagline}
+              <RichText text={tagline} style={fieldSizeStyle(content, "tagline")} />
             </p>
           )}
           {heading && (
             <h1 className="font-serif leading-[1.03] text-[#F5EFE2]"
               style={{ fontSize: "clamp(3rem, 7vw, 6rem)", fontWeight: 300, color: content.headingColor || undefined }}>
               {lines.map((line, i) => (
-                <span key={i} className="block">{line}</span>
+                <span key={i} className="block"><RichText text={line} style={fieldSizeStyle(content, "heading")} /></span>
               ))}
             </h1>
           )}
           {subheading && (
             <p className="mt-7 text-[#C4B07A]/90 leading-relaxed max-w-sm font-light"
               style={{ fontSize: "clamp(0.875rem, 1.5vw, 1rem)" }}>
-              {subheading}
+              <RichText text={subheading} style={fieldSizeStyle(content, "subheading")} />
             </p>
           )}
           {(buttonText || secondaryText) && (

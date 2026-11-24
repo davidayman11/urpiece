@@ -1,3 +1,5 @@
+import RichText from "@/components/RichText";
+import { fieldSizeStyle } from "@/lib/rich";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
@@ -48,11 +50,11 @@ export default async function ContactPage() {
         <div className="max-w-2xl mb-12">
           {eyebrow && (
             <p className="text-xs tracking-[0.3em] uppercase text-[#A8975E] mb-4 flex items-center gap-3" style={{ color: c.eyebrowColor || undefined }}>
-              <span className="w-8 h-px bg-current" />{eyebrow}
+              <span className="w-8 h-px bg-current" /><RichText text={eyebrow} style={fieldSizeStyle(c, "eyebrow")} />
             </p>
           )}
           {heading && (
-            <h1 className="font-serif text-5xl md:text-6xl font-light text-[#1C1711] leading-tight" style={{ color: c.headingColor || undefined }}>{heading}</h1>
+            <h1 className="font-serif text-5xl md:text-6xl font-light text-[#1C1711] leading-tight" style={{ color: c.headingColor || undefined }}><RichText text={heading} style={fieldSizeStyle(c, "heading")} /></h1>
           )}
           {intro && <p className="mt-5 text-base text-[#5A5040] leading-relaxed">{intro}</p>}
         </div>
@@ -114,7 +116,7 @@ export default async function ContactPage() {
                   {icon('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>')}
                   <p className="text-xs tracking-widest uppercase text-[#A8975E]"><Txt k="contact.payment.title" /></p>
                 </div>
-                <p className="leading-relaxed">{paymentNote}</p>
+                <p className="leading-relaxed"><RichText text={paymentNote} style={fieldSizeStyle(c, "paymentNote")} /></p>
               </div>
             )}
             {shippingNote && (
@@ -123,7 +125,7 @@ export default async function ContactPage() {
                   {icon('<path d="M1 6h14v10H1z"/><path d="M15 9h4l3 3v4h-7z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>')}
                   <p className="text-xs tracking-widest uppercase text-[#A8975E]"><Txt k="contact.shipping.title" /></p>
                 </div>
-                <p className="leading-relaxed">{shippingNote}</p>
+                <p className="leading-relaxed"><RichText text={shippingNote} style={fieldSizeStyle(c, "shippingNote")} /></p>
               </div>
             )}
           </div>

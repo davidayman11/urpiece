@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { parseSections, type TextDef, type TextSection } from "@/lib/texts/types";
 import { FONT_CATALOG, FONT_CATEGORY_LABELS, TEXT_SIZES, textStyleToCss, type FontCategory, type TextSize, type TextStyle, type TextStyles } from "@/lib/fonts";
 import { hasRich, toggleMarker, type RichKind } from "@/lib/rich";
+import RichToolbar from "@/components/admin/RichToolbar";
 import RichText from "@/components/RichText";
 
 const placeholdersOf = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[0]))];
@@ -52,7 +53,7 @@ function SectionsEditor({ value, onChange }: { value: string; onChange: (json: s
         </div>
       ))}
       <p className="text-[11px] text-gray-400">
-        Tip: put <code className="bg-gray-100 px-1 rounded">**</code> around words for <strong>bold</strong>, <code className="bg-gray-100 px-1 rounded">__</code> for <u>underline</u>, <code className="bg-gray-100 px-1 rounded">&apos;&apos;</code> for <em>italic</em>, <code className="bg-gray-100 px-1 rounded">~~</code> for <s>strikethrough</s>. Example: <code className="bg-gray-100 px-1 rounded">Valid for **1 year**</code>
+        Tip: put <code className="bg-gray-100 px-1 rounded">**</code> around words for <strong>bold</strong>, <code className="bg-gray-100 px-1 rounded">__</code> for <u>underline</u>, <code className="bg-gray-100 px-1 rounded">&apos;&apos;</code> for <em>italic</em>, <code className="bg-gray-100 px-1 rounded">~~</code> for <s>strikethrough</s>, and <code className="bg-gray-100 px-1 rounded">,,</code> <code className="bg-gray-100 px-1 rounded">^^</code> <code className="bg-gray-100 px-1 rounded">%%</code> <code className="bg-gray-100 px-1 rounded">@@</code> for smaller / larger / much larger / huge words. Example: <code className="bg-gray-100 px-1 rounded">Valid for **1 year**</code>
       </p>
       {list.length < 12 && (
         <button type="button" onClick={() => set([...list, { title: "", body: "" }])} className="text-sm text-[#A8975E] hover:underline">
@@ -69,7 +70,9 @@ const BTN_LOOK: Record<string, string> = { bold: "font-bold", italic: "italic", 
 const BTN_LABEL: Record<string, string> = { bold: "B", italic: "I", underline: "U", strike: "S" };
 const BTN_TITLE: Record<string, string> = { bold: "Bold", italic: "Italic", underline: "Underline", strike: "Strikethrough" };
 
-function StyleButton({ kind, on, onClick }: { kind: RichKind; on?: boolean; onClick: () => void }) {
+type StyleKind = "bold" | "italic" | "underline" | "strike";
+
+function StyleButton({ kind, on, onClick }: { kind: StyleKind; on?: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -238,10 +241,8 @@ export default function TextsClient({
                       <div className="mt-2 space-y-2 rounded border border-gray-100 bg-gray-50 p-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[11px] text-gray-500 w-24 shrink-0">Selected words</span>
-                          {(["bold", "italic", "underline", "strike"] as RichKind[]).map((k) => (
-                            <StyleButton key={k} kind={k} onClick={() => formatSelection(d.key, k)} />
-                          ))}
-                          <span className="text-[10px] text-gray-400">Select words above, then click</span>
+                          <RichToolbar onFormat={(k) => formatSelection(d.key, k)} />
+                          <span className="text-[10px] text-gray-400 w-full sm:w-auto">Select words above, then click (works on any single word)</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[11px] text-gray-500 w-24 shrink-0">Whole text</span>
@@ -281,7 +282,7 @@ export default function TextsClient({
                               <button type="button" onClick={() => setStyle(d.key, { color: undefined })} className="text-[10px] hover:underline">default colour</button>
                             )}
                           </label>
-                          {(["bold", "italic", "underline", "strike"] as RichKind[]).map((k) => (
+                          {(["bold", "italic", "underline", "strike"] as StyleKind[]).map((k) => (
                             <StyleButton key={k} kind={k} on={!!styles[d.key]?.[k]} onClick={() => setStyle(d.key, { [k]: !styles[d.key]?.[k] })} />
                           ))}
                           {styles[d.key] && (

@@ -2,24 +2,40 @@
  * Light formatting inside a text, written with simple markers (the admin never has to type them:
  * Site Text has buttons that add them around the selected words):
  *   **bold**   __underline__   ''italic''   ~~strikethrough~~
+ *   sizes: ,,smaller,,   ^^larger^^   %%much larger%%   @@huge@@
  * A marker only counts when it has a matching partner, so a lone "**" stays as typed.
  * Nothing here ever produces HTML: the page builds ordinary React text/spans from the pieces.
  */
 
-export type RichKind = "bold" | "underline" | "italic" | "strike";
-export const RICH_MARKERS: Record<RichKind, string> = { bold: "**", underline: "__", italic: "''", strike: "~~" };
+export type RichKind = "bold" | "underline" | "italic" | "strike" | "sm" | "lg" | "xl" | "xxl";
+export const RICH_MARKERS: Record<RichKind, string> = { bold: "**", underline: "__", italic: "''", strike: "~~", sm: ",,", lg: "^^", xl: "%%", xxl: "@@" };
 const KINDS = Object.keys(RICH_MARKERS) as RichKind[];
+export type RichSize = "sm" | "lg" | "xl" | "xxl";
+const SIZE_KINDS: RichSize[] = ["xxl", "xl", "lg", "sm"]; // if several are on at once, the biggest wins
+/** em size of each per-word size (the same scale as the whole-text sizes in Site Text) */
+export const RICH_SIZE_EM: Record<RichSize, string> = { sm: "0.85em", lg: "1.25em", xl: "1.6em", xxl: "2.2em" };
 
-export interface RichSegment { text: string; bold?: boolean; underline?: boolean; italic?: boolean; strike?: boolean }
+export interface RichSegment { text: string; bold?: boolean; underline?: boolean; italic?: boolean; strike?: boolean; size?: RichSize }
+
+/** Whole-field size chosen in Admin > Pages ("<field>_size" in a section) as CSS, or undefined for normal size. */
+export function fieldSizeStyle(content: Record<string, string> | undefined, field: string): { fontSize: string } | undefined {
+  const v = content?.[`${field}_size`] as RichSize | undefined;
+  return v && RICH_SIZE_EM[v] ? { fontSize: RICH_SIZE_EM[v] } : undefined;
+}
 
 export function parseRich(input: string): RichSegment[] {
   const out: RichSegment[] = [];
-  const on: Record<RichKind, boolean> = { bold: false, underline: false, italic: false, strike: false };
+  const on = Object.fromEntries(KINDS.map((k) => [k, false])) as Record<RichKind, boolean>;
   let buf = "";
   const flush = () => {
     if (!buf) return;
     const seg: RichSegment = { text: buf };
-    for (const k of KINDS) if (on[k]) seg[k] = true;
+    if (on.bold) seg.bold = true;
+    if (on.underline) seg.underline = true;
+    if (on.italic) seg.italic = true;
+    if (on.strike) seg.strike = true;
+    const size = SIZE_KINDS.find((k) => on[k]);
+    if (size) seg.size = size;
     out.push(seg);
     buf = "";
   };
@@ -51,7 +67,7 @@ export function stripRich(input: string): string {
 /** True when the text contains at least one working marker pair. */
 export function hasRich(input: string): boolean {
   const segs = parseRich(input);
-  return segs.some((s) => s.bold || s.underline || s.italic || s.strike);
+  return segs.some((s) => s.bold || s.underline || s.italic || s.strike || s.size);
 }
 
 /**

@@ -1,3 +1,5 @@
+import RichText from "@/components/RichText";
+import { fieldSizeStyle } from "@/lib/rich";
 import Image from "next/image";
 import Link from "next/link";
 import { L } from "@/lib/localize";
@@ -40,17 +42,17 @@ async function CustomBody({ content }: Props) {
       {fields.includes("eyebrow") && content.eyebrow && (
         <p className="text-[10px] tracking-[0.4em] uppercase flex items-center gap-3" style={{ color: "#A8975E" }}>
           <span className="w-6 h-px bg-current" />
-          {L(lang, content.eyebrow, content.eyebrow_ar)}
+          <RichText text={L(lang, content.eyebrow, content.eyebrow_ar)} style={fieldSizeStyle(content, "eyebrow")} />
         </p>
       )}
       {fields.includes("heading") && content.heading && (
         <h2 className="font-serif text-3xl md:text-5xl font-light leading-tight" style={{ color: fg }}>
-          {L(lang, content.heading, content.heading_ar)}
+          <RichText text={L(lang, content.heading, content.heading_ar)} style={fieldSizeStyle(content, "heading")} />
         </h2>
       )}
       {fields.includes("subheading") && content.subheading && (
         <p className="text-lg font-light" style={{ color: fg, opacity: 0.75 }}>
-          {L(lang, content.subheading, content.subheading_ar)}
+          <RichText text={L(lang, content.subheading, content.subheading_ar)} style={fieldSizeStyle(content, "subheading")} />
         </p>
       )}
       {fields.includes("body") && content.body && (
@@ -59,14 +61,14 @@ async function CustomBody({ content }: Props) {
             .split(/\n\n+/)
             .map((p, i) => (
               <p key={i} className="text-sm leading-relaxed" style={{ color: fg, opacity: 0.8 }}>
-                {p}
+                <RichText text={p} style={fieldSizeStyle(content, "body")} />
               </p>
             ))}
         </div>
       )}
       {fields.includes("quote") && content.quote && (
         <blockquote className="border-l-2 pl-4 italic text-base" style={{ borderColor: "#A8975E", color: fg, opacity: 0.75 }}>
-          {L(lang, content.quote, content.quote_ar)}
+          <RichText text={L(lang, content.quote, content.quote_ar)} style={fieldSizeStyle(content, "quote")} />
         </blockquote>
       )}
       {fields.includes("button") && content.buttonText && content.buttonUrl && (

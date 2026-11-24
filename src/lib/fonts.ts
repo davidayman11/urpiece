@@ -109,11 +109,12 @@ export interface AreaFonts { heading?: string; body?: string }
 export interface FontConfig { areas: Record<string, AreaFonts> }
 
 /** Formatting of one individual text (set in Admin > Site Text). */
-export type TextSize = "sm" | "lg" | "xl";
+export type TextSize = "sm" | "lg" | "xl" | "xxl";
 export const TEXT_SIZES: { value: TextSize; label: string; em: string }[] = [
   { value: "sm", label: "Smaller", em: "0.85em" },
   { value: "lg", label: "Larger", em: "1.25em" },
   { value: "xl", label: "Much larger", em: "1.6em" },
+  { value: "xxl", label: "Huge", em: "2.2em" },
 ];
 export interface TextStyle { font?: string; bold?: boolean; italic?: boolean; underline?: boolean; strike?: boolean; size?: TextSize; color?: string }
 export type TextStyles = Record<string, TextStyle>;

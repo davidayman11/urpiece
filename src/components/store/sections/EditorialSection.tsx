@@ -1,3 +1,5 @@
+import RichText from "@/components/RichText";
+import { fieldSizeStyle, stripRich } from "@/lib/rich";
 import Image from "next/image";
 import Link from "next/link";
 import { getLang } from "@/lib/lang-server";
@@ -23,7 +25,7 @@ export default async function EditorialSection({ content }: Props) {
           {content.image ? (
             <Image
               src={content.image}
-              alt={heading}
+              alt={stripRich(heading)}
               fill
               className="object-cover"
             />
@@ -39,17 +41,17 @@ export default async function EditorialSection({ content }: Props) {
         >
           {eyebrow && (
             <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-5" style={{ color: content.eyebrowColor || undefined }}>
-              {eyebrow}
+              <RichText text={eyebrow} style={fieldSizeStyle(content, "eyebrow")} />
             </p>
           )}
           <h2 className="font-serif text-3xl md:text-5xl font-light text-[#F5EFE2] leading-tight mb-6" style={{ color: content.headingColor || undefined }}>
             {heading.split("\n").map((line, i) => (
-              <span key={i} className="block">{line}</span>
+              <span key={i} className="block"><RichText text={line} style={fieldSizeStyle(content, "heading")} /></span>
             ))}
           </h2>
           {body && (
             <p className="text-sm text-[#8A7E6E] leading-relaxed mb-8 max-w-sm">
-              {body}
+              <RichText text={body} style={fieldSizeStyle(content, "body")} />
             </p>
           )}
           {buttonText && content.buttonUrl && (
