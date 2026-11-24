@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   const [appliedCode, setAppliedCode] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [shotError, setShotError] = useState(false);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [customerNote, setCustomerNote] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -191,7 +192,8 @@ export default function CheckoutPage() {
   };
 
   const submitOrder = async () => {
-    if (!screenshotFile) return;
+    // a payment screenshot is required: go back to the payment step and say so
+    if (!screenshotFile) { setShotError(true); setStep("payment"); return; }
     setLoading(true);
     try {
       const fd = new FormData();
@@ -637,9 +639,10 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs tracking-widest uppercase text-[#5A5040] mb-2 block">
-                    <Txt k="checkout.payment.uploadLabel" />
+                  <label className="text-xs tracking-widest uppercase text-[#5A5040] mb-1 block">
+                    <Txt k="checkout.payment.uploadLabel" /> <span className="text-[#B23A3A]" aria-hidden="true">*</span>
                   </label>
+                  <p className="text-[11px] text-[#8A7E6E] mb-2"><Txt k="checkout.payment.uploadRequired" /></p>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -648,10 +651,14 @@ export default function CheckoutPage() {
                       if (!f) return;
                       if (f.size > 5 * 1024 * 1024) return alert(t("checkout.err.maxFileSize"));
                       setScreenshotFile(f);
+                      setShotError(false);
                       setScreenshotPreview(URL.createObjectURL(f));
                     }}
-                    className="w-full border border-dashed border-[#A8975E] bg-white/60 p-5 text-xs text-[#5A5040] cursor-pointer hover:border-[#8A7A4A] transition-colors file:mr-4 file:border-0 file:bg-[#1C1711] file:text-[#F5EFE2] file:px-4 file:py-2 file:text-[10px] file:tracking-[0.2em] file:uppercase file:cursor-pointer hover:file:bg-[#5A5040]"
+                    aria-required="true"
+                    aria-invalid={shotError}
+                    className={`w-full border border-dashed ${shotError ? "border-[#B23A3A] bg-[#B23A3A]/5" : "border-[#A8975E] bg-white/60"} p-5 text-xs text-[#5A5040] cursor-pointer hover:border-[#8A7A4A] transition-colors file:mr-4 file:border-0 file:bg-[#1C1711] file:text-[#F5EFE2] file:px-4 file:py-2 file:text-[10px] file:tracking-[0.2em] file:uppercase file:cursor-pointer hover:file:bg-[#5A5040]`}
                   />
+                  {shotError && <p role="alert" className="mt-2 text-xs text-[#B23A3A]"><Txt k="checkout.err.uploadScreenshot" /></p>}
                   {screenshotPreview && (
                     <div className="mt-3 relative w-full h-48">
                       <Image src={screenshotPreview} alt={t("checkout.payment.screenshotAlt")} fill className="object-contain" />
@@ -668,10 +675,11 @@ export default function CheckoutPage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (!screenshotFile) return alert(t("checkout.err.uploadScreenshot"));
+                      if (!screenshotFile) { setShotError(true); return; }
                       setStep("confirm");
                     }}
-                    className="flex-1 bg-[#A8975E] text-[#F5EFE2] py-3 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors"
+                    aria-disabled={!screenshotFile}
+                    className={`flex-1 bg-[#A8975E] text-[#F5EFE2] py-3 text-xs tracking-widest uppercase transition-colors ${screenshotFile ? "hover:bg-[#8A7A4A]" : "opacity-50 cursor-not-allowed"}`}
                   >
                     <Txt k="checkout.payment.reviewButton" />
                   </button>

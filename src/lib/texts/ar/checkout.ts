@@ -89,6 +89,7 @@ export const arCheckout: Record<string, string> = {
   "checkout.err.email": "أدخل بريدًا إلكترونيًا صحيحًا",
   "checkout.err.phone": "أدخل رقم هاتف صحيحًا",
   "checkout.err.maxFileSize": "الحد الأقصى لحجم الملف 5 ميجابايت",
+  "checkout.payment.uploadRequired": "مطلوب: يجب إضافة صورة إثبات الدفع لإتمام طلبك.",
   "checkout.err.uploadScreenshot": "من فضلك ارفع صورة التحويل",
   "checkout.err.orderFailed": "تعذّر إتمام الطلب",
   "checkout.msg.signIn": "من فضلك سجّل الدخول لإتمام الطلب",

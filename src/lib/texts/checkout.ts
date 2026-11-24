@@ -90,6 +90,7 @@ export const checkoutTexts: TextDef[] = [
   { key: "checkout.err.email", group: "Checkout — messages", label: "Checkout — invalid email error", default: "Enter a valid email address" },
   { key: "checkout.err.phone", group: "Checkout — messages", label: "Checkout — invalid phone error", default: "Enter a valid phone number" },
   { key: "checkout.err.maxFileSize", group: "Checkout — messages", label: "Checkout — file too large alert", default: "Max file size is 5MB" },
+  { key: "checkout.payment.uploadRequired", group: "Checkout", label: "Checkout — note under the screenshot upload title", default: "Required: you need to add your payment screenshot to complete your order." },
   { key: "checkout.err.uploadScreenshot", group: "Checkout — messages", label: "Checkout — missing screenshot alert", default: "Please upload your payment screenshot" },
   { key: "checkout.err.orderFailed", group: "Checkout — messages", label: "Checkout — order failed alert", default: "Order failed" },
   { key: "checkout.msg.signIn", group: "Checkout — messages", label: "Order — not signed in", default: "Please sign in to place an order" },
