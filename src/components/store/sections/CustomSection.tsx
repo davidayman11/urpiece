@@ -46,8 +46,14 @@ async function CustomBody({ content }: Props) {
     !["eyebrow", "heading", "subheading", "quote", "button"].some((f) => fields.includes(f) && (content[f] || content[`${f}Text`])) &&
     !fields.some((f) => f.startsWith("list"));
   const spacing = content.spacing || "auto";
-  const pad =
-    spacing === "compact" || (spacing === "auto" && onlyShortText) ? "py-8 md:py-10"
+  // an exact space in pixels (typed in the admin) wins over the named sizes
+  const exact = Number(content.spacingPx);
+  const hasExact = content.spacingPx !== undefined && content.spacingPx !== "" && Number.isFinite(exact) && exact >= 0;
+  const padStyle = hasExact ? { paddingTop: Math.min(400, exact), paddingBottom: Math.min(400, exact) } : undefined;
+  const pad = hasExact ? ""
+    : spacing === "none" ? "py-0"
+    : spacing === "tight" || (spacing === "auto" && onlyShortText) ? "py-4 md:py-5"
+    : spacing === "compact" ? "py-8 md:py-10"
     : spacing === "spacious" ? "py-28 md:py-40"
     : "py-20 md:py-28";
 
@@ -116,7 +122,7 @@ async function CustomBody({ content }: Props) {
   if (isSplit) {
     const imgFirst = layout === "image-left";
     return (
-      <section style={{ background: bg }} className={pad}>
+      <section style={{ background: bg, ...padStyle }} className={pad}>
         <div className={`max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center ${imgFirst ? "" : "md:grid-flow-dense"}`}>
           {hasImage && (
             <div className={`relative aspect-[4/5] overflow-hidden rounded-sm ${imgFirst ? "" : "md:col-start-2"}`}>
@@ -133,7 +139,7 @@ async function CustomBody({ content }: Props) {
 
   // Centered (default)
   return (
-    <section style={{ background: bg }} className={pad}>
+    <section style={{ background: bg, ...padStyle }} className={pad}>
       <div className="max-w-3xl mx-auto px-6 text-center space-y-8" style={{ color: fg }}>
         {hasImage && (
           <div className="relative aspect-video max-w-xl mx-auto overflow-hidden rounded-sm">
