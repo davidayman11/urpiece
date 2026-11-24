@@ -7,7 +7,9 @@ import { getCustomer } from "@/lib/customer-auth";
 export async function POST(req: NextRequest) {
   const t = await getT();
   try {
-    const { items, promoCode, city, governorate } = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") return NextResponse.json({ error: t("checkout.msg.invalidCart") }, { status: 400 });
+    const { items, promoCode, city, governorate } = body;
     const quote = await quoteOrder({
       items: Array.isArray(items) ? items : [],
       promoCode,

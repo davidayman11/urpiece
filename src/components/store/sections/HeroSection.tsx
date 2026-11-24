@@ -71,7 +71,7 @@ export default function HeroSection({ content }: Props) {
             const a = (i * 15 * Math.PI) / 180;
             return (
               <line key={i} x1="300" y1="300"
-                x2={300 + Math.cos(a) * 290} y2={300 + Math.sin(a) * 290}
+                x2={(300 + Math.cos(a) * 290).toFixed(2)} y2={(300 + Math.sin(a) * 290).toFixed(2)}
                 stroke="#A8975E" strokeWidth="0.8" />
             );
           })}

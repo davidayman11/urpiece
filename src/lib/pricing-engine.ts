@@ -137,7 +137,10 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
   const byId = new Map(variants.map((v) => [v.id, v]));
   type Pack = { id: string; name: string; nameEn: string; price: number; freeAbove: number | null };
   type BaseLine = { v: (typeof variants)[number]; quantity: number; fixedUnit?: number; bundleName?: string; packs: Pack[] };
-  const idsOf = (i: QuoteItemInput) => [...new Set((i.packagingIds ?? (i.packagingId ? [i.packagingId] : [])).filter((x) => typeof x === "string" && x))];
+  const idsOf = (i: QuoteItemInput) => {
+    const raw = Array.isArray(i.packagingIds) ? i.packagingIds : i.packagingId ? [i.packagingId] : [];
+    return [...new Set(raw.filter((x) => typeof x === "string" && x))];
+  };
   const packIds = [...new Set(input.items.filter((i) => !i.bundleId).flatMap(idsOf))];
   const packs = packIds.length ? await prisma.packagingOption.findMany({ where: { id: { in: packIds }, isActive: true } }) : [];
   const baseLines: BaseLine[] = [];

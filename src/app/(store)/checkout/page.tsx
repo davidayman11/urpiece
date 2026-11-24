@@ -73,8 +73,16 @@ export default function CheckoutPage() {
   // With governorates, a customer whose city isn't listed picks "Other" and types it
   const otherSelected = adminDriven && (cityOther || (!!form.city && !cityOptions.includes(form.city)));
 
+  // The saved cart is read from the browser a moment after the page opens. Only send an empty cart back to
+  // the cart page once it has loaded, otherwise refreshing or opening /checkout directly bounced you away.
+  const [cartReady, setCartReady] = useState(false);
   useEffect(() => {
-    if (items.length === 0) router.push("/cart");
+    const id = requestAnimationFrame(() => setCartReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    if (cartReady && items.length === 0) router.push("/cart");
     fetch("/api/settings/payment").then((r) => r.json()).then(setPaySettings).catch(() => {});
     fetch("/api/shipping")
       .then((r) => r.json())
@@ -92,7 +100,7 @@ export default function CheckoutPage() {
         });
       })
       .catch(() => {});
-  }, [items, router]);
+  }, [items, router, cartReady]);
 
   const applyAddress = (a: SavedAddress) => {
     setSelectedAddr(a.id);
