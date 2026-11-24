@@ -1,23 +1,29 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const hash = await bcrypt.hash("admin123", 10);
+  // No password is stored in the code (this repository is public).
+  // Set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD, or a random password is created and printed once below.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@urpiece.com";
+  const generated = !process.env.SEED_ADMIN_PASSWORD;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || randomBytes(12).toString("base64url");
+  const hash = await bcrypt.hash(adminPassword, 10);
 
   await prisma.adminUser.upsert({
-    where: { email: "admin@urpiece.com" },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: "admin@urpiece.com",
+      email: adminEmail,
       password: hash,
       name: "Admin",
       role: "ADMIN",
     },
   });
 
-  console.log("✓ Admin user: admin@urpiece.com / admin123");
+  console.log(`✓ Admin user: ${adminEmail}${generated ? ` / password (shown once, save it): ${adminPassword}` : " (password from SEED_ADMIN_PASSWORD)"}`);
 
   // Seed default payment settings
   const existing = await prisma.paymentSettings.findFirst();
