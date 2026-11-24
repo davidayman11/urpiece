@@ -101,6 +101,7 @@ const CUSTOM_FIELD_OPTIONS: { key: string; label: string }[] = [
   { key: "listCategories", label: "Categories list (choose which)" },
   { key: "font", label: "Font" },
   { key: "fontSize", label: "Text size (whole section)" },
+  { key: "spacing", label: "Spacing (space above and below)" },
   { key: "bgColor", label: "Background Color" },
   { key: "textColor", label: "Text Color" },
 ];
@@ -789,6 +790,20 @@ export default function PagesClient({
                         <ListBlock fieldKey={fieldKey} content={content} setContent={setContent} products={products} bundleOpts={bundleOpts} categories={categories} />
                       ) : fieldKey === "font" ? (
                         <FontSelect content={content} setContent={setContent} />
+                      ) : fieldKey === "spacing" ? (
+                        <div className="space-y-1">
+                          <select
+                            value={content.spacing || "auto"}
+                            onChange={(e) => setContent((c) => ({ ...c, spacing: e.target.value }))}
+                            className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white"
+                          >
+                            <option value="auto">Automatic (tight for a short text, roomy otherwise)</option>
+                            <option value="compact">Compact: little space</option>
+                            <option value="normal">Normal</option>
+                            <option value="spacious">Spacious: lots of space</option>
+                          </select>
+                          <p className="text-[11px] text-gray-400">The empty space above and below this section.</p>
+                        </div>
                       ) : fieldKey === "fontSize" ? (
                         <SectionSize content={content} setContent={setContent} />
                       ) : fieldKey === "button" ? (

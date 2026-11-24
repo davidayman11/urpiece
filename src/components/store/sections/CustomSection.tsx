@@ -22,7 +22,7 @@ export default async function CustomSection({ content }: Props) {
   return (
     <FontScope content={content}>
       {body}
-      <section style={{ background: content.bgColor || "#F5EFE2" }} className="pb-20 md:pb-28 -mt-8 md:-mt-12">{lists}</section>
+      <section style={{ background: content.bgColor || "transparent" }} className="pb-20 md:pb-28 -mt-8 md:-mt-12">{lists}</section>
     </FontScope>
   );
 }
@@ -31,12 +31,25 @@ async function CustomBody({ content }: Props) {
   const lang = await getLang();
   const fields = parseFields(content._fields);
   const layout = content._layout || "centered";
-  const bg = content.bgColor || "#F5EFE2";
+  // no colour chosen = the page's own background, so the section blends in
+  const bg = content.bgColor || "transparent";
   const fg = content.textColor || "#1C1711";
 
   const hasImage = fields.includes("image") && content.image;
   const isSplit = layout === "image-right" || layout === "image-left";
   const isFullImage = layout === "full-image";
+
+  // Space above and below. "Automatic" keeps a section that is just a short line of text tight,
+  // instead of a tall empty band.
+  const onlyShortText =
+    !hasImage &&
+    !["eyebrow", "heading", "subheading", "quote", "button"].some((f) => fields.includes(f) && (content[f] || content[`${f}Text`])) &&
+    !fields.some((f) => f.startsWith("list"));
+  const spacing = content.spacing || "auto";
+  const pad =
+    spacing === "compact" || (spacing === "auto" && onlyShortText) ? "py-8 md:py-10"
+    : spacing === "spacious" ? "py-28 md:py-40"
+    : "py-20 md:py-28";
 
   const TextBlock = () => (
     <div className="space-y-5">
@@ -103,7 +116,7 @@ async function CustomBody({ content }: Props) {
   if (isSplit) {
     const imgFirst = layout === "image-left";
     return (
-      <section style={{ background: bg }} className="py-20 md:py-28">
+      <section style={{ background: bg }} className={pad}>
         <div className={`max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center ${imgFirst ? "" : "md:grid-flow-dense"}`}>
           {hasImage && (
             <div className={`relative aspect-[4/5] overflow-hidden rounded-sm ${imgFirst ? "" : "md:col-start-2"}`}>
@@ -120,7 +133,7 @@ async function CustomBody({ content }: Props) {
 
   // Centered (default)
   return (
-    <section style={{ background: bg }} className="py-20 md:py-28">
+    <section style={{ background: bg }} className={pad}>
       <div className="max-w-3xl mx-auto px-6 text-center space-y-8" style={{ color: fg }}>
         {hasImage && (
           <div className="relative aspect-video max-w-xl mx-auto overflow-hidden rounded-sm">
