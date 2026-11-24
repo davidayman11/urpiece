@@ -69,6 +69,8 @@ export default async function ShopPage({ searchParams }: Props) {
         </div>
       </div>
 
+      {selectedCategory ? <PageSections page="category" targetId={selectedCategory.id} position="top" /> : <PageSections page="shop" position="top" />}
+
       <div className="max-w-7xl mx-auto px-6 pt-10 pb-24">
         {/* Filters (horizontal pill row) */}
         <ShopFilters categories={categories as Category[]} selected={category} sort={sort} />
@@ -95,7 +97,7 @@ export default async function ShopPage({ searchParams }: Props) {
           </div>
         )}
       </div>
-      {selectedCategory ? <PageSections page="category" targetId={selectedCategory.id} /> : <PageSections page="shop" />}
+      {selectedCategory ? <PageSections page="category" targetId={selectedCategory.id} position="bottom" /> : <PageSections page="shop" position="bottom" />}
     </div>
   );
 }

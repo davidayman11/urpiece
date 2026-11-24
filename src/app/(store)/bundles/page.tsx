@@ -22,6 +22,7 @@ export default async function BundlesPage() {
 
   return (
     <div data-font-area="bundles" className="pt-28 pb-24 min-h-screen">
+      <PageSections page="bundles" position="top" />
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
           <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3"><Txt k="bundle.list.eyebrow" /></p>
@@ -36,7 +37,7 @@ export default async function BundlesPage() {
           </div>
         )}
       </div>
-      <PageSections page="bundles" />
+      <PageSections page="bundles" position="bottom" />
     </div>
   );
 }

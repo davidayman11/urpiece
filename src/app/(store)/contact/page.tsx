@@ -46,6 +46,7 @@ export default async function ContactPage() {
 
   return (
     <div data-font-area="contact" className="pt-28 pb-24 min-h-screen">
+      <PageSections page="contact" position="top" />
       <FontScope content={c}>
       <div className="max-w-5xl mx-auto px-6">
         {/* Header */}
@@ -135,7 +136,7 @@ export default async function ContactPage() {
       </div>
       </FontScope>
       <SectionLists section={section} />
-      <PageSections page="contact" />
+      <PageSections page="contact" position="bottom" />
     </div>
   );
 }

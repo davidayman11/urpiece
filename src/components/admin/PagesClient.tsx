@@ -433,8 +433,8 @@ function ListBlock({
 }
 
 export default function PagesClient({
-  sections: initial, categories = [], products = [], bundleOpts = [], homeOrdered = false,
-}: { homeOrdered?: boolean; sections: SiteSection[]; categories?: Opt[]; products?: Opt[]; bundleOpts?: { id: string; name: string; isActive: boolean }[] }) {
+  sections: initial, categories = [], products = [], bundleOpts = [], orderedPages = [],
+}: { orderedPages?: string[]; sections: SiteSection[]; categories?: Opt[]; products?: Opt[]; bundleOpts?: { id: string; name: string; isActive: boolean }[] }) {
   const router = useRouter();
   const sections = initial; // latest data from the server (updates after router.refresh())
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
@@ -459,7 +459,7 @@ export default function PagesClient({
     const res = await fetch("/api/admin/sections/order", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pageSlug: "home", ids }),
+      body: JSON.stringify({ pageSlug: activeTab, ids }),
     });
     setOrdering(false);
     if (res.ok) router.refresh(); else alert("Could not save the order");
@@ -489,6 +489,8 @@ export default function PagesClient({
     ...(EXTRA_ONLY_PAGES.includes(slug) ? [SECTION_TYPES.find((t) => t.type === "custom")!] : []),
     ...SECTION_TYPES.filter((t) => t.page === slug && t.type !== "custom" && t.type !== "reviews"),
     ...(["home", "about", "contact", ...EXTRA_ONLY_PAGES].includes(slug) ? [SECTION_TYPES.find((t) => t.type === "reviews")!] : []),
+    // a scrolling strip can go on every page (on the home page it is already in the list)
+    ...(slug !== "home" && slug !== "site" ? [SECTION_TYPES.find((t) => t.type === "marquee")!] : []),
     ...(EXTRA_ONLY_PAGES.includes(slug) ? [] : [SECTION_TYPES.find((t) => t.type === "custom")!]),
   ];
 
@@ -597,6 +599,12 @@ export default function PagesClient({
 
   const currentTypeDef = SECTION_TYPES.find((t) => t.type === sectionType);
   const tabSections = sections.filter((s) => s.pageSlug === activeTab);
+  // the main block of the About / Contact pages always stays where it is; every other section can be moved
+  const isMain = (s: { type: string }) => s.type === "about" || s.type === "contact";
+  const movable = tabSections.filter((s) => !isMain(s));
+  const canOrder = activeTab !== "site" && movable.length > 1;
+  const orderSaved = orderedPages.includes(activeTab);
+  const onPageWithPosition = ["about", "contact", "shop", "category", "bundles", "product"].includes(activeTab);
 
   return (
     <div className="space-y-6">
@@ -633,15 +641,17 @@ export default function PagesClient({
             <p>No sections yet for this page. Click <strong>+ Add Section</strong> to get started.</p>
           </div>
         )}
-        {activeTab === "home" && tabSections.length > 1 && (
+        {canOrder && (
           <div className="flex items-center justify-between gap-3 flex-wrap text-xs text-gray-500 bg-white rounded-lg border border-gray-100 px-4 py-3">
             <span>
-              Use the <b>↑ ↓</b> arrows to put the sections in the order you want on the home page, from top to bottom.
-              {homeOrdered ? " Your order is saved." : " Until you move one, the site keeps its usual layout."}
+              Use the <b>↑ ↓</b> arrows to put the sections in the order you want, from top to bottom.
+              {activeTab === "home"
+                ? (orderSaved ? " Your order is saved." : " Until you move one, the site keeps its usual layout.")
+                : onPageWithPosition ? " Sections set to the top and to the bottom are ordered separately." : ""}
             </span>
-            {homeOrdered && (
-              <button type="button" disabled={ordering} onClick={() => { if (confirm("Go back to the usual home page layout?")) saveOrder([]); }} className="text-gray-500 hover:text-gray-800 underline disabled:opacity-50">
-                Reset to the usual layout
+            {orderSaved && (
+              <button type="button" disabled={ordering} onClick={() => { if (confirm("Go back to the usual order?")) saveOrder([]); }} className="text-gray-500 hover:text-gray-800 underline disabled:opacity-50">
+                Reset to the usual order
               </button>
             )}
           </div>
@@ -650,11 +660,11 @@ export default function PagesClient({
           const c = parseJson<Record<string, string>>(s.content, {});
           return (
             <div key={s.id} className={`bg-white rounded-lg border p-4 flex items-center gap-4 ${s.isVisible ? "border-gray-100" : "border-gray-100 opacity-60"}`}>
-              {activeTab === "home" && tabSections.length > 1 ? (
+              {canOrder && !isMain(s) ? (
                 <div className="flex flex-col items-center gap-0.5 shrink-0">
-                  <button type="button" disabled={ordering || idx === 0} onClick={() => move(tabSections.map((x) => x.id), idx, idx - 1)} aria-label="Move up" title="Move up" className="w-7 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs">↑</button>
-                  <span className="text-[10px] text-gray-400 tabular-nums">{idx + 1}</span>
-                  <button type="button" disabled={ordering || idx === tabSections.length - 1} onClick={() => move(tabSections.map((x) => x.id), idx, idx + 1)} aria-label="Move down" title="Move down" className="w-7 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs">↓</button>
+                  <button type="button" disabled={ordering || movable.findIndex((x) => x.id === s.id) === 0} onClick={() => { const i = movable.findIndex((x) => x.id === s.id); move(movable.map((x) => x.id), i, i - 1); }} aria-label="Move up" title="Move up" className="w-7 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs">↑</button>
+                  <span className="text-[10px] text-gray-400 tabular-nums">{movable.findIndex((x) => x.id === s.id) + 1}</span>
+                  <button type="button" disabled={ordering || movable.findIndex((x) => x.id === s.id) === movable.length - 1} onClick={() => { const i = movable.findIndex((x) => x.id === s.id); move(movable.map((x) => x.id), i, i + 1); }} aria-label="Move down" title="Move down" className="w-7 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs">↓</button>
                 </div>
               ) : (
                 <div className="w-2 h-10 rounded bg-[#A8975E]/30" />
@@ -670,6 +680,9 @@ export default function PagesClient({
                   <span className={`text-xs px-2 py-0.5 rounded-full ${s.isVisible ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                     {s.isVisible ? "Visible" : "Hidden"}
                   </span>
+                  {["about", "contact", "shop", "category", "bundles", "product"].includes(s.pageSlug) && !isMain(s) && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">{c._position === "top" ? "Above the page" : "Below the page"}</span>
+                  )}
                   {(s.pageSlug === "category" || s.pageSlug === "product") && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
                       {c._target === "selected"
@@ -858,6 +871,7 @@ export default function PagesClient({
 
               {sectionType !== "custom" && currentTypeDef?.fields.map((field) => {
                 if (field === "scrollSeconds" && sectionType === "categories" && content.layoutMode !== "auto") return null;
+                if (field === "position" && sectionType === "marquee" && pageSlug !== "home") return null;
                 if (field === "bundleIds" && (content.bundleMode || "all") !== "selected") return null;
                 if (field === "bundleLimit" && (content.bundleMode || "all") === "selected") return null;
                 if (field === "productIds" && (content.productMode || "featured") !== "selected") return null;
@@ -1121,6 +1135,21 @@ export default function PagesClient({
                   <FontSelect content={content} setContent={setContent} />
                   <p className="text-xs font-medium text-gray-700 pt-2">Text size for this section (optional)</p>
                   <SectionSize content={content} setContent={setContent} />
+                </div>
+              )}
+
+              {/* Other pages: above or below the page's own content */}
+              {["about", "contact", "shop", "category", "bundles", "product"].includes(pageSlug) && sectionType !== "about" && sectionType !== "contact" && (
+                <div className="border-t border-gray-100 pt-4 space-y-2">
+                  <p className="text-xs font-medium text-gray-700">Where on the page?</p>
+                  <select
+                    value={content._position === "top" ? "top" : "bottom"}
+                    onChange={(e) => setContent((c) => ({ ...c, _position: e.target.value }))}
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                  >
+                    <option value="bottom">Below the page content (at the bottom)</option>
+                    <option value="top">Above the page content (at the top)</option>
+                  </select>
                 </div>
               )}
 

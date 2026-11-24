@@ -16,14 +16,20 @@ export default async function PagesAdminPage() {
   const all = await prisma.siteSection.findMany({
     orderBy: [{ pageSlug: "asc" }, { sortOrder: "asc" }],
   });
-  // The home page shows its sections in the saved order (or the default layout until you order them)
-  const savedHome = await getSavedOrder("home");
-  const homeOrdered = applyOrder(all.filter((s) => s.pageSlug === "home"), savedHome);
-  const sections = [...homeOrdered, ...all.filter((s) => s.pageSlug !== "home")];
+  // Every page shows its sections in the saved order (or the usual order until you move one)
+  const slugs = [...new Set(all.map((s) => s.pageSlug))];
+  const sections: typeof all = [];
+  const orderedPages: string[] = [];
+  for (const slug of slugs) {
+    const rows = all.filter((s) => s.pageSlug === slug);
+    const saved = await getSavedOrder(slug);
+    if (saved) orderedPages.push(slug);
+    sections.push(...(slug === "home" ? applyOrder(rows, saved) : applyOrder(rows, saved, false)));
+  }
   const [categories, products, bundleOpts] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true, isActive: true } }),
     prisma.product.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, name: true, isActive: true, isFeatured: true } }),
     prisma.bundle.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, name: true, isActive: true } }),
   ]);
-  return <AdminLayout><PagesClient homeOrdered={!!savedHome} sections={sections} categories={categories} products={products} bundleOpts={bundleOpts} /></AdminLayout>;
+  return <AdminLayout><PagesClient orderedPages={orderedPages} sections={sections} categories={categories} products={products} bundleOpts={bundleOpts} /></AdminLayout>;
 }

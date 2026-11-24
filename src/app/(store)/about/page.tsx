@@ -27,6 +27,7 @@ export default async function AboutPage() {
 
   return (
     <div data-font-area="about" className="pt-28 pb-24 min-h-screen">
+      <PageSections page="about" position="top" />
       <FontScope content={c}>
       <div className="max-w-2xl mx-auto px-6">
         {eyebrow && (
@@ -46,7 +47,7 @@ export default async function AboutPage() {
       </div>
       </FontScope>
       <SectionLists section={section} />
-      <PageSections page="about" />
+      <PageSections page="about" position="bottom" />
     </div>
   );
 }

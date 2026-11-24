@@ -70,6 +70,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div data-font-area="product" className="pt-20 pb-24 bg-[#F5EFE2]">
+      <PageSections page="product" targetId={product.id} position="top" />
       <div className="max-w-7xl mx-auto px-6">
         <VariantSelectionProvider initialVariantId={product.variants[0]?.id || ""}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
@@ -137,7 +138,7 @@ export default async function ProductPage({ params }: Props) {
         </div>
         </VariantSelectionProvider>
       </div>
-      <PageSections page="product" targetId={product.id} />
+      <PageSections page="product" targetId={product.id} position="bottom" />
     </div>
   );
 }

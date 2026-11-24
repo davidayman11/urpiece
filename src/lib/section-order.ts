@@ -48,10 +48,12 @@ export function defaultOrder<T extends Sec>(sections: T[]): T[] {
 }
 
 /** Sections in the saved order; sections added later (not in the saved list) go at the end. */
-export function applyOrder<T extends Sec>(sections: T[], saved: string[] | null): T[] {
-  if (!saved) return defaultOrder(sections);
+export function applyOrder<T extends Sec>(sections: T[], saved: string[] | null, groupByType = true): T[] {
+  // only the home page has a built-in layout; other pages keep the Sort Order they already have
+  const fallback = (rows: T[]) => (groupByType ? defaultOrder(rows) : rows);
+  if (!saved) return fallback(sections);
   const byId = new Map(sections.map((s) => [s.id, s]));
   const listed = saved.map((id) => byId.get(id)).filter((s): s is T => !!s);
   const inList = new Set(listed.map((s) => s.id));
-  return [...listed, ...defaultOrder(sections.filter((s) => !inList.has(s.id)))];
+  return [...listed, ...fallback(sections.filter((s) => !inList.has(s.id)))];
 }
