@@ -42,6 +42,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     },
   });
 
+  // Variants removed in the editor: delete them (past orders keep their own copy of the name/price)
+  const keepIds = variants.map((v: { id?: string }) => v.id).filter(Boolean) as string[];
+  const removed = !Array.isArray(variants) || variants.length === 0 ? [] : await prisma.variant.findMany({ where: { productId: id, id: { notIn: keepIds } }, select: { id: true } });
+  for (const r of removed) {
+    try {
+      await prisma.variant.delete({ where: { id: r.id } });
+    } catch {
+      // cannot be deleted (still referenced somewhere) -> hide it instead
+      await prisma.variant.update({ where: { id: r.id }, data: { isActive: false } });
+    }
+  }
+
   // Handle variants: upsert each
   for (const v of variants) {
     if (v.id) {
