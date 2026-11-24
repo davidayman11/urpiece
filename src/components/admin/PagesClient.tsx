@@ -267,8 +267,8 @@ function PickerList({
 type Opt = { id: string; name: string; isActive: boolean; isFeatured?: boolean };
 
 export default function PagesClient({
-  sections: initial, categories = [], products = [], bundleOpts = [],
-}: { sections: SiteSection[]; categories?: Opt[]; products?: Opt[]; bundleOpts?: { id: string; name: string; isActive: boolean }[] }) {
+  sections: initial, categories = [], products = [], bundleOpts = [], homeOrdered = false,
+}: { homeOrdered?: boolean; sections: SiteSection[]; categories?: Opt[]; products?: Opt[]; bundleOpts?: { id: string; name: string; isActive: boolean }[] }) {
   const router = useRouter();
   const sections = initial; // latest data from the server (updates after router.refresh())
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
@@ -282,6 +282,26 @@ export default function PagesClient({
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [customFields, setCustomFields] = useState<string[]>([]);
+  const [ordering, setOrdering] = useState(false);
+
+  // Home sections: move one up or down, then save the whole order
+  const saveOrder = async (ids: string[]) => {
+    setOrdering(true);
+    const res = await fetch("/api/admin/sections/order", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pageSlug: "home", ids }),
+    });
+    setOrdering(false);
+    if (res.ok) router.refresh(); else alert("Could not save the order");
+  };
+  const move = (ids: string[], from: number, to: number) => {
+    if (to < 0 || to >= ids.length) return;
+    const next = [...ids];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    saveOrder(next);
+  };
 
   const uploadImage = async (file: File, field: string) => {
     setUploading(true);
@@ -432,11 +452,32 @@ export default function PagesClient({
             <p>No sections yet for this page. Click <strong>+ Add Section</strong> to get started.</p>
           </div>
         )}
-        {tabSections.map((s) => {
+        {activeTab === "home" && tabSections.length > 1 && (
+          <div className="flex items-center justify-between gap-3 flex-wrap text-xs text-gray-500 bg-white rounded-lg border border-gray-100 px-4 py-3">
+            <span>
+              Use the <b>↑ ↓</b> arrows to put the sections in the order you want on the home page, from top to bottom.
+              {homeOrdered ? " Your order is saved." : " Until you move one, the site keeps its usual layout."}
+            </span>
+            {homeOrdered && (
+              <button type="button" disabled={ordering} onClick={() => { if (confirm("Go back to the usual home page layout?")) saveOrder([]); }} className="text-gray-500 hover:text-gray-800 underline disabled:opacity-50">
+                Reset to the usual layout
+              </button>
+            )}
+          </div>
+        )}
+        {tabSections.map((s, idx) => {
           const c = parseJson<Record<string, string>>(s.content, {});
           return (
             <div key={s.id} className={`bg-white rounded-lg border p-4 flex items-center gap-4 ${s.isVisible ? "border-gray-100" : "border-gray-100 opacity-60"}`}>
-              <div className="w-2 h-10 rounded bg-[#A8975E]/30" />
+              {activeTab === "home" && tabSections.length > 1 ? (
+                <div className="flex flex-col items-center gap-0.5 shrink-0">
+                  <button type="button" disabled={ordering || idx === 0} onClick={() => move(tabSections.map((x) => x.id), idx, idx - 1)} aria-label="Move up" title="Move up" className="w-7 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs">↑</button>
+                  <span className="text-[10px] text-gray-400 tabular-nums">{idx + 1}</span>
+                  <button type="button" disabled={ordering || idx === tabSections.length - 1} onClick={() => move(tabSections.map((x) => x.id), idx, idx + 1)} aria-label="Move down" title="Move down" className="w-7 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 text-xs">↓</button>
+                </div>
+              ) : (
+                <div className="w-2 h-10 rounded bg-[#A8975E]/30" />
+              )}
               {c.image && (
                 <div className="relative w-16 h-12 rounded overflow-hidden shrink-0">
                   <Image src={c.image} alt="" fill className="object-cover" />

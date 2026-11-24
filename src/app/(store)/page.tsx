@@ -11,6 +11,7 @@ import MarqueeStrip from "@/components/store/sections/MarqueeStrip";
 import EditorialSection from "@/components/store/sections/EditorialSection";
 import ReviewsSection from "@/components/store/sections/ReviewsSection";
 import CustomSection from "@/components/store/sections/CustomSection";
+import { applyOrder, getSavedOrder } from "@/lib/section-order";
 import type { Product, Category, Variant, SiteSection } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +96,31 @@ export default async function HomePage() {
   const heroContent = heroSection
     ? parseJson<Record<string, string>>(heroSection.content, {})
     : {};
+
+  // When the sections were ordered in Admin > Pages, show them exactly in that order
+  const saved = await getSavedOrder("home");
+  if (saved) {
+    const render = (s: SiteSection) => {
+      const c = parseJson<Record<string, string>>(s.content, {});
+      switch (s.type) {
+        case "hero": return s.id === heroSection?.id ? <HeroSection key={s.id} content={c} /> : null;
+        case "marquee": return <MarqueeStrip key={s.id} content={c} />;
+        case "categories":
+          return s.id === categoriesSection?.id && categories.length > 0
+            ? <CategoryGrid key={s.id} categories={categories as Category[]} content={c} /> : null;
+        case "featured":
+          return s.id === featuredSection?.id && featured.length > 0
+            ? <FeaturedProducts key={s.id} products={featured as (Product & { variants: Variant[]; category: Category | null })[]} content={c} /> : null;
+        case "bundles": return s.id === bundleSection?.id ? <BundlesSection key={s.id} bundles={bundles} content={c} /> : null;
+        case "editorial": return <EditorialSection key={s.id} content={c} />;
+        case "banner": return <BannerSection key={s.id} content={c} />;
+        case "custom": return <CustomSection key={s.id} content={c} />;
+        case "reviews": return <ReviewsSection key={s.id} content={c} />;
+        default: return null;
+      }
+    };
+    return <div className="bg-[#F5EFE2]">{applyOrder(sections, saved).map(render)}</div>;
+  }
 
   return (
     <div className="bg-[#F5EFE2]">
