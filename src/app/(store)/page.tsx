@@ -11,6 +11,7 @@ import MarqueeStrip from "@/components/store/sections/MarqueeStrip";
 import EditorialSection from "@/components/store/sections/EditorialSection";
 import ReviewsSection from "@/components/store/sections/ReviewsSection";
 import CustomSection from "@/components/store/sections/CustomSection";
+import FontScope from "@/components/store/sections/FontScope";
 import SectionLists from "@/components/store/sections/SectionLists";
 import { Fragment } from "react";
 import { applyOrder, getSavedOrder } from "@/lib/section-order";
@@ -87,6 +88,10 @@ export default async function HomePage() {
   const editorialSection = sections.find((s: SiteSection) => s.type === "editorial");
   const bannerSection = sections.find((s: SiteSection) => s.type === "banner");
 
+  // a section can have its own font (Admin > Pages > Font)
+  const F = (sec: SiteSection | undefined, el: React.ReactNode) =>
+    sec ? <FontScope key={sec.id} content={parseJson<Record<string, string>>(sec.content, {})}>{el}</FontScope> : el;
+
   // Scrolling strips can be placed under the hero (default), categories, featured, or at the bottom
   const strips = (pos: string) =>
     sections
@@ -123,18 +128,18 @@ export default async function HomePage() {
     };
     const render = (s: SiteSection) => {
       const el = renderOne(s);
-      return el ? <Fragment key={s.id}>{el}<SectionLists section={s} /></Fragment> : null;
+      return el ? <Fragment key={s.id}><FontScope content={parseJson<Record<string, string>>(s.content, {})}>{el}</FontScope><SectionLists section={s} /></Fragment> : null;
     };
     return <div className="bg-[#F5EFE2]">{applyOrder(sections, saved).map(render)}</div>;
   }
 
   return (
     <div className="bg-[#F5EFE2]">
-      <HeroSection content={heroContent} />
+      {F(heroSection, <HeroSection content={heroContent} />)}
       <SectionLists section={heroSection} />
       {strips("hero")}
 
-      {categoriesSection && categories.length > 0 && (
+      {categoriesSection && categories.length > 0 && F(categoriesSection,
         <CategoryGrid
           categories={categories as Category[]}
           content={parseJson<Record<string, string>>(categoriesSection.content, {})}
@@ -144,7 +149,7 @@ export default async function HomePage() {
 
       {strips("categories")}
 
-      {featuredSection && featured.length > 0 && (
+      {featuredSection && featured.length > 0 && F(featuredSection,
         <FeaturedProducts
           products={featured as (Product & { variants: Variant[]; category: Category | null })[]}
           content={parseJson<Record<string, string>>(featuredSection.content, {})}
@@ -152,19 +157,19 @@ export default async function HomePage() {
       )}
       <SectionLists section={featuredSection} />
 
-      {bundleSection && (
+      {bundleSection && F(bundleSection,
         <BundlesSection bundles={bundles} content={parseJson<Record<string, string>>(bundleSection.content, {})} />
       )}
       <SectionLists section={bundleSection} />
 
       {strips("featured")}
 
-      {editorialSection && (
+      {editorialSection && F(editorialSection,
         <EditorialSection content={parseJson<Record<string, string>>(editorialSection.content, {})} />
       )}
       <SectionLists section={editorialSection} />
 
-      {bannerSection && (
+      {bannerSection && F(bannerSection,
         <BannerSection content={parseJson<Record<string, string>>(bannerSection.content, {})} />
       )}
       <SectionLists section={bannerSection} />

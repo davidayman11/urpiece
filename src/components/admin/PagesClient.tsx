@@ -2,7 +2,7 @@
 
 import RichToolbar from "@/components/admin/RichToolbar";
 import { toggleMarker, type RichKind } from "@/lib/rich";
-import { TEXT_SIZES } from "@/lib/fonts";
+import { FONT_CATALOG, FONT_CATEGORY_LABELS, TEXT_SIZES, type FontCategory } from "@/lib/fonts";
 import { LINK_TYPES, parseContactLinks, type ContactLink } from "@/lib/contact-links";
 import { useRef, useState, useCallback } from "react";
 import Image from "next/image";
@@ -99,6 +99,7 @@ const CUSTOM_FIELD_OPTIONS: { key: string; label: string }[] = [
   { key: "listProducts", label: "Products list (choose which)" },
   { key: "listBundles", label: "Bundles list (choose which)" },
   { key: "listCategories", label: "Categories list (choose which)" },
+  { key: "font", label: "Font" },
   { key: "bgColor", label: "Background Color" },
   { key: "textColor", label: "Text Color" },
 ];
@@ -337,6 +338,31 @@ function FieldSize({ field, content, setContent }: { field: string; content: Rec
         {TEXT_SIZES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
       </select>
     </label>
+  );
+}
+
+
+const FONT_GROUPS: FontCategory[] = ["serif", "sans", "script", "arabic"];
+
+/** One font for all the text of a section (English version). Saved as "font" in the section. */
+function FontSelect({ content, setContent }: { content: Record<string, string>; setContent: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  return (
+    <div className="space-y-1">
+      <select
+        value={content.font || ""}
+        onChange={(e) => setContent((c) => { const n = { ...c }; if (e.target.value) n.font = e.target.value; else delete n.font; return n; })}
+        aria-label="Font for this section"
+        className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white"
+      >
+        <option value="">Default font of the site</option>
+        {FONT_GROUPS.map((g) => (
+          <optgroup key={g} label={FONT_CATEGORY_LABELS[g]}>
+            {FONT_CATALOG.filter((f) => f.category === g).map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+          </optgroup>
+        ))}
+      </select>
+      <p className="text-[11px] text-gray-400">Used for every text in this section (English version). The Arabic version keeps its own Arabic fonts.</p>
+    </div>
   );
 }
 
@@ -728,6 +754,8 @@ export default function PagesClient({
                       </div>
                       {fieldKey === "listProducts" || fieldKey === "listBundles" || fieldKey === "listCategories" ? (
                         <ListBlock fieldKey={fieldKey} content={content} setContent={setContent} products={products} bundleOpts={bundleOpts} categories={categories} />
+                      ) : fieldKey === "font" ? (
+                        <FontSelect content={content} setContent={setContent} />
                       ) : fieldKey === "button" ? (
                         <div className="space-y-2">
                           <input value={content.buttonText || ""} onChange={(e) => setContent((c) => ({ ...c, buttonText: e.target.value }))} placeholder="Button text (e.g. Shop Now)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
@@ -1063,6 +1091,14 @@ export default function PagesClient({
                 </div>
                 );
               })}
+
+              {/* A font for the whole section (all section types except the site-wide ones) */}
+              {sectionType !== "custom" && currentTypeDef && currentTypeDef.page !== "site" && (
+                <div className="border-t border-gray-100 pt-4 space-y-2">
+                  <p className="text-xs font-medium text-gray-700">Font for this section (optional)</p>
+                  <FontSelect content={content} setContent={setContent} />
+                </div>
+              )}
 
               {/* Category / Product pages: all of them, or only some */}
               {(pageSlug === "category" || pageSlug === "product") && (

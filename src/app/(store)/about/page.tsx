@@ -5,6 +5,7 @@ import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
 import { loadMainSection } from "@/lib/section-merge";
+import FontScope from "@/components/store/sections/FontScope";
 import PageSections from "@/components/store/sections/PageSections";
 import SectionLists from "@/components/store/sections/SectionLists";
 
@@ -26,6 +27,7 @@ export default async function AboutPage() {
 
   return (
     <div data-font-area="about" className="pt-28 pb-24 min-h-screen">
+      <FontScope content={c}>
       <div className="max-w-2xl mx-auto px-6">
         {eyebrow && (
           <p className="text-xs tracking-[0.3em] uppercase text-[#A8975E] mb-3" style={{ color: c.eyebrowColor || undefined }}><RichText text={eyebrow} style={fieldSizeStyle(c, "eyebrow")} /></p>
@@ -42,6 +44,7 @@ export default async function AboutPage() {
           )}
         </div>
       </div>
+      </FontScope>
       <SectionLists section={section} />
       <PageSections page="about" />
     </div>

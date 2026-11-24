@@ -5,6 +5,7 @@ import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
 import { loadMainSection } from "@/lib/section-merge";
+import FontScope from "@/components/store/sections/FontScope";
 import PageSections from "@/components/store/sections/PageSections";
 import SectionLists from "@/components/store/sections/SectionLists";
 import { parseContactLinks, linkHref, typeInfo } from "@/lib/contact-links";
@@ -45,6 +46,7 @@ export default async function ContactPage() {
 
   return (
     <div data-font-area="contact" className="pt-28 pb-24 min-h-screen">
+      <FontScope content={c}>
       <div className="max-w-5xl mx-auto px-6">
         {/* Header */}
         <div className="max-w-2xl mb-12">
@@ -131,6 +133,7 @@ export default async function ContactPage() {
           </div>
         </div>
       </div>
+      </FontScope>
       <SectionLists section={section} />
       <PageSections page="contact" />
     </div>

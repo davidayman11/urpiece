@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { L } from "@/lib/localize";
 import { getLang } from "@/lib/lang-server";
+import FontScope from "@/components/store/sections/FontScope";
 import CustomLists from "@/components/store/sections/CustomLists";
 
 interface Props {
@@ -17,12 +18,12 @@ function parseFields(raw?: string): string[] {
 export default async function CustomSection({ content }: Props) {
   const lists = await CustomLists({ content, fields: parseFields(content._fields), fg: content.textColor || "#1C1711" });
   const body = await CustomBody({ content });
-  if (!lists) return body;
+  if (!lists) return <FontScope content={content}>{body}</FontScope>;
   return (
-    <>
+    <FontScope content={content}>
       {body}
       <section style={{ background: content.bgColor || "#F5EFE2" }} className="pb-20 md:pb-28 -mt-8 md:-mt-12">{lists}</section>
-    </>
+    </FontScope>
   );
 }
 
