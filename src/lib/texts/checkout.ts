@@ -108,6 +108,7 @@ export const checkoutTexts: TextDef[] = [
   { key: "checkout.msg.orderFailed", group: "Checkout — messages", label: "Order — generic failure", default: "Failed to create order" },
   { key: "checkout.msg.quoteFailed", group: "Checkout — messages", label: "Quote — generic failure", default: "Could not calculate your total" },
   { key: "checkout.msg.packagingUnavailable", group: "Checkout — messages", label: "Quote — packaging no longer available", default: "A packaging option in your cart is no longer available. Please choose it again from the product page." },
+  { key: "checkout.msg.screenshotRequired", group: "Checkout — messages", label: "Order — payment screenshot missing", default: "Please upload your payment screenshot to place the order." },
   { key: "checkout.msg.cartEmpty", group: "Checkout — messages", label: "Quote — empty cart", default: "Your cart is empty" },
   { key: "checkout.msg.itemUnavailable", group: "Checkout — messages", label: "Quote — item unavailable", default: "An item in your cart is no longer available" },
   { key: "checkout.msg.bundleUnavailable", group: "Checkout — messages", label: "Quote — bundle unavailable", default: "A bundle in your cart is no longer available" },

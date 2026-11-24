@@ -107,6 +107,7 @@ export const arCheckout: Record<string, string> = {
   "checkout.msg.orderFailed": "تعذّر إنشاء الطلب",
   "checkout.msg.quoteFailed": "تعذّر حساب الإجمالي",
   "checkout.msg.packagingUnavailable": "أحد خيارات التغليف في سلتك لم يعد متاحاً. من فضلك اختاريه مرة أخرى من صفحة المنتج.",
+  "checkout.msg.screenshotRequired": "من فضلك ارفعي صورة إثبات الدفع لإتمام الطلب.",
   "checkout.msg.cartEmpty": "سلتك فارغة",
   "checkout.msg.itemUnavailable": "أحد المنتجات في سلتك لم يعد متاحًا",
   "checkout.msg.bundleUnavailable": "إحدى المجموعات في سلتك لم تعد متاحة",

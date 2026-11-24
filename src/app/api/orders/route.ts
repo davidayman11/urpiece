@@ -36,6 +36,10 @@ export async function POST(req: NextRequest) {
     const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
 
     if (!itemsJson) return bad(t("checkout.msg.missingFields"));
+    // the payment screenshot is required (the checkout page already asks for it; this stops orders sent without it)
+    if (!(screenshot instanceof File) || screenshot.size === 0 || !screenshot.type.startsWith("image/")) {
+      return bad(t("checkout.msg.screenshotRequired"));
+    }
     if (modes.name === "required" && !name?.trim()) return bad(t("checkout.msg.nameRequired"));
     if (modes.email === "required" && !email?.trim()) return bad(t("checkout.msg.emailRequired"));
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad(t("checkout.msg.emailInvalid"));
