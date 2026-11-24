@@ -4,6 +4,7 @@ import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
 import ReviewsSection from "@/components/store/sections/ReviewsSection";
+import SectionLists from "@/components/store/sections/SectionLists";
 import { parseContactLinks, linkHref, typeInfo } from "@/lib/contact-links";
 import { L } from "@/lib/localize";
 
@@ -134,6 +135,7 @@ export default async function ContactPage() {
           </div>
         </div>
       </div>
+      <SectionLists section={section} />
       {reviews.map((r) => (
         <ReviewsSection key={r.id} content={parseJson<Record<string, string>>(r.content, {})} />
       ))}

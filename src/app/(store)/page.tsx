@@ -11,6 +11,8 @@ import MarqueeStrip from "@/components/store/sections/MarqueeStrip";
 import EditorialSection from "@/components/store/sections/EditorialSection";
 import ReviewsSection from "@/components/store/sections/ReviewsSection";
 import CustomSection from "@/components/store/sections/CustomSection";
+import SectionLists from "@/components/store/sections/SectionLists";
+import { Fragment } from "react";
 import { applyOrder, getSavedOrder } from "@/lib/section-order";
 import type { Product, Category, Variant, SiteSection } from "@prisma/client";
 
@@ -91,7 +93,7 @@ export default async function HomePage() {
       .filter((s: SiteSection) => s.type === "marquee")
       .map((s: SiteSection) => ({ id: s.id, c: parseJson<Record<string, string>>(s.content, {}) }))
       .filter((s) => (s.c.position || "hero") === pos)
-      .map((s) => <MarqueeStrip key={s.id} content={s.c} />);
+      .map((s) => <Fragment key={s.id}><MarqueeStrip content={s.c} /><SectionLists section={sections.find((x: SiteSection) => x.id === s.id)} /></Fragment>);
 
   const heroContent = heroSection
     ? parseJson<Record<string, string>>(heroSection.content, {})
@@ -100,7 +102,7 @@ export default async function HomePage() {
   // When the sections were ordered in Admin > Pages, show them exactly in that order
   const saved = await getSavedOrder("home");
   if (saved) {
-    const render = (s: SiteSection) => {
+    const renderOne = (s: SiteSection) => {
       const c = parseJson<Record<string, string>>(s.content, {});
       switch (s.type) {
         case "hero": return s.id === heroSection?.id ? <HeroSection key={s.id} content={c} /> : null;
@@ -119,12 +121,17 @@ export default async function HomePage() {
         default: return null;
       }
     };
+    const render = (s: SiteSection) => {
+      const el = renderOne(s);
+      return el ? <Fragment key={s.id}>{el}<SectionLists section={s} /></Fragment> : null;
+    };
     return <div className="bg-[#F5EFE2]">{applyOrder(sections, saved).map(render)}</div>;
   }
 
   return (
     <div className="bg-[#F5EFE2]">
       <HeroSection content={heroContent} />
+      <SectionLists section={heroSection} />
       {strips("hero")}
 
       {categoriesSection && categories.length > 0 && (
@@ -133,6 +140,7 @@ export default async function HomePage() {
           content={parseJson<Record<string, string>>(categoriesSection.content, {})}
         />
       )}
+      <SectionLists section={categoriesSection} />
 
       {strips("categories")}
 
@@ -142,20 +150,24 @@ export default async function HomePage() {
           content={parseJson<Record<string, string>>(featuredSection.content, {})}
         />
       )}
+      <SectionLists section={featuredSection} />
 
       {bundleSection && (
         <BundlesSection bundles={bundles} content={parseJson<Record<string, string>>(bundleSection.content, {})} />
       )}
+      <SectionLists section={bundleSection} />
 
       {strips("featured")}
 
       {editorialSection && (
         <EditorialSection content={parseJson<Record<string, string>>(editorialSection.content, {})} />
       )}
+      <SectionLists section={editorialSection} />
 
       {bannerSection && (
         <BannerSection content={parseJson<Record<string, string>>(bannerSection.content, {})} />
       )}
+      <SectionLists section={bannerSection} />
 
       {sections
         .filter((s: SiteSection) => s.type === "custom")
@@ -166,7 +178,10 @@ export default async function HomePage() {
       {sections
         .filter((s: SiteSection) => s.type === "reviews")
         .map((s: SiteSection) => (
-          <ReviewsSection key={s.id} content={parseJson<Record<string, string>>(s.content, {})} />
+          <Fragment key={s.id}>
+            <ReviewsSection content={parseJson<Record<string, string>>(s.content, {})} />
+            <SectionLists section={s} />
+          </Fragment>
         ))}
 
       {strips("bottom")}

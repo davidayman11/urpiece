@@ -280,6 +280,52 @@ function PickerList({
 
 type Opt = { id: string; name: string; isActive: boolean; isFeatured?: boolean };
 
+type ListKey = "listProducts" | "listBundles" | "listCategories";
+const LIST_KEYS: { key: ListKey; label: string }[] = [
+  { key: "listProducts", label: "Products list (choose which)" },
+  { key: "listBundles", label: "Bundles list (choose which)" },
+  { key: "listCategories", label: "Categories list (choose which)" },
+];
+
+/** A list of products / bundles / categories picked by the admin (title, which ones, and the layout) */
+function ListBlock({
+  fieldKey, content, setContent, products, bundleOpts, categories,
+}: {
+  fieldKey: string;
+  content: Record<string, string>;
+  setContent: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  products: Opt[];
+  bundleOpts: { id: string; name: string; isActive: boolean }[];
+  categories: Opt[];
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <input value={content[`${fieldKey}Title`] || ""} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Title`]: e.target.value }))} placeholder="List title (optional)" className="border border-gray-200 rounded px-3 py-2 text-sm" />
+        <input dir="rtl" value={content[`${fieldKey}Title_ar`] || ""} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Title_ar`]: e.target.value }))} placeholder="العنوان بالعربية (optional)" className="border border-gray-200 rounded px-3 py-2 text-sm" />
+      </div>
+      <PickerList
+        ordered
+        items={
+          fieldKey === "listProducts"
+            ? products.map((p) => ({ id: p.id, name: p.name, note: p.isActive ? undefined : "hidden" }))
+            : fieldKey === "listBundles"
+            ? bundleOpts.map((b) => ({ id: b.id, name: b.name, note: b.isActive ? undefined : "hidden" }))
+            : categories.map((cat) => ({ id: cat.id, name: cat.name, note: cat.isActive ? undefined : "hidden" }))
+        }
+        selected={parseIds(content[fieldKey])}
+        onChange={(picked) => setContent((c) => ({ ...c, [fieldKey]: JSON.stringify(picked) }))}
+        emptyNote="Tick the ones to show. Nothing ticked = this list is not shown."
+      />
+      <select value={content[`${fieldKey}Layout`] || "grid"} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Layout`]: e.target.value }))} className="w-full border border-gray-200 rounded px-3 py-2 text-sm">
+        <option value="grid">Grid: all shown together</option>
+        <option value="scroll">Scrolling: swipe or arrows</option>
+        <option value="auto">Auto-scrolling: moves by itself</option>
+      </select>
+    </div>
+  );
+}
+
 export default function PagesClient({
   sections: initial, categories = [], products = [], bundleOpts = [], homeOrdered = false,
 }: { homeOrdered?: boolean; sections: SiteSection[]; categories?: Opt[]; products?: Opt[]; bundleOpts?: { id: string; name: string; isActive: boolean }[] }) {
@@ -297,6 +343,9 @@ export default function PagesClient({
   const [activeTab, setActiveTab] = useState("home");
   const [customFields, setCustomFields] = useState<string[]>([]);
   const [ordering, setOrdering] = useState(false);
+  // lists added under a non-custom section are remembered in content._lists
+  const pageLists: string[] = (() => { try { const v = JSON.parse(content._lists || "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []; } catch { return []; } })();
+  const setPageLists = (next: string[]) => setContent((c) => ({ ...c, _lists: JSON.stringify(next) }));
 
   // Home sections: move one up or down, then save the whole order
   const saveOrder = async (ids: string[]) => {
@@ -608,30 +657,7 @@ export default function PagesClient({
                         <button type="button" onClick={() => removeCustomField(fieldKey)} className="text-xs text-red-400 hover:text-red-600">Remove</button>
                       </div>
                       {fieldKey === "listProducts" || fieldKey === "listBundles" || fieldKey === "listCategories" ? (
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-2">
-                            <input value={content[`${fieldKey}Title`] || ""} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Title`]: e.target.value }))} placeholder="List title (optional)" className="border border-gray-200 rounded px-3 py-2 text-sm" />
-                            <input dir="rtl" value={content[`${fieldKey}Title_ar`] || ""} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Title_ar`]: e.target.value }))} placeholder="العنوان بالعربية (optional)" className="border border-gray-200 rounded px-3 py-2 text-sm" />
-                          </div>
-                          <PickerList
-                            ordered
-                            items={
-                              fieldKey === "listProducts"
-                                ? products.map((p) => ({ id: p.id, name: p.name, note: p.isActive ? undefined : "hidden" }))
-                                : fieldKey === "listBundles"
-                                ? bundleOpts.map((b) => ({ id: b.id, name: b.name, note: b.isActive ? undefined : "hidden" }))
-                                : categories.map((cat) => ({ id: cat.id, name: cat.name, note: cat.isActive ? undefined : "hidden" }))
-                            }
-                            selected={parseIds(content[fieldKey])}
-                            onChange={(picked) => setContent((c) => ({ ...c, [fieldKey]: JSON.stringify(picked) }))}
-                            emptyNote="Tick the ones to show. Nothing ticked = this list is not shown."
-                          />
-                          <select value={content[`${fieldKey}Layout`] || "grid"} onChange={(e) => setContent((c) => ({ ...c, [`${fieldKey}Layout`]: e.target.value }))} className="w-full border border-gray-200 rounded px-3 py-2 text-sm">
-                            <option value="grid">Grid: all shown together</option>
-                            <option value="scroll">Scrolling: swipe or arrows</option>
-                            <option value="auto">Auto-scrolling: moves by itself</option>
-                          </select>
-                        </div>
+                        <ListBlock fieldKey={fieldKey} content={content} setContent={setContent} products={products} bundleOpts={bundleOpts} categories={categories} />
                       ) : fieldKey === "button" ? (
                         <div className="space-y-2">
                           <input value={content.buttonText || ""} onChange={(e) => setContent((c) => ({ ...c, buttonText: e.target.value }))} placeholder="Button text (e.g. Shop Now)" className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
@@ -923,6 +949,29 @@ export default function PagesClient({
                 </div>
                 );
               })}
+
+              {/* Lists under any section (all section types except the site-wide ones) */}
+              {sectionType !== "custom" && currentTypeDef && currentTypeDef.page !== "site" && (
+                <div className="border-t border-gray-100 pt-4 space-y-3">
+                  <p className="text-xs font-medium text-gray-700">Lists under this section (optional)</p>
+                  {pageLists.map((key) => (
+                    <div key={key} className="border border-gray-100 rounded-lg p-3 space-y-2 bg-gray-50/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-700">{LIST_KEYS.find((l) => l.key === key)?.label}</span>
+                        <button type="button" onClick={() => setPageLists(pageLists.filter((k) => k !== key))} className="text-xs text-red-400 hover:text-red-600">Remove</button>
+                      </div>
+                      <ListBlock fieldKey={key} content={content} setContent={setContent} products={products} bundleOpts={bundleOpts} categories={categories} />
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap gap-2">
+                    {LIST_KEYS.filter((l) => !pageLists.includes(l.key)).map((l) => (
+                      <button key={l.key} type="button" onClick={() => setPageLists([...pageLists, l.key])} className="text-xs px-3 py-1.5 border border-dashed border-gray-300 rounded-full hover:border-[#A8975E] hover:text-[#A8975E] transition-colors">
+                        + {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
