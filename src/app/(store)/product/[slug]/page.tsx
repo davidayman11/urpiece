@@ -137,7 +137,7 @@ export default async function ProductPage({ params }: Props) {
         </div>
         </VariantSelectionProvider>
       </div>
-      <PageSections page="product" />
+      <PageSections page="product" targetId={product.id} />
     </div>
   );
 }

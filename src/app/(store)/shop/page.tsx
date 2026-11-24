@@ -95,7 +95,7 @@ export default async function ShopPage({ searchParams }: Props) {
           </div>
         )}
       </div>
-      <PageSections page="shop" />
+      {selectedCategory ? <PageSections page="category" targetId={selectedCategory.id} /> : <PageSections page="shop" />}
     </div>
   );
 }

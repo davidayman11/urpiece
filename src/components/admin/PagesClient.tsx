@@ -24,6 +24,7 @@ const PAGE_SLUGS = [
   { label: "About Page", value: "about" },
   { label: "Contact Page", value: "contact" },
   { label: "Shop Page", value: "shop" },
+  { label: "Category Pages", value: "category" },
   { label: "Bundles Page", value: "bundles" },
   { label: "Product Pages", value: "product" },
   { label: "Site Settings", value: "site" },
@@ -196,6 +197,10 @@ const PAGE_SLUG_LABELS: Record<string, string> = {
   home: "Home",
   about: "About",
   contact: "Contact",
+  shop: "Shop",
+  category: "Category pages",
+  bundles: "Bundles",
+  product: "Product pages",
   site: "Site Settings",
 };
 
@@ -381,7 +386,7 @@ export default function PagesClient({
   };
 
   // pages that only hold extra sections (no built-in content block) start with a Custom Section
-  const EXTRA_ONLY_PAGES = ["shop", "bundles", "product"];
+  const EXTRA_ONLY_PAGES = ["shop", "category", "bundles", "product"];
   const typesForPage = (slug: string) => [
     ...(EXTRA_ONLY_PAGES.includes(slug) ? [SECTION_TYPES.find((t) => t.type === "custom")!] : []),
     ...SECTION_TYPES.filter((t) => t.page === slug && t.type !== "custom" && t.type !== "reviews"),
@@ -567,6 +572,13 @@ export default function PagesClient({
                   <span className={`text-xs px-2 py-0.5 rounded-full ${s.isVisible ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                     {s.isVisible ? "Visible" : "Hidden"}
                   </span>
+                  {(s.pageSlug === "category" || s.pageSlug === "product") && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                      {c._target === "selected"
+                        ? `Only ${parseIds(c._targetIds).length} ${s.pageSlug === "category" ? "categor" + (parseIds(c._targetIds).length === 1 ? "y" : "ies") : "product" + (parseIds(c._targetIds).length === 1 ? "" : "s")}`
+                        : s.pageSlug === "category" ? "All categories" : "All products"}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-700 mt-1 truncate font-medium">
                   {c._label || c.heading || c.tagline || c.eyebrow || `${s.type} section`}
@@ -955,6 +967,29 @@ export default function PagesClient({
                 </div>
                 );
               })}
+
+              {/* Category / Product pages: all of them, or only some */}
+              {(pageSlug === "category" || pageSlug === "product") && (
+                <div className="border-t border-gray-100 pt-4 space-y-2">
+                  <p className="text-xs font-medium text-gray-700">{pageSlug === "category" ? "Show on which category pages?" : "Show on which products?"}</p>
+                  <select
+                    value={content._target === "selected" ? "selected" : "all"}
+                    onChange={(e) => setContent((c) => ({ ...c, _target: e.target.value }))}
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
+                  >
+                    <option value="all">{pageSlug === "category" ? "All category pages" : "All products"}</option>
+                    <option value="selected">{pageSlug === "category" ? "Only the categories I choose" : "Only the products I choose"}</option>
+                  </select>
+                  {content._target === "selected" && (
+                    <PickerList
+                      items={(pageSlug === "category" ? categories : products).map((x) => ({ id: x.id, name: x.name, note: x.isActive ? undefined : "hidden" }))}
+                      selected={parseIds(content._targetIds)}
+                      onChange={(picked) => setContent((c) => ({ ...c, _targetIds: JSON.stringify(picked) }))}
+                      emptyNote="Tick one or more. Nothing ticked = this section is not shown anywhere."
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Lists under any section (all section types except the site-wide ones) */}
               {sectionType !== "custom" && currentTypeDef && currentTypeDef.page !== "site" && (
