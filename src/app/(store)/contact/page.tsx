@@ -1,9 +1,9 @@
-import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
-import ReviewsSection from "@/components/store/sections/ReviewsSection";
+import { loadMainSection } from "@/lib/section-merge";
+import PageSections from "@/components/store/sections/PageSections";
 import SectionLists from "@/components/store/sections/SectionLists";
 import { parseContactLinks, linkHref, typeInfo } from "@/lib/contact-links";
 import { L } from "@/lib/localize";
@@ -17,14 +17,8 @@ export async function generateMetadata() {
 
 export default async function ContactPage() {
   const t = await getT();
-  const section = await prisma.siteSection.findFirst({
-    where: { pageSlug: "contact", type: "contact", isVisible: true },
-  });
+  const section = await loadMainSection("contact", "contact");
   const lang = await getLang();
-  const reviews = await prisma.siteSection.findMany({
-    where: { pageSlug: "contact", type: "reviews", isVisible: true },
-    orderBy: { sortOrder: "asc" },
-  });
   const c = section ? parseJson<Record<string, string>>(section.content, {}) : {};
 
   const eyebrow = cx(c, "eyebrow", lang) || "Get in Touch";
@@ -136,9 +130,7 @@ export default async function ContactPage() {
         </div>
       </div>
       <SectionLists section={section} />
-      {reviews.map((r) => (
-        <ReviewsSection key={r.id} content={parseJson<Record<string, string>>(r.content, {})} />
-      ))}
+      <PageSections page="contact" />
     </div>
   );
 }

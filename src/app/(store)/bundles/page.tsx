@@ -1,3 +1,4 @@
+import PageSections from "@/components/store/sections/PageSections";
 import { prisma } from "@/lib/prisma";
 import BundleCard from "@/components/store/BundleCard";
 import { bundleInclude } from "@/lib/bundle-include";
@@ -35,6 +36,7 @@ export default async function BundlesPage() {
           </div>
         )}
       </div>
+      <PageSections page="bundles" />
     </div>
   );
 }

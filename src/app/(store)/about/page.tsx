@@ -1,9 +1,9 @@
-import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import { getT } from "@/lib/texts/server";
 import { getLang } from "@/lib/lang-server";
 import { cx } from "@/lib/localize";
-import ReviewsSection from "@/components/store/sections/ReviewsSection";
+import { loadMainSection } from "@/lib/section-merge";
+import PageSections from "@/components/store/sections/PageSections";
 import SectionLists from "@/components/store/sections/SectionLists";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +13,8 @@ export async function generateMetadata() {
 }
 
 export default async function AboutPage() {
-  const section = await prisma.siteSection.findFirst({
-    where: { pageSlug: "about", type: "about", isVisible: true },
-  });
+  const section = await loadMainSection("about", "about");
   const lang = await getLang();
-  const reviews = await prisma.siteSection.findMany({
-    where: { pageSlug: "about", type: "reviews", isVisible: true },
-    orderBy: { sortOrder: "asc" },
-  });
   const c = section ? parseJson<Record<string, string>>(section.content, {}) : {};
 
   const eyebrow = cx(c, "eyebrow", lang) || "Our Story";
@@ -47,9 +41,7 @@ export default async function AboutPage() {
         </div>
       </div>
       <SectionLists section={section} />
-      {reviews.map((r) => (
-        <ReviewsSection key={r.id} content={parseJson<Record<string, string>>(r.content, {})} />
-      ))}
+      <PageSections page="about" />
     </div>
   );
 }

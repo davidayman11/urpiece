@@ -23,6 +23,9 @@ const PAGE_SLUGS = [
   { label: "Home Page", value: "home" },
   { label: "About Page", value: "about" },
   { label: "Contact Page", value: "contact" },
+  { label: "Shop Page", value: "shop" },
+  { label: "Bundles Page", value: "bundles" },
+  { label: "Product Pages", value: "product" },
   { label: "Site Settings", value: "site" },
 ];
 
@@ -377,10 +380,13 @@ export default function PagesClient({
     setUploading(false);
   };
 
+  // pages that only hold extra sections (no built-in content block) start with a Custom Section
+  const EXTRA_ONLY_PAGES = ["shop", "bundles", "product"];
   const typesForPage = (slug: string) => [
+    ...(EXTRA_ONLY_PAGES.includes(slug) ? [SECTION_TYPES.find((t) => t.type === "custom")!] : []),
     ...SECTION_TYPES.filter((t) => t.page === slug && t.type !== "custom" && t.type !== "reviews"),
-    ...(["home", "about", "contact"].includes(slug) ? [SECTION_TYPES.find((t) => t.type === "reviews")!] : []),
-    SECTION_TYPES.find((t) => t.type === "custom")!,
+    ...(["home", "about", "contact", ...EXTRA_ONLY_PAGES].includes(slug) ? [SECTION_TYPES.find((t) => t.type === "reviews")!] : []),
+    ...(EXTRA_ONLY_PAGES.includes(slug) ? [] : [SECTION_TYPES.find((t) => t.type === "custom")!]),
   ];
 
   const contactLinks: ContactLink[] = parseContactLinksDraft(content.contactLinks);

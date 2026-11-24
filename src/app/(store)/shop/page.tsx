@@ -1,3 +1,4 @@
+import PageSections from "@/components/store/sections/PageSections";
 import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/store/ProductCard";
 
@@ -94,6 +95,7 @@ export default async function ShopPage({ searchParams }: Props) {
           </div>
         )}
       </div>
+      <PageSections page="shop" />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import PageSections from "@/components/store/sections/PageSections";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
@@ -136,6 +137,7 @@ export default async function ProductPage({ params }: Props) {
         </div>
         </VariantSelectionProvider>
       </div>
+      <PageSections page="product" />
     </div>
   );
 }
