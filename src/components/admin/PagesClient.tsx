@@ -797,23 +797,12 @@ export default function PagesClient({
                             onChange={(e) => setContent((c) => ({ ...c, spacing: e.target.value }))}
                             className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white"
                           >
-                            <option value="auto">Automatic (very tight for a short text, roomy otherwise)</option>
-                            <option value="none">None: no space at all</option>
-                            <option value="tight">Tight: a little space</option>
-                            <option value="compact">Compact</option>
+                            <option value="auto">Automatic (tight for a short text, roomy otherwise)</option>
+                            <option value="compact">Compact: little space</option>
                             <option value="normal">Normal</option>
                             <option value="spacious">Spacious: lots of space</option>
                           </select>
-                          <label className="flex items-center gap-2 text-xs text-gray-500">
-                            Or an exact space in pixels
-                            <input
-                              type="number" min="0" max="400" placeholder="e.g. 20"
-                              value={content.spacingPx || ""}
-                              onChange={(e) => setContent((c) => { const n = { ...c }; if (e.target.value === "") delete n.spacingPx; else n.spacingPx = e.target.value; return n; })}
-                              className="w-24 border border-gray-200 rounded px-2 py-1 text-sm bg-white"
-                            />
-                          </label>
-                          <p className="text-[11px] text-gray-400">The empty space above and below this section. A number here replaces the choice above (0 = none).</p>
+                          <p className="text-[11px] text-gray-400">The empty space above and below this section.</p>
                         </div>
                       ) : fieldKey === "fontSize" ? (
                         <SectionSize content={content} setContent={setContent} />
