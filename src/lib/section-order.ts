@@ -41,7 +41,7 @@ export function defaultOrder<T extends Sec>(sections: T[]): T[] {
     ...first("categories"), ...strips("categories"),
     ...first("featured"), ...first("bundles"), ...strips("featured"),
     ...first("editorial"), ...first("banner"),
-    ...byType("custom"), ...byType("reviews"), ...strips("bottom"),
+    ...byType("custom"), ...byType("reviews"), ...byType("recommended"), ...strips("bottom"),
   ];
   const seen = new Set(out.map((s) => s.id));
   return [...out, ...sections.filter((s) => !seen.has(s.id))];

@@ -11,7 +11,9 @@ import type { Product, Variant, Category } from "@prisma/client";
 type P = Product & { variants: Variant[]; category: Category | null };
 
 /** "Recommended for you": products like the ones the visitor viewed or put in the cart. */
-export default function RecommendedForYou({ currentProductId, dark = false }: { currentProductId?: string; dark?: boolean }) {
+interface Props { currentProductId?: string; eyebrow?: string; heading?: string; eyebrowColor?: string; headingColor?: string }
+
+export default function RecommendedForYou({ currentProductId, eyebrow, heading, eyebrowColor, headingColor }: Props) {
   const items = useCartStore((s) => s.items);
   const [products, setProducts] = useState<P[]>([]);
 
@@ -32,10 +34,10 @@ export default function RecommendedForYou({ currentProductId, dark = false }: { 
 
   if (products.length === 0) return null;
   return (
-    <section className={`py-16 ${dark ? "" : "border-t border-[#E0D8C4]"}`}>
+    <section className="py-16 border-t border-[#E0D8C4]">
       <div className="max-w-7xl mx-auto px-6">
-        <p className="text-[10px] tracking-[0.4em] uppercase text-[#A8975E] mb-2 flex items-center gap-3"><span className="w-6 h-px bg-[#A8975E]" /><Txt k="reco.subtitle" /></p>
-        <h2 className="font-serif text-2xl md:text-3xl text-[#1C1711] mb-8"><Txt k="reco.title" /></h2>
+        <p className="text-[10px] tracking-[0.4em] uppercase text-[#A8975E] mb-2 flex items-center gap-3" style={{ color: eyebrowColor || undefined }}><span className="w-6 h-px bg-current" />{eyebrow || <Txt k="reco.subtitle" />}</p>
+        <h2 className="font-serif text-2xl md:text-3xl text-[#1C1711] mb-8" style={{ color: headingColor || undefined }}>{heading || <Txt k="reco.title" />}</h2>
         <ScrollRow>
           {products.map((p) => (
             <div key={p.id} className="shrink-0 w-[44%] sm:w-[30%] lg:w-[23%] snap-start"><ProductCard product={p} /></div>

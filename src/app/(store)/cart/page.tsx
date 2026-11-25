@@ -6,7 +6,6 @@ import { formatPrice } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { itemNames } from "@/lib/localize";
-import RecommendedForYou from "@/components/store/RecommendedForYou";
 import { Txt, useLang, useT } from "@/components/store/TextsProvider";
 
 export default function CartPage() {
@@ -23,8 +22,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <>
-      <div data-font-area="cart" className="pt-32 pb-24 flex flex-col items-center justify-center text-center px-6">
+      <div data-font-area="cart" className="pt-32 pb-24 min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="text-[#C4B07A] mb-6">
           <path d="M8 8h12l8 32h28l8-24H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <circle cx="30" cy="56" r="4" fill="currentColor"/>
@@ -39,8 +37,6 @@ export default function CartPage() {
           <Txt k="cart.empty.shopNow" />
         </Link>
       </div>
-      <RecommendedForYou />
-      </>
     );
   }
 
@@ -173,7 +169,6 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-      <RecommendedForYou />
     </div>
   );
 }

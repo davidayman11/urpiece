@@ -1,4 +1,5 @@
-import RecommendedForYou from "@/components/store/RecommendedForYou";
+import RecommendedSection from "@/components/store/sections/RecommendedSection";
+import DefaultRecommended from "@/components/store/sections/DefaultRecommended";
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import HeroSection from "@/components/store/sections/HeroSection";
@@ -124,6 +125,7 @@ export default async function HomePage() {
         case "banner": return <BannerSection key={s.id} content={c} />;
         case "custom": return <CustomSection key={s.id} content={c} />;
         case "reviews": return <ReviewsSection key={s.id} content={c} />;
+        case "recommended": return <RecommendedSection key={s.id} content={c} />;
         default: return null;
       }
     };
@@ -131,7 +133,7 @@ export default async function HomePage() {
       const el = renderOne(s);
       return el ? <Fragment key={s.id}><FontScope content={parseJson<Record<string, string>>(s.content, {})}>{el}</FontScope><SectionLists section={s} /></Fragment> : null;
     };
-    return <div className="bg-[#F5EFE2]">{applyOrder(sections, saved).map(render)}</div>;
+    return <div className="bg-[#F5EFE2]">{applyOrder(sections, saved).map(render)}<DefaultRecommended page="home" /></div>;
   }
 
   return (
@@ -190,7 +192,12 @@ export default async function HomePage() {
           </Fragment>
         ))}
 
-      <RecommendedForYou />
+      {sections
+        .filter((s: SiteSection) => s.type === "recommended")
+        .map((s: SiteSection) => (
+          <RecommendedSection key={s.id} content={parseJson<Record<string, string>>(s.content, {})} />
+        ))}
+      <DefaultRecommended page="home" />
 
       {strips("bottom")}
     </div>

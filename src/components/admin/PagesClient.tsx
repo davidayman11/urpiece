@@ -30,6 +30,7 @@ const PAGE_SLUGS = [
   { label: "Category Pages", value: "category" },
   { label: "Bundles Page", value: "bundles" },
   { label: "Product Pages", value: "product" },
+  { label: "Cart Page", value: "cart" },
   { label: "Site Settings", value: "site" },
 ];
 
@@ -81,6 +82,10 @@ const SECTION_TYPES = [
   {
     type: "reviews", label: "Reviews photos (scrollable)", page: "*",
     fields: ["eyebrow", "eyebrowColor", "heading", "headingColor", "bgColor", "autoScroll", "scrollSeconds", "photos"],
+  },
+  {
+    type: "recommended", label: "Recommended for you (suggestions from what the customer viewed / has in the cart)", page: "*",
+    fields: ["eyebrow", "eyebrowColor", "heading", "headingColor"],
   },
   {
     type: "custom", label: "Custom Section (fully customizable)", page: "*",
@@ -485,13 +490,15 @@ export default function PagesClient({
   };
 
   // pages that only hold extra sections (no built-in content block) start with a Custom Section
-  const EXTRA_ONLY_PAGES = ["shop", "category", "bundles", "product"];
+  const EXTRA_ONLY_PAGES = ["shop", "category", "bundles", "product", "cart"];
   const typesForPage = (slug: string) => [
     ...(EXTRA_ONLY_PAGES.includes(slug) ? [SECTION_TYPES.find((t) => t.type === "custom")!] : []),
-    ...SECTION_TYPES.filter((t) => t.page === slug && t.type !== "custom" && t.type !== "reviews"),
+    ...SECTION_TYPES.filter((t) => t.page === slug && t.type !== "custom" && t.type !== "reviews" && t.type !== "recommended"),
     ...(["home", "about", "contact", ...EXTRA_ONLY_PAGES].includes(slug) ? [SECTION_TYPES.find((t) => t.type === "reviews")!] : []),
     // a scrolling strip can go on every page (on the home page it is already in the list)
     ...(slug !== "home" && slug !== "site" ? [SECTION_TYPES.find((t) => t.type === "marquee")!] : []),
+    // "Recommended for you" can go on any page
+    ...(slug !== "site" ? [SECTION_TYPES.find((t) => t.type === "recommended")!] : []),
     ...(EXTRA_ONLY_PAGES.includes(slug) ? [] : [SECTION_TYPES.find((t) => t.type === "custom")!]),
   ];
 

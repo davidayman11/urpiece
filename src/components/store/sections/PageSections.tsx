@@ -5,6 +5,7 @@ import { applyOrder, getSavedOrder } from "@/lib/section-order";
 import CustomSection from "@/components/store/sections/CustomSection";
 import ReviewsSection from "@/components/store/sections/ReviewsSection";
 import MarqueeStrip from "@/components/store/sections/MarqueeStrip";
+import RecommendedSection from "@/components/store/sections/RecommendedSection";
 import SectionLists from "@/components/store/sections/SectionLists";
 
 /**
@@ -13,7 +14,7 @@ import SectionLists from "@/components/store/sections/SectionLists";
  */
 export default async function PageSections({ page, targetId, position = "bottom" }: { page: string; targetId?: string; position?: "top" | "bottom" }) {
   const sections = await prisma.siteSection.findMany({
-    where: { pageSlug: page, type: { in: ["custom", "reviews", "marquee"] }, isVisible: true },
+    where: { pageSlug: page, type: { in: ["custom", "reviews", "marquee", "recommended"] }, isVisible: true },
     orderBy: { sortOrder: "asc" },
   });
   // Category / Product pages: a section can be for all of them or only for the ones the admin picked
@@ -41,6 +42,7 @@ export default async function PageSections({ page, targetId, position = "bottom"
             </Fragment>
           );
         }
+        if (s.type === "recommended") return <RecommendedSection key={s.id} content={content} currentProductId={targetId} />;
         return s.type === "custom" ? (
           <CustomSection key={s.id} content={content} />
         ) : (
