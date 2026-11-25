@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import AdminLayout from "@/components/admin/AdminLayout";
 import PagesClient from "@/components/admin/PagesClient";
+import { seedRecoSections } from "@/lib/reco-seed";
 import { applyOrder, getSavedOrder } from "@/lib/section-order";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export const metadata = { title: "Pages & Sections" };
 export default async function PagesAdminPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
+  await seedRecoSections();
   const all = await prisma.siteSection.findMany({
     orderBy: [{ pageSlug: "asc" }, { sortOrder: "asc" }],
   });
