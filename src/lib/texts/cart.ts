@@ -22,4 +22,6 @@ export const cartTexts: TextDef[] = [
   { key: "cart.summary.total", group: G, label: "Cart — Total label", default: "Total" },
   { key: "cart.summary.checkoutButton", group: G, label: "Cart — Proceed to Checkout button", default: "Proceed to Checkout" },
   { key: "cart.summary.continueShopping", group: G, label: "Cart — Continue Shopping link", default: "Continue Shopping" },
+  { key: "reco.title", group: G, label: "Recommended for you — heading", default: "Recommended for you" },
+  { key: "reco.subtitle", group: G, label: "Recommended for you — small line above the heading", default: "Picked from what you looked at" },
 ];

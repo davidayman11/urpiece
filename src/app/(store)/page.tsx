@@ -1,3 +1,4 @@
+import RecommendedForYou from "@/components/store/RecommendedForYou";
 import { prisma } from "@/lib/prisma";
 import { parseJson } from "@/lib/utils";
 import HeroSection from "@/components/store/sections/HeroSection";
@@ -188,6 +189,8 @@ export default async function HomePage() {
             <SectionLists section={s} />
           </Fragment>
         ))}
+
+      <RecommendedForYou />
 
       {strips("bottom")}
     </div>

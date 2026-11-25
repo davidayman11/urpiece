@@ -18,4 +18,6 @@ export const arCart: Record<string, string> = {
   "cart.summary.total": "الإجمالي",
   "cart.summary.checkoutButton": "إتمام الطلب",
   "cart.summary.continueShopping": "مواصلة التسوق",
+  "reco.title": "مقترحة لكِ",
+  "reco.subtitle": "اخترناها من اللي شفتيه",
 };

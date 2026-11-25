@@ -17,6 +17,8 @@ import type { Metadata } from "next";
 
 import { Txt } from "@/components/store/TextsProvider";
 import RichText from "@/components/RichText";
+import ViewTracker from "@/components/store/ViewTracker";
+import RecommendedForYou from "@/components/store/RecommendedForYou";
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -138,6 +140,8 @@ export default async function ProductPage({ params }: Props) {
         </div>
         </VariantSelectionProvider>
       </div>
+      <ViewTracker productId={product.id} />
+      <RecommendedForYou currentProductId={product.id} />
       <PageSections page="product" targetId={product.id} position="bottom" />
     </div>
   );
