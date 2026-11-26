@@ -165,6 +165,17 @@ export default function ProductsClient({ products: initial, categories, lowStock
       return { ...f, images: imgs };
     });
 
+  /** The cover is the first photo that shows for every variant (that is what cards and lists use). */
+  const coverIndex = (imgs: PhotoForm[]) => imgs.findIndex((p) => p.variantKeys.length === 0);
+  /** Make this photo the cover: it becomes a photo for all variants and goes first. */
+  const makeCover = (from: number) =>
+    setForm((f) => {
+      const imgs = [...f.images];
+      const [item] = imgs.splice(from, 1);
+      imgs.unshift({ ...item, variantKeys: [] });
+      return { ...f, images: imgs };
+    });
+
   const applyToAll = (sourceIdx: number, field: "price" | "costPrice" | "inventory") =>
     setForm((f) => {
       const val = f.variants[sourceIdx][field];
@@ -596,7 +607,7 @@ export default function ProductsClient({ products: initial, categories, lowStock
                       <div key={i} className="w-24">
                         <div className="relative w-24 h-24">
                           <Image src={img.url} alt="" fill className="object-cover rounded" />
-                          {i === 0 && (
+                          {i === coverIndex(form.images) && (
                             <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] bg-[#A8975E]/80 text-white py-0.5">Cover</span>
                           )}
                           <button
@@ -614,8 +625,8 @@ export default function ProductsClient({ products: initial, categories, lowStock
                               <button type="button" onClick={() => moveImage(i, i + 1)} className="text-[10px] text-gray-400 hover:text-gray-600 px-1" title="Move right">→</button>
                             )}
                           </div>
-                          {i > 0 && (
-                            <button type="button" onClick={() => moveImage(i, 0)} className="text-[9px] text-[#A8975E] hover:underline">Cover</button>
+                          {i !== coverIndex(form.images) && (
+                            <button type="button" onClick={() => makeCover(i)} className="text-[9px] text-[#A8975E] hover:underline" title="Use this photo as the product cover (shows for all variants)">Cover</button>
                           )}
                         </div>
                         <p className="text-[10px] leading-tight text-gray-500">
