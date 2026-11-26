@@ -20,4 +20,6 @@ export const arCart: Record<string, string> = {
   "cart.summary.continueShopping": "مواصلة التسوق",
   "reco.title": "مقترحة لكِ",
   "reco.subtitle": "اخترناها من اللي شفتيه",
+  "cart.summary.addMoreForDiscount": "أضيفي {n} أخرى للحصول على خصم {discount}",
+  "cart.summary.discountUnlocked": "مبروك! حصلتي على خصم {discount} على طلبك!",
 };

@@ -13,10 +13,15 @@ export default function CartPage() {
   const t = useT();
   const lang = useLang();
   const [freeMin, setFreeMin] = useState(0);
+  const [hints, setHints] = useState<{ minItems: number; minAmount: number; type: string; value: number }[]>([]);
   useEffect(() => {
     fetch("/api/settings/payment")
       .then((r) => r.json())
       .then((d) => setFreeMin(d.freeShippingMin || 0))
+      .catch(() => {});
+    fetch("/api/settings/discount-hints")
+      .then((r) => r.json())
+      .then((d) => setHints(Array.isArray(d.rules) ? d.rules : []))
       .catch(() => {});
   }, []);
 
@@ -41,6 +46,11 @@ export default function CartPage() {
   }
 
   const cartTotal = total();
+  // "buy N products, get X% off": tell the customer how close they are
+  const itemCount = items.reduce((n, i) => n + i.quantity, 0);
+  const off = (r: { type: string; value: number }) => (r.type === "FIXED" ? formatPrice(r.value) : `${r.value}%`);
+  const unlocked = hints.filter((r) => itemCount >= r.minItems && cartTotal >= r.minAmount).sort((a, b) => (b.type === "FIXED" ? b.value : (cartTotal * b.value) / 100) - (a.type === "FIXED" ? a.value : (cartTotal * a.value) / 100))[0];
+  const nextHint = hints.find((r) => itemCount < r.minItems);
   const packTotal = packagingTotal();
 
   return (
@@ -141,6 +151,13 @@ export default function CartPage() {
                     {freeMin > 0 && cartTotal >= freeMin ? <Txt k="cart.summary.free" /> : <Txt k="cart.summary.calculatedAtCheckout" />}
                   </span>
                 </div>
+                {(unlocked || nextHint) && (
+                  <p className={`text-xs ${nextHint ? "text-[#8A7A4A]" : "text-green-700"}`}>
+                    {nextHint
+                      ? <Txt k="cart.summary.addMoreForDiscount" vars={{ n: nextHint.minItems - itemCount, discount: off(nextHint) }} />
+                      : <Txt k="cart.summary.discountUnlocked" vars={{ discount: off(unlocked!) }} />}
+                  </p>
+                )}
                 {freeMin > 0 && (
                   <p className={`text-xs ${cartTotal >= freeMin ? "text-green-700" : "text-[#8A7E6E]"}`}>
                     {cartTotal >= freeMin

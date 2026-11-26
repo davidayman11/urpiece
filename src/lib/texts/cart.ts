@@ -24,4 +24,6 @@ export const cartTexts: TextDef[] = [
   { key: "cart.summary.continueShopping", group: G, label: "Cart — Continue Shopping link", default: "Continue Shopping" },
   { key: "reco.title", group: G, label: "Recommended for you — heading", default: "Recommended for you" },
   { key: "reco.subtitle", group: G, label: "Recommended for you — small line above the heading", default: "Picked from what you looked at" },
+  { key: "cart.summary.addMoreForDiscount", group: G, label: "Cart — Add more products for a discount message ({n} = how many more, {discount} = e.g. 25%)", default: "Add {n} more to get {discount} off" },
+  { key: "cart.summary.discountUnlocked", group: G, label: "Cart — Discount unlocked message ({discount} = e.g. 25%)", default: "You've unlocked {discount} off your order!" },
 ];
