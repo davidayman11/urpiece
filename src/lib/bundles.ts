@@ -38,10 +38,19 @@ export interface BundleViewItem {
 export interface BundleView {
   id: string; name: string; nameAr?: string | null; descriptionAr?: string | null; slug: string; description: string | null; image: string | null;
   priceType: string; priceValue: number; items: BundleViewItem[];
+  mode?: string; pickMin?: number; pickMax?: number;
 }
 
 /** Card-level numbers: cheapest regular total, bundle price, and whether it can be bought right now. */
 export function summarizeBundle(b: BundleView) {
+  if (b.mode === "PICK") {
+    // build-your-own: one fixed price; buyable while enough listed products are in stock
+    const ok = b.items.filter((it) => {
+      const vs = it.product.variants.filter((v) => v.isActive && v.inventory > 0 && (!it.variantId || v.id === it.variantId));
+      return it.product.isActive && vs.length > 0;
+    }).length;
+    return { listTotal: 0, price: round(b.priceValue), savings: 0, hasChoice: true, inStock: ok >= Math.max(1, b.pickMin ?? 1) };
+  }
   let listTotal = 0;
   let hasChoice = false;
   let inStock = true;

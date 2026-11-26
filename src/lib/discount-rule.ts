@@ -12,6 +12,7 @@ export function parseRule(b: Record<string, unknown>) {
       type,
       value,
       minAmount: Math.max(0, Number(b.minAmount) || 0),
+      minItems: Math.max(0, Math.floor(Number(b.minItems) || 0)),
       isActive: b.isActive !== false,
       startsAt: b.startsAt ? new Date(b.startsAt as string) : null,
       endsAt: b.endsAt ? new Date(b.endsAt as string) : null,

@@ -14,11 +14,11 @@ interface Settings {
 }
 
 interface RuleForm {
-  name: string; nameAr: string; minAmount: string; type: "PERCENT" | "FIXED"; value: string;
+  name: string; nameAr: string; minAmount: string; minItems: string; type: "PERCENT" | "FIXED"; value: string;
   isActive: boolean; startsAt: string; endsAt: string;
 }
 
-const emptyRule = (): RuleForm => ({ name: "", nameAr: "", minAmount: "", type: "PERCENT", value: "", isActive: true, startsAt: "", endsAt: "" });
+const emptyRule = (): RuleForm => ({ name: "", nameAr: "", minAmount: "", minItems: "", type: "PERCENT", value: "", isActive: true, startsAt: "", endsAt: "" });
 
 const toLocal = (d?: Date | string | null) => {
   if (!d) return "";
@@ -80,7 +80,7 @@ export default function DiscountsClient({
   const openEdit = (r: DiscountRule) => {
     setEditId(r.id);
     setForm({
-      name: r.name, nameAr: r.nameAr || "", minAmount: r.minAmount ? String(r.minAmount) : "", type: r.type === "FIXED" ? "FIXED" : "PERCENT",
+      name: r.name, nameAr: r.nameAr || "", minAmount: r.minAmount ? String(r.minAmount) : "", minItems: r.minItems ? String(r.minItems) : "", type: r.type === "FIXED" ? "FIXED" : "PERCENT",
       value: String(r.value), isActive: r.isActive, startsAt: toLocal(r.startsAt), endsAt: toLocal(r.endsAt),
     });
     setModal("edit");
@@ -219,7 +219,8 @@ export default function DiscountsClient({
               <p className="text-sm font-medium text-gray-800">{r.name}</p>
               <p className="text-xs text-gray-500">
                 {r.type === "FIXED" ? formatPrice(r.value) : `${r.value}%`} off
-                {r.minAmount > 0 ? ` · orders over ${formatPrice(r.minAmount)}` : " · any order"}
+                {r.minItems > 0 ? ` · ${r.minItems}+ products` : ""}
+                {r.minAmount > 0 ? ` · orders over ${formatPrice(r.minAmount)}` : r.minItems > 0 ? "" : " · any order"}
                 {r.startsAt || r.endsAt ? ` · ${r.startsAt ? new Date(r.startsAt).toLocaleDateString() : "now"} → ${r.endsAt ? new Date(r.endsAt).toLocaleDateString() : "no end"}` : ""}
               </p>
             </div>
@@ -252,10 +253,20 @@ export default function DiscountsClient({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Number of products at least</label>
+                  <input type="number" min="0" value={form.minItems} onChange={(e) => setForm((f) => ({ ...f, minItems: e.target.value }))} placeholder="0 = any number"
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
+                </div>
+                <div>
                   <label className="text-xs text-gray-500 mb-1 block">Order total at least (EGP)</label>
                   <input type="number" min="0" value={form.minAmount} onChange={(e) => setForm((f) => ({ ...f, minAmount: e.target.value }))} placeholder="0 = any order"
                     className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
                 </div>
+              </div>
+              <p className="text-[11px] text-gray-400 -mt-2">
+                Example: 5 products and 25% off = &quot;buy 5 pieces, get 25% off&quot;. You can set the order total too (both must be met).
+              </p>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Discount</label>
                   <div className="flex gap-1">

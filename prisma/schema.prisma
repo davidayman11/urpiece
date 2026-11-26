@@ -323,6 +323,10 @@ model Bundle {
   isActive    Boolean      @default(true)
   priceType   String       @default("FIXED")
   priceValue  Float
+  // "FIXED" = ready-made set, "PICK" = the customer chooses pickMin..pickMax of the listed products for one fixed price
+  mode        String       @default("FIXED")
+  pickMin     Int          @default(1)
+  pickMax     Int          @default(0)
   sortOrder   Int          @default(0)
   items       BundleItem[]
   createdAt   DateTime     @default(now())
@@ -359,6 +363,7 @@ model DiscountRule {
   id        String    @id @default(cuid())
   name      String
   minAmount Float     @default(0)
+  minItems  Int       @default(0)
   type      String    @default("PERCENT")
   value     Float
   isActive  Boolean   @default(true)

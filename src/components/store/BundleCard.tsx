@@ -38,11 +38,11 @@ export default async function BundleCard({ bundle }: { bundle: BundleView }) {
         </div>
       </div>
       <div className="pt-3.5 pb-1">
-        <p className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E] mb-1"><Txt k="bundle.card.pieces" vars={{ count: bundle.items.length }} /></p>
+        <p className="text-[9px] tracking-[0.25em] uppercase text-[#A8975E] mb-1">{bundle.mode === "PICK" ? <Txt k="bundle.card.pick" vars={{ max: bundle.pickMax ?? 0 }} /> : <Txt k="bundle.card.pieces" vars={{ count: bundle.items.length }} />}</p>
         <h3 className="text-sm font-serif text-[#1C1711] group-hover:text-[#8A7A4A] transition-colors leading-snug">{name}</h3>
         <p className="mt-1.5 text-sm text-[#5A5040] tabular-nums">
           {s.savings > 0 && <span className="line-through text-[#8A7E6E] mr-2">{formatPrice(s.listTotal)}</span>}
-          {s.hasChoice && bundle.priceType === "PERCENT" ? <Txt k="bundle.card.from" /> : ""}
+          {s.hasChoice && bundle.priceType === "PERCENT" && bundle.mode !== "PICK" ? <Txt k="bundle.card.from" /> : ""}
           {formatPrice(s.price)}
         </p>
       </div>

@@ -132,4 +132,5 @@ export const arCheckout: Record<string, string> = {
   "checkout.msg.emailInvalid": "أدخل بريدًا إلكترونيًا صحيحًا",
   "checkout.note.label": "ملاحظة على الطلب",
   "checkout.note.placeholder": "أي طلبات خاصة أو تعليمات لطلبك…",
+  "checkout.msg.bundlePickCount": "اختاري من {min} إلى {max} منتجات لـ \"{name}\"",
 };

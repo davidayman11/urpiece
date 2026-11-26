@@ -133,4 +133,5 @@ export const checkoutTexts: TextDef[] = [
   { key: "checkout.msg.emailInvalid", group: "Checkout — messages", label: "Order error — email is not valid", default: "Enter a valid email address" },
   { key: "checkout.note.label", group: "Checkout", label: "Order note — field label", default: "Order note" },
   { key: "checkout.note.placeholder", group: "Checkout", label: "Order note — placeholder", default: "Any special requests or instructions for your order…" },
+  { key: "checkout.msg.bundlePickCount", group: "Checkout — messages", label: "Quote — wrong number of products chosen in a build-your-own bundle", default: "Choose between {min} and {max} products for \"{name}\"" },
 ];

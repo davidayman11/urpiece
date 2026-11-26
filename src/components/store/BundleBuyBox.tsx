@@ -21,7 +21,7 @@ export interface BuyItem {
 
 export default function BundleBuyBox({
   bundle,
-}: { bundle: { id: string; name: string; nameAr?: string | null; image: string; priceType: string; priceValue: number; items: BuyItem[] } }) {
+}: { bundle: { id: string; name: string; nameAr?: string | null; image: string; priceType: string; priceValue: number; mode?: string; pickMin?: number; pickMax?: number; items: BuyItem[] } }) {
   const t = useT();
   const lang = useLang();
   const router = useRouter();
@@ -36,9 +36,19 @@ export default function BundleBuyBox({
     )
   );
 
-  const picked = bundle.items.map((it) => ({ it, v: it.variants.find((x) => x.id === choice[it.id]) }));
+  // build-your-own bundle: the customer ticks up to pickMax of the listed products
+  const isPick = bundle.mode === "PICK";
+  const pickMax = bundle.pickMax || 0;
+  const pickMin = Math.max(1, bundle.pickMin || 1);
+  const [chosen, setChosen] = useState<string[]>([]);
+  const inStock = (it: BuyItem) => it.variants.some((v) => v.inventory > 0 && (!it.fixedVariantId || v.id === it.fixedVariantId));
+  const toggle = (id: string) =>
+    setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : c.length >= pickMax ? c : [...c, id]));
+
+  const picked = (isPick ? bundle.items.filter((it) => chosen.includes(it.id)) : bundle.items).map((it) => ({ it, v: it.variants.find((x) => x.id === choice[it.id]) }));
   const listTotal = picked.reduce((s, p) => s + (p.v?.price ?? 0), 0);
-  const price = bundlePrice(bundle.priceType, bundle.priceValue, listTotal);
+  const price = isPick && picked.length === 0 ? bundle.priceValue : bundlePrice(bundle.priceType, bundle.priceValue, listTotal);
+  const tooFew = isPick && picked.length < pickMin;
   const unavailable = picked.some((p) => !p.v || p.v.inventory <= 0);
   // same variant used twice in a bundle needs enough stock for both
   const need = new Map<string, number>();
@@ -46,9 +56,10 @@ export default function BundleBuyBox({
   const notEnough = picked.some((p) => p.v && (need.get(p.v.id) || 0) > p.v.inventory);
 
   const add = () => {
-    if (unavailable || notEnough) return;
+    if (unavailable || notEnough || tooFew) return;
     const selections: Record<string, string> = {};
-    bundle.items.forEach((it) => { if (!it.fixedVariantId) selections[it.id] = choice[it.id]; });
+    if (isPick) picked.forEach((p) => { selections[p.it.id] = choice[p.it.id]; });
+    else bundle.items.forEach((it) => { if (!it.fixedVariantId) selections[it.id] = choice[it.id]; });
     const key = Object.entries(selections).sort().map(([k, v]) => `${k}:${v}`).join(",");
     addItem({
       productId: "bundle",
@@ -69,11 +80,19 @@ export default function BundleBuyBox({
 
   return (
     <div className="space-y-6">
+      {isPick && (
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-sm font-serif text-[#1C1711]"><Txt k="bundle.pick.heading" vars={{ max: pickMax }} /></p>
+          <p className="text-xs text-[#A8975E] tracking-wide"><Txt k="bundle.pick.counter" vars={{ n: chosen.length, max: pickMax }} /></p>
+        </div>
+      )}
       <div className="space-y-4">
         {bundle.items.map((it) => {
           const v = it.variants.find((x) => x.id === choice[it.id]);
+          const on = !isPick || chosen.includes(it.id);
+          const canPick = isPick && inStock(it) && (on || chosen.length < pickMax);
           return (
-            <div key={it.id} className="flex gap-4 bg-[#FBF8F0] border border-[#E0D6BD] p-3">
+            <div key={it.id} className={`flex gap-4 border p-3 transition-colors ${on ? "bg-[#FBF8F0] border-[#E0D6BD]" : "bg-transparent border-[#E8E0CB] opacity-70"} ${isPick && chosen.includes(it.id) ? "!border-[#A8975E] ring-1 ring-[#A8975E]" : ""}`}>
               <div className="relative w-16 h-20 shrink-0 bg-[#EDE6D4] overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {it.image && <img src={it.image} alt={L(lang, it.productName, it.productNameAr)} className="absolute inset-0 w-full h-full object-cover" />}
@@ -104,7 +123,20 @@ export default function BundleBuyBox({
                   </div>
                 )}
               </div>
-              <span className="text-xs text-[#8A7E6E] shrink-0">{v ? formatPrice(v.price) : ""}</span>
+              {isPick ? (
+                <button
+                  type="button"
+                  onClick={() => toggle(it.id)}
+                  disabled={!canPick}
+                  className={`shrink-0 self-center px-3 py-2 text-[10px] tracking-widest uppercase border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    chosen.includes(it.id) ? "border-[#A8975E] bg-[#A8975E] text-[#F5EFE2]" : "border-[#A8975E] text-[#8A7A4A] hover:bg-[#A8975E] hover:text-[#F5EFE2]"
+                  }`}
+                >
+                  {!inStock(it) ? <Txt k="bundle.buy.outOfStock" /> : chosen.includes(it.id) ? <Txt k="bundle.pick.selected" /> : <Txt k="bundle.pick.select" />}
+                </button>
+              ) : (
+                <span className="text-xs text-[#8A7E6E] shrink-0">{v ? formatPrice(v.price) : ""}</span>
+              )}
             </div>
           );
         })}
@@ -112,7 +144,8 @@ export default function BundleBuyBox({
 
       <div className="flex items-baseline gap-3">
         <span className="text-3xl font-serif text-[#1C1711]">{formatPrice(price)}</span>
-        {listTotal > price && (
+        {isPick && <span className="text-xs text-[#8A7E6E]"><Txt k="bundle.pick.onePrice" /></span>}
+        {!isPick && listTotal > price && (
           <>
             <span className="text-[#8A7E6E] line-through">{formatPrice(listTotal)}</span>
             <span className="text-[10px] tracking-[0.2em] uppercase bg-[#B23A3A] text-[#F5EFE2] px-2 py-1">
@@ -122,6 +155,7 @@ export default function BundleBuyBox({
         )}
       </div>
 
+      {tooFew && <p className="text-xs text-[#8A7E6E]"><Txt k="bundle.pick.needMin" vars={{ min: pickMin }} /></p>}
       {unavailable && <p className="text-xs text-[#8A7E6E]"><Txt k="bundle.buy.itemOutOfStock" /></p>}
       {!unavailable && notEnough && <p className="text-xs text-[#C4834A]"><Txt k="bundle.buy.notEnough" /></p>}
 
@@ -133,7 +167,7 @@ export default function BundleBuyBox({
         </div>
         <button
           onClick={add}
-          disabled={unavailable || notEnough}
+          disabled={unavailable || notEnough || tooFew}
           className="flex-1 bg-[#A8975E] text-[#F5EFE2] py-3.5 text-xs tracking-widest uppercase hover:bg-[#8A7A4A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {added ? <Txt k="bundle.buy.added" /> : unavailable ? <Txt k="bundle.buy.outOfStock" /> : <Txt k="bundle.buy.add" />}

@@ -46,4 +46,12 @@ export const arCatalog: Record<string, string> = {
   "bundle.page.metaFallback": "باقة",
   "bundle.page.badge": "باقة",
   "bundle.page.pieces": "{count} قطع بسعر واحد",
+  "bundle.pick.heading": "اختاري حتى {max} منتجات",
+  "bundle.pick.counter": "تم اختيار {n} من {max}",
+  "bundle.pick.needMin": "اختاري {min} على الأقل لإضافة الباقة.",
+  "bundle.pick.select": "اختيار",
+  "bundle.pick.selected": "تم الاختيار ✓",
+  "bundle.pick.onePrice": "سعر واحد مهما اخترتي",
+  "bundle.page.pick": "اختاري حتى {max} من {count} قطعة بسعر واحد",
+  "bundle.card.pick": "اختاري حتى {max}",
 };

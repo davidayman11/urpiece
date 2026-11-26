@@ -54,4 +54,12 @@ export const catalogTexts: TextDef[] = [
   { key: "bundle.page.metaFallback", group: B, label: "Bundle page — Browser tab title fallback", default: "Bundle" },
   { key: "bundle.page.badge", group: B, label: "Bundle page — Bundle badge on image", default: "Bundle" },
   { key: "bundle.page.pieces", group: B, label: "Bundle page — Pieces, one price", default: "{count} pieces, one price" },
+  { key: "bundle.pick.heading", group: B, label: "Build-your-own bundle — heading above the products", default: "Choose up to {max} products" },
+  { key: "bundle.pick.counter", group: B, label: "Build-your-own bundle — counter ({n} chosen of {max})", default: "{n} of {max} chosen" },
+  { key: "bundle.pick.needMin", group: B, label: "Build-your-own bundle — message when too few are chosen", default: "Choose at least {min} to add the bundle." },
+  { key: "bundle.pick.select", group: B, label: "Build-your-own bundle — Select button", default: "Select" },
+  { key: "bundle.pick.selected", group: B, label: "Build-your-own bundle — Selected button", default: "Selected ✓" },
+  { key: "bundle.pick.onePrice", group: B, label: "Build-your-own bundle — fixed price note", default: "One price, whatever you choose" },
+  { key: "bundle.page.pick", group: B, label: "Build-your-own bundle page — small line ({max} = most products, {count} = products to choose from)", default: "Choose up to {max} from {count} pieces, one price" },
+  { key: "bundle.card.pick", group: B, label: "Build-your-own bundle card — small line", default: "Choose up to {max}" },
 ];

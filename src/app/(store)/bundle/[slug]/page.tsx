@@ -50,11 +50,11 @@ export default async function BundlePage({ params }: Props) {
           <span className="absolute top-4 left-4 bg-[#1C1711] text-[#F5EFE2] text-[10px] tracking-[0.25em] uppercase px-3 py-1.5"><Txt k="bundle.page.badge" /></span>
         </div>
         <div>
-          <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3"><Txt k="bundle.page.pieces" vars={{ count: bundle.items.length }} /></p>
+          <p className="text-[10px] tracking-[0.35em] uppercase text-[#A8975E] mb-3">{bundle.mode === "PICK" ? <Txt k="bundle.page.pick" vars={{ max: bundle.pickMax, count: bundle.items.length }} /> : <Txt k="bundle.page.pieces" vars={{ count: bundle.items.length }} />}</p>
           <h1 className="font-serif text-4xl md:text-5xl font-light text-[#1C1711] leading-tight">{bName}</h1>
           {bDesc && <p className="mt-5 text-sm text-[#5A5040] leading-relaxed whitespace-pre-line">{bDesc}</p>}
           <div className="mt-8">
-            <BundleBuyBox bundle={{ id: bundle.id, name: bundle.name, nameAr: bundle.nameAr, image: cover, priceType: bundle.priceType, priceValue: bundle.priceValue, items }} />
+            <BundleBuyBox bundle={{ id: bundle.id, name: bundle.name, nameAr: bundle.nameAr, image: cover, priceType: bundle.priceType, priceValue: bundle.priceValue, mode: bundle.mode, pickMin: bundle.pickMin, pickMax: bundle.pickMax, items }} />
           </div>
         </div>
       </div>

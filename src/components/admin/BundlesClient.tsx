@@ -15,10 +15,12 @@ interface ItemForm { productId: string; variantId: string }
 interface Form {
   name: string; nameAr: string; descriptionAr: string; slug: string; description: string; image: string; isActive: boolean;
   priceType: "FIXED" | "PERCENT"; priceValue: string; items: ItemForm[];
+  mode: "FIXED" | "PICK"; pickMin: string; pickMax: string;
 }
 const emptyForm = (): Form => ({
   name: "", nameAr: "", descriptionAr: "", slug: "", description: "", image: "", isActive: true,
   priceType: "FIXED", priceValue: "", items: [{ productId: "", variantId: "" }, { productId: "", variantId: "" }],
+  mode: "FIXED", pickMin: "1", pickMax: "3",
 });
 
 const inp = "border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#A8975E]";
@@ -53,6 +55,7 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
       name: b.name, nameAr: b.nameAr || "", descriptionAr: b.descriptionAr || "", slug: b.slug, description: b.description || "", image: b.image || "", isActive: b.isActive,
       priceType: b.priceType === "PERCENT" ? "PERCENT" : "FIXED", priceValue: String(b.priceValue),
       items: b.items.map((i) => ({ productId: i.productId, variantId: i.variantId || "" })),
+      mode: b.mode === "PICK" ? "PICK" : "FIXED", pickMin: String(b.pickMin || 1), pickMax: String(b.pickMax || 3),
     });
     setEditId(b.id);
     setModal(true);
@@ -91,6 +94,8 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
     await fetch(`/api/admin/bundles/${b.id}`, { method: "DELETE" });
     router.refresh();
   };
+
+  const isPick = form.mode === "PICK";
 
   const summary = (b: BundleWithItems) => {
     const parts = b.items.map((i) => {
@@ -134,11 +139,12 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
+                      {b.mode === "PICK" && <span className="text-purple-600">Customer picks {b.pickMin === b.pickMax ? b.pickMax : `${b.pickMin}–${b.pickMax}`} of </span>}
                       {b.items.length} products ·{" "}
                       {b.items.map((i) => byId.get(i.productId)?.name || "?").join(", ")}
                     </p>
                     <p className="text-sm mt-2">
-                      <span className="text-gray-400 line-through mr-2">{formatPrice(s.total)}</span>
+                      {b.mode !== "PICK" && <span className="text-gray-400 line-through mr-2">{formatPrice(s.total)}</span>}
                       <span className="font-medium text-[#A8975E]">{formatPrice(s.price)}</span>
                     </p>
                   </div>
@@ -201,10 +207,40 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
                 </div>
               </div>
 
+              {/* Type */}
+              <div className="border border-gray-100 rounded p-3 space-y-3">
+                <label className="text-xs text-gray-500 block">Type of bundle</label>
+                <div className="inline-flex rounded border border-gray-200 overflow-hidden text-sm">
+                  {([["FIXED", "Ready-made set"], ["PICK", "Customer picks the products"]] as const).map(([m, label]) => (
+                    <button key={m} type="button" onClick={() => setForm((f) => ({ ...f, mode: m, priceType: m === "PICK" ? "FIXED" : f.priceType }))}
+                      className={`px-3 py-2 ${form.mode === m ? "bg-[#A8975E] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {isPick && (
+                  <div className="flex flex-wrap items-end gap-4">
+                    <div>
+                      <label className="text-[11px] text-gray-400 block mb-1">Most products the customer can choose *</label>
+                      <input type="number" min="1" value={form.pickMax} onChange={(e) => setForm((f) => ({ ...f, pickMax: e.target.value }))} className={`w-28 ${inp}`} />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-gray-400 block mb-1">Fewest they must choose</label>
+                      <input type="number" min="1" value={form.pickMin} onChange={(e) => setForm((f) => ({ ...f, pickMin: e.target.value }))} className={`w-28 ${inp}`} />
+                    </div>
+                  </div>
+                )}
+                <p className="text-[11px] text-gray-400">
+                  {isPick
+                    ? "The customer ticks products from the list below, up to the maximum, and pays only the bundle price you set, whatever they choose."
+                    : "The customer buys all the products listed below together."}
+                </p>
+              </div>
+
               {/* Products */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs text-gray-500">Products in the bundle *</label>
+                  <label className="text-xs text-gray-500">{isPick ? "Products the customer can choose from *" : "Products in the bundle *"}</label>
                   <button onClick={() => setForm((f) => ({ ...f, items: [...f.items, { productId: "", variantId: "" }] }))} className="text-xs text-[#A8975E] hover:underline">+ Add product</button>
                 </div>
                 <div className="space-y-2">
@@ -234,10 +270,10 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
 
               {/* Price */}
               <div className="border border-gray-100 rounded p-3 space-y-3">
-                <label className="text-xs text-gray-500 block">Bundle price</label>
+                <label className="text-xs text-gray-500 block">{isPick ? "Bundle price (what the customer pays, whatever they choose)" : "Bundle price"}</label>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="inline-flex rounded border border-gray-200 overflow-hidden text-sm">
-                    {(["FIXED", "PERCENT"] as const).map((t) => (
+                    {(isPick ? (["FIXED"] as const) : (["FIXED", "PERCENT"] as const)).map((t) => (
                       <button key={t} type="button" onClick={() => setForm((f) => ({ ...f, priceType: t }))}
                         className={`px-3 py-2 ${form.priceType === t ? "bg-[#A8975E] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
                         {t === "FIXED" ? "Fixed price (EGP)" : "% off the total"}
@@ -247,7 +283,7 @@ export default function BundlesClient({ bundles, products }: { bundles: BundleWi
                   <input type="number" min="0" value={form.priceValue} onChange={(e) => setForm((f) => ({ ...f, priceValue: e.target.value }))}
                     placeholder={form.priceType === "FIXED" ? "e.g. 1200" : "e.g. 15"} className={`w-32 ${inp}`} />
                 </div>
-                {listTotal > 0 && pv > 0 && (
+                {!isPick && listTotal > 0 && pv > 0 && (
                   <p className="text-xs text-emerald-700">
                     {hasChoice ? "From " : ""}{formatPrice(listTotal)} → <strong>{formatPrice(price)}</strong>
                     {listTotal > price && ` · customer saves ${formatPrice(listTotal - price)} (${Math.round(((listTotal - price) / listTotal) * 100)}%)`}

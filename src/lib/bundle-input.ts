@@ -10,13 +10,18 @@ export interface BundleInput {
   isActive: boolean;
   priceType: "FIXED" | "PERCENT";
   priceValue: number;
+  mode: "FIXED" | "PICK";
+  pickMin: number;
+  pickMax: number;
   items: { productId: string; variantId: string | null }[];
 }
 
 export function parseBundle(b: Record<string, unknown>): { data?: BundleInput; error?: string } {
   const name = String(b.name || "").trim();
   if (!name) return { error: "Give the bundle a name" };
-  const priceType = b.priceType === "PERCENT" ? "PERCENT" : "FIXED";
+  const mode = b.mode === "PICK" ? "PICK" : "FIXED";
+  // a build-your-own bundle always has one fixed price
+  const priceType = mode === "PICK" ? "FIXED" : b.priceType === "PERCENT" ? "PERCENT" : "FIXED";
   const priceValue = Number(b.priceValue);
   if (!Number.isFinite(priceValue) || priceValue <= 0) {
     return { error: priceType === "PERCENT" ? "Enter the discount percentage" : "Enter the bundle price" };
@@ -28,7 +33,14 @@ export function parseBundle(b: Record<string, unknown>): { data?: BundleInput; e
       variantId: i?.variantId ? String(i.variantId) : null,
     }))
     .filter((i) => i.productId);
-  if (items.length < 2) return { error: "A bundle needs at least 2 products" };
+  const pickMax = Math.floor(Number(b.pickMax)) || 0;
+  const pickMin = Math.floor(Number(b.pickMin)) || 1;
+  if (mode === "PICK") {
+    if (pickMax < 1) return { error: "Enter the maximum number of products the customer can choose" };
+    if (pickMin < 1 || pickMin > pickMax) return { error: "The minimum must be between 1 and the maximum" };
+    if (items.length < pickMax) return { error: `List at least ${pickMax} products for the customer to choose from` };
+    if (new Set(items.map((i) => i.productId)).size !== items.length) return { error: "Each product can be listed only once in a build-your-own bundle" };
+  } else if (items.length < 2) return { error: "A bundle needs at least 2 products" };
   return {
     data: {
       name,
@@ -40,6 +52,9 @@ export function parseBundle(b: Record<string, unknown>): { data?: BundleInput; e
       isActive: b.isActive !== false,
       priceType,
       priceValue,
+      mode,
+      pickMin: mode === "PICK" ? pickMin : 1,
+      pickMax: mode === "PICK" ? pickMax : 0,
       items,
     },
   };

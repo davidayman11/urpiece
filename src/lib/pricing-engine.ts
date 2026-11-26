@@ -163,6 +163,26 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     }
     const bundle = bundles.find((b) => b.id === i.bundleId);
     if (!bundle || bundle.items.length === 0) throw new QuoteError(tr("checkout.msg.bundleUnavailable"));
+    if (bundle.mode === "PICK") {
+      // build-your-own: the customer chose some of the listed products; the price is the fixed bundle price
+      const chosen = Object.entries(i.selections || {});
+      if (chosen.length < Math.max(1, bundle.pickMin) || chosen.length > bundle.pickMax) {
+        throw new QuoteError(tr("checkout.msg.bundlePickCount", { name: bundle.name, min: bundle.pickMin, max: bundle.pickMax }));
+      }
+      const picked = chosen.map(([itemId, variantId]) => {
+        const bi = bundle.items.find((x) => x.id === itemId);
+        const v = byId.get(variantId);
+        if (!bi || !v || v.productId !== bi.productId || !v.isActive || (bi.variantId && bi.variantId !== v.id)) {
+          throw new QuoteError(tr("checkout.msg.bundleChooseOption", { name: bundle.name }));
+        }
+        return v;
+      });
+      const listTotalPick = picked.reduce((s2, v) => s2 + v.price, 0);
+      const totalPick = bundlePrice("FIXED", bundle.priceValue, listTotalPick);
+      const allocPick = allocateBundle(picked.map((v) => v.price), totalPick);
+      picked.forEach((v, idx) => baseLines.push({ v, quantity, fixedUnit: allocPick[idx], bundleName: bundle.name, packs: [] }));
+      continue;
+    }
     const parts = bundle.items.map((bi) => {
       const v = byId.get(bi.variantId || (i.selections || {})[bi.id] || "");
       if (!v || v.productId !== bi.productId || !v.isActive) {
@@ -246,8 +266,10 @@ export async function quoteOrder(input: QuoteInput, t?: TFunction): Promise<Quot
     let ruleName: string | null = null;
     let ruleNameEn: string | null = null;
     if (o.rule) {
+      const itemCount = lines.reduce((s, l) => s + l.quantity, 0);
       for (const r of activeRules) {
         if (subtotal < r.minAmount) continue;
+        if (r.minItems > 0 && itemCount < r.minItems) continue; // e.g. "buy 5 pieces, get 25% off"
         const d = Math.min(subtotal, r.type === "FIXED" ? r.value : (subtotal * r.value) / 100);
         if (d > ruleDiscount) { ruleDiscount = round(d); ruleName = L(input.lang ?? "en", r.name, r.nameAr); ruleNameEn = r.name; }
       }
